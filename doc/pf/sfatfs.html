@@ -13,9 +13,9 @@
 
 <div class="para">
 <h2>FATFS</h2>
-<p>The <tt>FATFS</tt> structure holds dynamic work area of the logical drive and a file. It is given by application program and registerd/unregisterd to the Petit FatFs module with pf_mount function. There is no member that can be changed from the application program except for <tt>flag</tt>.</p>
+<p>The <tt>FATFS</tt> structure holds dynamic work area of the logical drive and a file. It is given by application program and registerd/unregisterd to the Petit FatFs module with pf_mount function. There is no member that can be changed by application programs.</p>
 <pre>
-typedef struct _FATFS_ {
+typedef struct {
 	BYTE	fs_type;	/* FAT sub type */
 	BYTE	csize;		/* Number of sectors per cluster */
 	BYTE	flag;		/* File status flags */
@@ -26,7 +26,7 @@ typedef struct _FATFS_ {
 	DWORD	fatbase;	/* FAT start sector */
 	DWORD	dirbase;	/* Root directory start sector (Cluster# on FAT32) */
 	DWORD	database;	/* Data start sector */
-	DWORD	fptr;		/* File R/W pointer */
+	DWORD	fptr;		/* File read/write pointer */
 	DWORD	fsize;		/* File size */
 	CLUST	org_clust;	/* File start cluster */
 	CLUST	curr_clust;	/* File current cluster */

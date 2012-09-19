@@ -38,7 +38,7 @@ FRESULT pf_lseek (
 <dd>The function succeeded.</dd>
 <dt>FR_DISK_ERR</dt>
 <dd>The function failed due to an error in the disk function, a wrong FAT structure or an internal error.</dd>
-<dt>FR_INVALID_OBJECT</dt>
+<dt>FR_NOT_OPENED</dt>
 <dd>The file has not been opened.</dd>
 </dl>
 </div>
@@ -47,7 +47,6 @@ FRESULT pf_lseek (
 <div class="para">
 <h4>Description</h4>
 <p>The pf_lseek function moves the file read pointer of the open file. The offset can be specified in only origin from top of the file.</p>
-<p>This function is available when <tt>_USE_LSEEK == 1</tt>.</p>
 </div>
 
 
@@ -65,6 +64,10 @@ FRESULT pf_lseek (
 </pre>
 </div>
 
+<div class="para">
+<h4>QuickInfo</h4>
+<p>Available when <tt>_USE_LSEEK == 1</tt>.</p>
+</div>
 
 <div class="para">
 <h4>References</h4>

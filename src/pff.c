@@ -1,5 +1,5 @@
 /*----------------------------------------------------------------------------/
-/  Petit FatFs - FAT file system module  R0.01a                (C)ChaN, 2009
+/  Petit FatFs - FAT file system module  R0.02                 (C)ChaN, 2009
 /-----------------------------------------------------------------------------/
 / Petit FatFs module is an open source software to implement FAT file system to
 / small embedded systems. This is a free software and is opened for education,
@@ -13,7 +13,11 @@
 / * Redistributions of source code must retain the above copyright notice.
 /
 /-----------------------------------------------------------------------------/
-/ Jun 15,'09 R0.01a  Branched from FatFs R0.07b
+/ Jun 15,'09  R0.01a  First release. (Branched from FatFs R0.07b.)
+/
+/ Dec 14,'09  R0.02   Added multiple code page support.
+/                     Added write funciton.
+/                     Changed stream read mode interface.
 /----------------------------------------------------------------------------*/
 
 #include "pff.h"		/* Petit FatFs configurations and declarations */
@@ -22,19 +26,13 @@
 
 /*--------------------------------------------------------------------------
 
-   Private Work Area
+   Private Functions
 
 ---------------------------------------------------------------------------*/
 
 static
 FATFS *FatFs;	/* Pointer to the file system object (logical drive) */
 
-
-/*--------------------------------------------------------------------------
-
-   Private Functions
-
----------------------------------------------------------------------------*/
 
 
 /*-----------------------------------------------------------------------*/
@@ -55,13 +53,6 @@ int mem_cmp (const void* dst, const void* src, int cnt) {
 	int r = 0;
 	while (cnt-- && (r = *d++ - *s++) == 0) ;
 	return r;
-}
-
-/* Check if chr is contained in the string */
-static
-int chk_chr (const char* str, int chr) {
-	while (*str && *str != chr) str++;
-	return *str;
 }
 
 
@@ -167,7 +158,7 @@ FRESULT dir_rewind (
 /*-----------------------------------------------------------------------*/
 
 static
-FRESULT dir_next (	/* FR_OK:Succeeded, FR_NO_FILE:End of table, FR_DENIED:EOT and could not streach */
+FRESULT dir_next (	/* FR_OK:Succeeded, FR_NO_FILE:End of table */
 	DIR *dj			/* Pointer to directory object */
 )
 {
@@ -255,8 +246,8 @@ FRESULT dir_read (
 
 
 	res = FR_NO_FILE;
+	dir = FatFs->buf;
 	while (dj->sect) {
-		dir = FatFs->buf;
 		res = disk_readp(dir, dj->sect, (WORD)((dj->index % 16) * 32), 32)	/* Read an entry */
 			? FR_DISK_ERR : FR_OK;
 		if (res != FR_OK) break;
@@ -281,6 +272,9 @@ FRESULT dir_read (
 /* Pick a segment and create the object name in directory form           */
 /*-----------------------------------------------------------------------*/
 
+#ifdef _EXCVT
+	static const BYTE cvt[] = _EXCVT;
+#endif
 
 static
 FRESULT create_name (
@@ -288,7 +282,7 @@ FRESULT create_name (
 	const char **path	/* Pointer to pointer to the segment in the path string */
 )
 {
-	BYTE c, ni, si, i, *sfn;
+	BYTE c, d, ni, si, i, *sfn;
 	const char *p;
 
 	/* Create file name in directory form */
@@ -298,21 +292,28 @@ FRESULT create_name (
 	p = *path;
 	for (;;) {
 		c = p[si++];
-		if (c < ' ' || c == '/') break;	/* Break on end of segment */
+		if (c <= ' ' || c == '/') break;	/* Break on end of segment */
 		if (c == '.' || i >= ni) {
-			if (ni != 8 || c != '.') return FR_INVALID_NAME;
+			if (ni != 8 || c != '.') break;
 			i = 8; ni = 11;
 			continue;
 		}
-		if (c >= 0x7F || chk_chr(" +,;[=\\]\"*:<>\?|", c))	/* Reject unallowable chrs for SFN */
-			return FR_INVALID_NAME;
-		if (c >='a' && c <= 'z') c -= 0x20;
-		sfn[i++] = c;
+#ifdef _EXCVT
+		if (c >= 0x80)					/* To upper extended char (SBCS) */
+			c = cvt[c - 0x80];
+#endif
+		if (IsDBCS1(c) && i >= ni - 1) {	/* DBC 1st byte? */
+			d = p[si++];					/* Get 2nd byte */
+			sfn[i++] = c;
+			sfn[i++] = d;
+		} else {						/* Single byte code */
+			if (IsLower(c)) c -= 0x20;	/* toupper */
+			sfn[i++] = c;
+		}
 	}
-	if (!i) return FR_INVALID_NAME;		/* Reject null string */
 	*path = &p[si];						/* Rerurn pointer to the next segment */
 
-	sfn[11] = (c < ' ') ? 1 : 0;		/* Set last segment flag if end of path */
+	sfn[11] = (c <= ' ') ? 1 : 0;		/* Set last segment flag if end of path */
 
 	return FR_OK;
 }
@@ -376,10 +377,11 @@ FRESULT follow_path (	/* FR_OK(0): successful, !=0: error code */
 	BYTE *dir;
 
 
+	while (*path == ' ') path++;		/* Skip leading spaces */
 	if (*path == '/') path++;			/* Strip heading separator */
 	dj->sclust = 0;						/* Set start directory (always root dir) */
 
-	if ((BYTE)*path < ' ') {			/* Null path means the root directory */
+	if ((BYTE)*path <= ' ') {			/* Null path means the root directory */
 		res = dir_rewind(dj);
 		FatFs->buf[0] = 0;
 
@@ -558,7 +560,7 @@ FRESULT pf_open (
 		LD_WORD(dir+DIR_FstClusLO);
 	fs->fsize = LD_DWORD(dir+DIR_FileSize);	/* File size */
 	fs->fptr = 0;						/* File pointer */
-	fs->flag = FA_READ;
+	fs->flag = FA_OPENED;
 
 	return FR_OK;
 }
@@ -569,85 +571,148 @@ FRESULT pf_open (
 /*-----------------------------------------------------------------------*/
 /* Read File                                                             */
 /*-----------------------------------------------------------------------*/
+#if _USE_READ
 
 FRESULT pf_read (
-	void* dest,		/* Pointer to the destination object */
-	WORD btr,		/* Number of bytes to read (bit15:destination) */
+	void* buff,		/* Pointer to the read buffer (NULL:Forward data to the stream)*/
+	WORD btr,		/* Number of bytes to read */
 	WORD* br		/* Pointer to number of bytes read */
 )
 {
 	DRESULT dr;
 	CLUST clst;
 	DWORD sect, remain;
+	BYTE *rbuff = buff;
 	WORD rcnt;
-	BYTE *rbuff = dest;
 	FATFS *fs = FatFs;
 
 
 	*br = 0;
 	if (!fs) return FR_NOT_ENABLED;		/* Check file system */
-	if (!(fs->flag & FA_READ))
-			return FR_INVALID_OBJECT;
+	if (!(fs->flag & FA_OPENED))		/* Check if opened */
+		return FR_NOT_OPENED;
 
 	remain = fs->fsize - fs->fptr;
-	if (btr > remain) btr = (UINT)remain;			/* Truncate btr by remaining bytes */
+	if (btr > remain) btr = (WORD)remain;			/* Truncate btr by remaining bytes */
 
-	for ( ;  btr;									/* Repeat until all data transferred */
-		rbuff += rcnt, fs->fptr += rcnt, *br += rcnt, btr -= rcnt) {
+	while (btr)	{									/* Repeat until all data transferred */
 		if ((fs->fptr % 512) == 0) {				/* On the sector boundary? */
 			if ((fs->fptr / 512 % fs->csize) == 0) {	/* On the cluster boundary? */
 				clst = (fs->fptr == 0) ?			/* On the top of the file? */
 					fs->org_clust : get_fat(fs->curr_clust);
-				if (clst <= 1) {
-					fs->flag = 0; return FR_DISK_ERR;
-				}
+				if (clst <= 1) goto fr_abort;
 				fs->curr_clust = clst;				/* Update current cluster */
 				fs->csect = 0;						/* Reset sector offset in the cluster */
 			}
 			sect = clust2sect(fs->curr_clust);		/* Get current sector */
-			if (!sect) {
-				fs->flag = 0; return FR_DISK_ERR;
-			}
-			sect += fs->csect;
-			fs->dsect = sect;
-			fs->csect++;							/* Next sector address in the cluster */
+			if (!sect) goto fr_abort;
+			fs->dsect = sect + fs->csect++;
 		}
 		rcnt = 512 - ((WORD)fs->fptr % 512);		/* Get partial sector data from sector buffer */
 		if (rcnt > btr) rcnt = btr;
-		if (fs->flag & FA_STREAM) {
-			dr = disk_readp(dest, fs->dsect, (WORD)(fs->fptr % 512), (WORD)(rcnt | 0x8000));
-		} else {
-			dr = disk_readp(rbuff, fs->dsect, (WORD)(fs->fptr % 512), rcnt);
+		dr = disk_readp(!buff ? 0 : rbuff, fs->dsect, (WORD)(fs->fptr % 512), rcnt);
+		if (dr) goto fr_abort;
+		fs->fptr += rcnt; rbuff += rcnt;			/* Update pointers and counters */
+		btr -= rcnt; *br += rcnt;
+	}
+
+	return FR_OK;
+
+fr_abort:
+	fs->flag = 0;
+	return FR_DISK_ERR;
+}
+#endif
+
+
+
+/*-----------------------------------------------------------------------*/
+/* Write File                                                            */
+/*-----------------------------------------------------------------------*/
+#if _USE_WRITE
+
+FRESULT pf_write (
+	const void* buff,	/* Pointer to the data to be written */
+	WORD btw,			/* Number of bytes to write (0:Finalize the current write operation) */
+	WORD* bw			/* Pointer to number of bytes written */
+)
+{
+	CLUST clst;
+	DWORD sect, remain;
+	const BYTE *p = buff;
+	WORD wcnt;
+	FATFS *fs = FatFs;
+
+
+	*bw = 0;
+	if (!fs) return FR_NOT_ENABLED;		/* Check file system */
+	if (!(fs->flag & FA_OPENED))		/* Check if opened */
+		return FR_NOT_OPENED;
+
+	if (!btw) {		/* Finalize request */
+		if ((fs->flag & FA__WIP) && disk_writep(0, 0)) goto fw_abort;
+		fs->flag &= ~FA__WIP;
+		return FR_OK;
+	} else {		/* Write data request */
+		if (!(fs->flag & FA__WIP))		/* Round down fptr to the sector boundary */
+			fs->fptr &= 0xFFFFFE00;
+	}
+	remain = fs->fsize - fs->fptr;
+	if (btw > remain) btw = (WORD)remain;			/* Truncate btw by remaining bytes */
+
+	while (btw)	{									/* Repeat until all data transferred */
+		if (((WORD)fs->fptr % 512) == 0) {				/* On the sector boundary? */
+			if ((fs->fptr / 512 % fs->csize) == 0) {	/* On the cluster boundary? */
+				clst = (fs->fptr == 0) ?			/* On the top of the file? */
+					fs->org_clust : get_fat(fs->curr_clust);
+				if (clst <= 1) goto fw_abort;
+				fs->curr_clust = clst;				/* Update current cluster */
+				fs->csect = 0;						/* Reset sector offset in the cluster */
+			}
+			sect = clust2sect(fs->curr_clust);		/* Get current sector */
+			if (!sect) goto fw_abort;
+			fs->dsect = sect + fs->csect++;
+			if (disk_writep(0, fs->dsect)) goto fw_abort;	/* Initiate a sector write operation */
+			fs->flag |= FA__WIP;
 		}
-		if (dr) {
-			fs->flag = 0;
-			return (dr == RES_STRERR) ? FR_STREAM_ERR : FR_DISK_ERR;
+		wcnt = 512 - ((WORD)fs->fptr % 512);		/* Number of bytes to write to the sector */
+		if (wcnt > btw) wcnt = btw;
+		if (disk_writep(p, wcnt)) goto fw_abort;	/* Send data to the sector */
+		fs->fptr += wcnt; p += wcnt;				/* Update pointers and counters */
+		btw -= wcnt; *bw += wcnt;
+		if (((WORD)fs->fptr % 512) == 0) {
+			if (disk_writep(0, 0)) goto fw_abort;	/* Finalize the currtent secter write operation */
+			fs->flag &= ~FA__WIP;
 		}
 	}
 
 	return FR_OK;
+
+fw_abort:
+	fs->flag = 0;
+	return FR_DISK_ERR;
 }
+#endif
 
 
 
-
-#if _USE_LSEEK
 /*-----------------------------------------------------------------------*/
 /* Seek File R/W Pointer                                                 */
 /*-----------------------------------------------------------------------*/
+#if _USE_LSEEK
 
 FRESULT pf_lseek (
 	DWORD ofs		/* File pointer from top of file */
 )
 {
 	CLUST clst;
-	DWORD bcs, nsect, ifptr;
+	DWORD bcs, sect, ifptr;
 	FATFS *fs = FatFs;
 
 
 	if (!fs) return FR_NOT_ENABLED;		/* Check file system */
-	if (!(fs->flag & FA_READ))
-			return FR_INVALID_OBJECT;
+	if (!(fs->flag & FA_OPENED))		/* Check if opened */
+			return FR_NOT_OPENED;
 
 	if (ofs > fs->fsize) ofs = fs->fsize;	/* Clip offset with the file size */
 	ifptr = fs->fptr;
@@ -664,32 +729,34 @@ FRESULT pf_lseek (
 			fs->curr_clust = clst;
 		}
 		while (ofs > bcs) {				/* Cluster following loop */
-				clst = get_fat(clst);	/* Follow cluster chain if not in write mode */
-			if (clst <= 1 || clst >= fs->max_clust) {
-				fs->flag = 0; return FR_DISK_ERR;
-			}
+			clst = get_fat(clst);		/* Follow cluster chain */
+			if (clst <= 1 || clst >= fs->max_clust) goto fe_abort;
 			fs->curr_clust = clst;
 			fs->fptr += bcs;
 			ofs -= bcs;
 		}
 		fs->fptr += ofs;
-		fs->csect = (BYTE)(ofs / 512) + 1;	/* Sector offset in the cluster */
-		nsect = clust2sect(clst);	/* Current sector */
-		if (!nsect) {
-			fs->flag = 0; return FR_DISK_ERR;
-		}
-		fs->dsect = nsect + fs->csect - 1;
+		sect = clust2sect(clst);		/* Current sector */
+		if (!sect) goto fe_abort;
+		fs->csect = (BYTE)(ofs / 512);	/* Sector offset in the cluster */
+		if (ofs % 512)
+			fs->dsect = sect + fs->csect++;
 	}
 
 	return FR_OK;
+
+fe_abort:
+	fs->flag = 0;
+	return FR_DISK_ERR;
 }
 #endif
 
 
-#if _USE_DIR
+
 /*-----------------------------------------------------------------------*/
 /* Create a Directroy Object                                             */
 /*-----------------------------------------------------------------------*/
+#if _USE_DIR
 
 FRESULT pf_opendir (
 	DIR *dj,			/* Pointer to directory object to create */
@@ -719,9 +786,8 @@ FRESULT pf_opendir (
 					res = FR_NO_PATH;
 				}
 			}
-			if (res == FR_OK) {
+			if (res == FR_OK)
 				res = dir_rewind(dj);			/* Rewind dir */
-			}
 		}
 		if (res == FR_NO_FILE) res = FR_NO_PATH;
 	}
@@ -773,5 +839,5 @@ FRESULT pf_readdir (
 	return res;
 }
 
-#endif /* _FS_DIR */
+#endif /* _USE_DIR */
 

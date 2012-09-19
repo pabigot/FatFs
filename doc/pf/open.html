@@ -13,7 +13,7 @@
 
 <div class="para">
 <h2>pf_open</h2>
-<p>The pf_open function opens a file.</p>
+<p>The pf_open function opens an existing file.</p>
 <pre>
 FRESULT pf_open (
   const char* <em>FileName</em>  /* Pointer to the file neme */
@@ -39,10 +39,6 @@ FRESULT pf_open (
 <dd>Could not find the file.</dd>
 <dt>FR_NO_PATH</dt>
 <dd>Could not find the path.</dd>
-<dt>FR_INVALID_NAME</dt>
-<dd>The file name is invalid.</dd>
-<dt>FR_NOT_READY</dt>
-<dd>The disk drive cannot work due to no medium in the drive or any other reason.</dd>
 <dt>FR_DISK_ERR</dt>
 <dd>The function failed due to an error in the disk function, a wrong FAT structure or an internal error.</dd>
 <dt>FR_NOT_ENABLED</dt>
@@ -60,16 +56,6 @@ FRESULT pf_open (
 <div class="para">
 <h4>Example</h4>
 <pre>
-// A simple streaming function
-BYTE strout (BYTE c)
-{
-    send_byte(c);   // Send a byte to the output device
-    return 1;       // Return with success
-                    // When return with zero, pf_read fails with FR_STREAM_ERR;
-}
-
-
-// Main function
 void main (void)
 {
     FATFS fs;          // Work area (file system object) for the volume
@@ -78,7 +64,7 @@ void main (void)
     FRESULT res;       // Petit FatFs function common result code
 
 
-    // Register a work area
+    // Mount the volume
     pf_mount(&amp;fs);
     if (res) die(res);
 
@@ -87,18 +73,16 @@ void main (void)
     if (res) die(res);
 
     // Read data to the memory
-    res = pf_read(buff, 16, &br);    // Read data to the buff[]
-    if (res) die(res);
-    if (br != 16) die(255);
+    res = pf_read(buff, 16, &amp;br);    // Read data to the buff[]
+    if (res) die(res);               // Check error
+    if (br != 16) die(255);          // Check EOF
 
     ....
 
-    // Forward data to the stream
-    fs.flag |= FA_STREAM;      // Set stream mode
+    // Forward data to the outgoing stream
     do
-        res = pf_read(strout, 512, &amp;br);  // Send data to the stream
-    while (res || br != 512);  // error or eof
-    fs.flag &= ~FA_STREAM;     // Clear stream mode
+        res = pf_read(0, 512, &amp;br);  // Send data to the stream
+    while (res || br != 512);        // Break on error or eof
 
     ....
 
@@ -108,6 +92,10 @@ void main (void)
 </pre>
 </div>
 
+<div class="para">
+<h4>QuickInfo</h4>
+<p>Always available.</p>
+</div>
 
 <div class="para">
 <h4>References</h4>

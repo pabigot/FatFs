@@ -34,8 +34,10 @@ FRESULT pf_mount (
 <dl class="ret">
 <dt>FR_OK (0)</dt>
 <dd>The function succeeded.</dd>
+<dt>FR_NOT_READY</dt>
+<dd>The drive could not be initialized due to a disk error or no medium.</dd>
 <dt>FR_DISK_ERR</dt>
-<dd>The function failed due to an error in the disk function.</dd>
+<dd>An error occured in the disk function.</dd>
 <dt>FR_NO_FILESYSTEM</dt>
 <dd>There is no valid FAT partition on the disk.</dd>
 </dl>
@@ -47,6 +49,11 @@ FRESULT pf_mount (
 <p>The pf_mount function registers/unregisters a work area to the Petit FatFs module. The volume is mounted on registration. The volume must be mounted with this function prior to any other file function and after every media changes. To unregister the work area, specify a NULL to the <em>FileSystemObject</em>, and then the work area can be discarded.</p>
 </div>
 
+
+<div class="para">
+<h4>QuickInfo</h4>
+<p>Always available.</p>
+</div>
 
 <div class="para">
 <h4>References</h4>

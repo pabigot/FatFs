@@ -38,12 +38,10 @@ FRESULT pf_readdir (
 <dl class="ret">
 <dt>FR_OK (0)</dt>
 <dd>The function succeeded.</dd>
-<dt>FR_NOT_READY</dt>
-<dd>The disk drive cannot work due to no medium in the drive or any other reason.</dd>
 <dt>FR_DISK_ERR</dt>
 <dd>The function failed due to an error in the disk function, a wrong FAT structure or an internal error.</dd>
-<dt>FR_INVALID_OBJECT</dt>
-<dd>The volume has not been mounted.</dd>
+<dt>FR_NOT_OPENED</dt>
+<dd>The directory object has not been opened.</dd>
 </dl>
 </div>
 
@@ -51,7 +49,6 @@ FRESULT pf_readdir (
 <div class="para">
 <h4>Description</h4>
 <p>The pf_readdir function reads directory entries in sequence. All items in the directory can be read by calling pf_readdir function repeatedly. When all directory entries have been read and no item to read, the function returns a null string into <tt>f_name[]</tt> member without any error. When a null pointer is given to the <tt>FileInfo</tt>, the read index of the directory object will be rewinded.</p>
-<p>This function is available when <tt>_USE_DIR == 1</tt>.</p>
 </div>
 
 
@@ -88,6 +85,10 @@ FRESULT scan_files (char* path)
 </pre>
 </div>
 
+<div class="para">
+<h4>QuickInfo</h4>
+<p>Available when <tt>_USE_DIR == 1</tt>.</p>
+</div>
 
 <div class="para">
 <h4>References</h4>
