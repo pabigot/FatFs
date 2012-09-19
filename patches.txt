@@ -1,0 +1,63 @@
+Patches for FatFs and Tiny-FatFs R0.06
+
+April 16, 2008 - FatFs and Tiny-FatFs
+------------------------------------------------------------------------------
+The va_arg(arp,char) used in fprintf() will cause an incorrect behavior on
+the big-endian processor due to type promotion rules. Thus the corresponding
+code should be changed to va_arg(arp,int).
+
+
+
+October 11, 2008 - FatFs and Tiny-FatFs
+------------------------------------------------------------------------------
+Warnings due to wrong cast may occure in the get_fileinfo function. To
+eliminate it, remove const attribute of the argument, "const BYTE *dir".
+
+
+
+October 22, 2008 - FatFs and Tiny-FatFs
+------------------------------------------------------------------------------
+Improving write performance. On sector misaligned long writes, FatFs issues
+sector write requests out of the sector order. It will decrease the write
+performance of flash memory storages. This is not the case on short writes
+without direct transfer. To solve this problem, apply following patches. 
+
+--- ff.c	Tue Apr  1 21:49:26 2008
++++ ff_new.c	Tue Oct 21 23:27:44 2008
+@@ -1018,6 +1018,11 @@
+ 				fp->curr_clust = clust;				/* Update current cluster */
+ 				fp->csect = 0;						/* Reset sector address in the cluster */
+ 			}
++			if (fp->flag & FA__DIRTY) {				/* Write back file I/O buffer prior to following direct transfer */
++				if (disk_write(fp->fs->drive, fp->buffer, fp->curr_sect, 1) != RES_OK)
++					goto fw_error;
++				fp->flag &= (BYTE)~FA__DIRTY;
++			}
+ 			sect = clust2sect(fp->fs, fp->curr_clust) + fp->csect;	/* Get current sector */
+ 			cc = btw / SS(fp->fs);					/* When remaining bytes >= sector size, */
+ 			if (cc) {								/* Write maximum contiguous sectors directly */
+@@ -1030,11 +1035,6 @@
+ 				continue;
+ 			}
+ 			if (sect != fp->curr_sect) {			/* Is window offset changed? */
+-				if (fp->flag & FA__DIRTY) {			/* Write back file I/O buffer if needed */
+-					if (disk_write(fp->fs->drive, fp->buffer, fp->curr_sect, 1) != RES_OK)
+-						goto fw_error;
+-					fp->flag &= (BYTE)~FA__DIRTY;
+-				}
+ 				if (fp->fptr < fp->fsize &&  		/* Fill file I/O buffer with file data */
+ 					disk_read(fp->fs->drive, fp->buffer, sect, 1) != RES_OK)
+ 						goto fw_error;
+
+
+--- tff.c	Tue Apr  1 21:49:28 2008
++++ tff_new.c	Wed Oct 22 02:13:05 2008
+@@ -1037,6 +1037,8 @@
+ 		if (wcnt > btw) wcnt = btw;
+ 		memcpy(&fp->fs->win[fp->fptr % 512U], wbuff, wcnt);
+ 		fp->fs->winflag = 1;
++		if (((UINT)fp->fptr + wcnt) % 512U == 0		/* Flush sector window when last byte is written */
++			&& !move_window(0)) goto fw_error;
+ 	}
+ 
+ 	if (fp->fptr > fp->fsize) fp->fsize = fp->fptr;	/* Update file size if needed */
