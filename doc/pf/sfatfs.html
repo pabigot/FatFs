@@ -1,0 +1,40 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<link rel="up" title="Petit FatFs" href="../00index_p.html">
+<link rel="stylesheet" href="../css_e.css" type="text/css" media="screen" title="ELM Default">
+<link rel="stylesheet" href="../css_p.css" type="text/css" media="screen" title="ELM Default">
+<title>Petit FatFs - FATFS</title>
+</head>
+
+<body>
+
+<div class="para">
+<h2>FATFS</h2>
+<p>The <tt>FATFS</tt> structure holds dynamic work area of the logical drive and a file. It is given by application program and registerd/unregisterd to the Petit FatFs module with pf_mount function. There is no member that can be changed from the application program except for <tt>flag</tt>.</p>
+<pre>
+typedef struct _FATFS_ {
+	BYTE	fs_type;	/* FAT sub type */
+	BYTE	csize;		/* Number of sectors per cluster */
+	BYTE	flag;		/* File status flags */
+	BYTE	csect;		/* File sector address in the cluster */
+	WORD	n_rootdir;	/* Number of root directory entries (0 on FAT32) */
+	BYTE*	buf;		/* Pointer to the disk access buffer */
+	CLUST	max_clust;	/* Maximum cluster# + 1. Number of clusters is max_clust - 2 */
+	DWORD	fatbase;	/* FAT start sector */
+	DWORD	dirbase;	/* Root directory start sector (Cluster# on FAT32) */
+	DWORD	database;	/* Data start sector */
+	DWORD	fptr;		/* File R/W pointer */
+	DWORD	fsize;		/* File size */
+	CLUST	org_clust;	/* File start cluster */
+	CLUST	curr_clust;	/* File current cluster */
+	DWORD	dsect;		/* File current data sector */
+} FATFS;
+</pre>
+</div>
+
+<p class="foot"><a href="../00index_p.html">Return</a></p>
+</body>
+</html>

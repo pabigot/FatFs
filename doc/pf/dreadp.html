@@ -1,0 +1,62 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<link rel="up" title="Petit FatFs" href="../00index_p.html">
+<link rel="stylesheet" href="../css_e.css" type="text/css" media="screen" title="ELM Default">
+<link rel="stylesheet" href="../css_p.css" type="text/css" media="screen" title="ELM Default">
+<title>Petit FatFs - disk_readp</title>
+</head>
+
+<body>
+
+<div class="para">
+<h2>disk_readp</h2>
+<p>The disk_readp function reads a partial sector from the disk drive.</p>
+<pre>
+DRESULT disk_readp (
+  void* <em>Destination</em>,   /* Pointer to the destination object */
+  DWORD <em>SectorNumber</em>,  /* Sector number */
+  WORD <em>Offset</em>,         /* Byte offset in the sector to start to read */
+  WORD <em>Count</em>           /* Number of bytes to read and destination flag */
+);
+</pre>
+</div>
+
+<div class="para">
+<h4>Parameters</h4>
+<dl class="par">
+<dt>Destination</dt>
+<dd>Pointer to the destination object to put the read data. The destination object is either memory (<tt>void* buffer</tt>) or streaming function (<tt>(BYTE)(*func)(BYTE)</tt>). The type of the destination is specified by bit 15 in the Count.</dd>
+<dt>SectorNumber</dt>
+<dd>Specifies the sector number in logical block address (LBA).</dd>
+<dt>Offset</dt>
+<dd>Specifies the byte offset in the sector to start to read. The value can be 1 to 511.</dd>
+<dt>Count</dt>
+<dd>Bit14-0 specifies number of bytes to read. The value can be 1 to 512.<br>
+Bit15 specifies the type of the destination. 0: Memory, 1: Streaming function.</dd>
+</dl>
+</div>
+
+
+<div class="para">
+<h4>Return Value</h4>
+<dl class="ret">
+<dt>RES_OK (0)</dt>
+<dd>The function succeeded.</dd>
+<dt>RES_ERROR</dt>
+<dd>Any hard error occured during the disk read operation and could not recover it.</dd>
+<dt>RES_STRERR</dt>
+<dd>Any hard error occured in the streaming function.</dd>
+<dt>RES_PARERR</dt>
+<dd>Invalid parameter.</dd>
+<dt>RES_NOTRDY</dt>
+<dd>The disk drive has not been initialized.</dd>
+</dl>
+</div>
+
+
+<p class="foot"><a href="../00index_p.html">Return</a></p>
+</body>
+</html>
