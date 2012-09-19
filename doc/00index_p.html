@@ -3,8 +3,7 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<link rel="start" title="Site Top" href="../../">
-<link rel="up" title="Freewares" href="../../fsw_e.html">
+<meta name="description" content="A tiny FAT file system for embedded projects">
 <link rel="stylesheet" href="css_e.css" type="text/css" media="screen" title="ELM Default">
 <link rel="stylesheet" href="css_p.css" type="text/css" media="screen" title="ELM Default">
 <title>ELM - Petit FAT File System Module</title>
@@ -20,9 +19,9 @@
 
 <h4>Features</h4>
 <ul>
- <li>Very small RAM consumption (46 bytes work area + certain stack).</li>
+ <li>Very small RAM consumption (44 bytes work area + certain stack).</li>
  <li>Very small code size (2K-4K bytes).</li>
- <li>FAT12, FAT16 and FAT32.</li>
+ <li>Supports FAT32.</li>
  <li>Single volume and Single file.</li>
  <li>File write function with some restrictions.</li>
 </ul>
@@ -37,7 +36,7 @@
 <li><a href="pf/open.html">pf_open</a> - Open a File</li>
 <li><a href="pf/read.html">pf_read</a> - Read File</li>
 <li><a href="pf/write.html">pf_write</a> - Write File</li>
-<li><a href="pf/lseek.html">pf_lseek</a> - Move R/W Pointer</li>
+<li><a href="pf/lseek.html">pf_lseek</a> - Move read/write Pointer</li>
 <li><a href="pf/opendir.html">pf_opendir</a> - Open a Directory</li>
 <li><a href="pf/readdir.html">pf_readdir</a> - Read a Directory Item</li>
 </ul>
@@ -60,7 +59,7 @@
 <p>The Petit FatFs module is a free software and is opened for education, research and development. You can use, modify and/or redistribute it for personal, non-profit or commercial use without any restriction under your responsibility. For further information, refer to the application note.</p>
 <ul>
 <li><a href="http://elm-chan.org/fsw/ff/bd/"><em>FatFs User Forum</em></a></li>
-<li><a href="pf/appnote.html">Petit FatFs module application note</a> <span class="mfd">Dec 14, 2009</span></li>
+<li>Read first: <a href="pf/appnote.html">Petit FatFs module application note</a> <span class="mfd">Dec 7, 2010</span></li>
 <li><a href="http://www.microsoft.com/whdc/system/platform/firmware/fatgen.mspx">FAT32 Specification by Microsoft</a> (The reference document on FAT file system)</li>
 <li><a href="http://elm-chan.org/docs/mmc/mmc_e.html">How to Use MMC/SDC</a></li>
 <li><a href="img/rwtest3.png">Benchmark 3</a> (ATtiny85/8MHz with MMC via USI)</li>
@@ -68,7 +67,5 @@
 </div>
 
 
-<hr>
-<p class="foot"><a href="../../fsw_e.html">Return</a></p>
 </body>
 </html>

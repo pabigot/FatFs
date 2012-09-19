@@ -25,18 +25,18 @@ The Petit FatFs module assumes that size of char/short/long are 8/16/32-bit and 
 </div>
 
 <div class="para">
-<h3>Memory Usage (R0.02)</h3>
+<h3>Memory Usage (R0.02a)</h3>
 <table class="lst2">
 <tr><th></th><th>AVR</th><th>x86</th></tr>
 <tr><td>Compiler</td><td>gcc(WinAVR)</td><td>VC6</td></tr>
 <tr><td>_WORD_ACCESS</td><td>1</td><td>1</td></tr>
-<tr class="lst3"><td>ROM (default)</td><td>2154</td><td>1698</td></tr>
-<tr><td>ROM (!_USE_READ)</td><td>-456</td><td>-268</td></tr>
-<tr><td>ROM (_USE_DIR)</td><td>+974</td><td>+426</td></tr>
-<tr><td>ROM (_USE_LSEEK)</td><td>+512</td><td>+241</td></tr>
-<tr><td>ROM (_USE_WRITE)</td><td>+538</td><td>+364</td></tr>
+<tr class="lst3"><td>Code (default)</td><td>2100</td><td>1720</td></tr>
+<tr><td>Code (!_USE_READ)</td><td>-444</td><td>-246</td></tr>
+<tr><td>Code (_USE_DIR)</td><td>+1002</td><td>+420</td></tr>
+<tr><td>Code (_USE_LSEEK)</td><td>+490</td><td>+228</td></tr>
+<tr><td>Code (_USE_WRITE)</td><td>+518</td><td>+351</td></tr>
 <tr><td>RAM (bss)</td><td>2</td><td>4</td></tr>
-<tr><td>RAM (work)</td><td>44</td><td>48</td></tr>
+<tr><td>RAM (work)</td><td>42</td><td>44</td></tr>
 </table>
 <p>This is the size of the Petit FatFs module itself. In addition to this, a low level disk I/O module will be required for a complete function. The size of MMC/SDC module on AVR becomes approximate 620 bytes without write function and 840 bytes with write function.</p>
 </div>
@@ -70,13 +70,13 @@ The Petit FatFs module assumes that size of char/short/long are 8/16/32-bit and 
 <h3>About Petit FatFs License</h3>
 <p>This is a copy of the Petit FatFs license document that included in the source codes.</p>
 <pre>/*----------------------------------------------------------------------------/
-/  Petit FatFs - FAT file system module  R0.02                 (C)ChaN, 2009
+/  Petit FatFs - FAT file system module  R0.02a                (C)ChaN, 2010
 /-----------------------------------------------------------------------------/
 / Petit FatFs module is an open source software to implement FAT file system to
 / small embedded systems. This is a free software and is opened for education,
 / research and commercial developments under license policy of following trems.
 /
-/  Copyright (C) 2009, ChaN, all right reserved.
+/  Copyright (C) 2010, ChaN, all right reserved.
 /
 / * The Petit FatFs module is a free software and there is NO WARRANTY.
 / * No restriction on use. You can use, modify and redistribute it for

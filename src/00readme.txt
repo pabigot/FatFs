@@ -1,4 +1,4 @@
-Petit FatFs Module Source Files R0.02                 (C)ChaN, 2009
+Petit FatFs Module Source Files R0.02a                (C)ChaN, 2010
 
 
 FILES
@@ -22,7 +22,7 @@ AGREEMENTS
  small embedded systems. This is a free software and is opened for education,
  research and commercial developments under license policy of following trems.
 
-  Copyright (C) 2009, ChaN, all right reserved.
+  Copyright (C) 2010, ChaN, all right reserved.
 
  * The Petit FatFs module is a free software and there is NO WARRANTY.
  * No restriction on use. You can use, modify and redistribute it for
@@ -37,4 +37,6 @@ REVISION HISTORY
   Dec 14, 2009  R0.02   Added multiple code page support.
                         Added write funciton.
                         Changed stream read mode interface.
+  Dec 07,'2010  R0.02a  Added some configuration options.
+                        Fixed fails to open objects with DBCS character.
 
