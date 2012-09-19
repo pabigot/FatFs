@@ -1,14 +1,16 @@
 /*---------------------------------------------------------------------------
-   Extended itoa, puts and printf                    (C)ChaN, 2006
+   Extended itoa, puts and printf                    (C)ChaN, 2011
 
 -----------------------------------------------------------------------------*/
 
 #ifndef XITOA
 #define XITOA
 
+#include <inttypes.h>
 #include <avr/pgmspace.h>
 
-extern void (*xfunc_out)(char);
+extern void (*xfunc_out)(uint8_t);
+#define xdev_out(func) xfunc_out = (void(*)(uint8_t))(func)
 
 /* This is a pointer to user defined output function. It must be initialized
    before using this modle.
@@ -46,7 +48,9 @@ void xitoa(long value, char radix, char width);
 
 
 /*-----------------------------------------------------------------------------*/
-void xprintf(const prog_char *format, ...);
+void xprintf(const prog_char *format, ...);	/* Send formatted string to the registered device */
+void xsprintf(char*, const prog_char *format, ...);	/* Put formatted string to the memory */
+void xfprintf(void(*func)(uint8_t), const prog_char *format, ...); /* Send formatted string to the specified device */
 
 /* Format string is placed in the ROM. The format flags is similar to printf().
 
@@ -67,7 +71,7 @@ void xprintf(const prog_char *format, ...);
      'S' : String placed on the ROM, argument is the pointer
      'd' : Signed decimal, argument is the value
      'u' : Unsigned decimal, argument is the value
-     'X' : Hex decimal, argument is the value
+     'X' : Hexdecimal, argument is the value
      'b' : Binary, argument is the value
      '%' : '%'
 

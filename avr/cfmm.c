@@ -8,94 +8,93 @@
 #include <string.h>
 #include "diskio.h"
 
-#define CFC	0	/* Physical drive number for CompactFlash */
-#define MMC	1	/* Physical drive number for MMC/SDSC/SDHC */
+#define CFC	0	/* PD# of CompactFlash */
+#define MMC	1	/* PD# of MMC/SDC */
 
 
 /*---------------------------------------------------*/
-/* Definitions for CF card */
-
-/* ATA command */
-#define CMD_RESET		0x08	/* DEVICE RESET */
-#define CMD_READ		0x20	/* READ SECTOR(S) */
-#define CMD_WRITE		0x30	/* WRITE SECTOR(S) */
-#define CMD_IDENTIFY	0xEC	/* DEVICE IDENTIFY */
-#define CMD_SETFEATURES	0xEF	/* SET FEATURES */
-
-/* ATA register bit definitions */
-#define	LBA				0xE0
-#define	BUSY			0x80
-#define	DRDY			0x40
-#define	DF				0x20
-#define	DRQ				0x08
-#define	ERR				0x01
-#define	SRST			0x40
-#define	nIEN			0x20
+/* Definitions for CF card                           */
+/*---------------------------------------------------*/
 
 /* Contorl Ports */
 #define	CTRL_PORT		PORTA
 #define	CTRL_DDR		DDRA
-#define	CF_SOCK_PORT	PORTC
-#define	CF_SOCK_DDR		DDRC
-#define	CF_SOCK_PIN		PINC
-#define	DAT0_PORT		PORTD
-#define	DAT0_DDR		DDRD
-#define	DAT0_PIN		PIND
-#define	CF_SOCKINS		0x03
-#define	CF_SOCKPWR		0x04
+#define	SOCK_PORT		PORTC
+#define	SOCK_DDR		DDRC
+#define	SOCK_PIN		PINC
+#define	DAT_PORT		PORTD
+#define	DAT_DDR			DDRD
+#define	DAT_PIN			PIND
 
 /* Bit definitions for Control Port */
-#define	CTL_READ		0x20
-#define	CTL_WRITE		0x40
-#define	CTL_RESET		0x80
-#define	REG_DATA		0xF0
-#define	REG_ERROR		0xF1
-#define	REG_FEATURES	0xF1
-#define	REG_COUNT		0xF2
-#define	REG_SECTOR		0xF3
-#define	REG_CYLL		0xF4
-#define	REG_CYLH		0xF5
-#define	REG_DEV			0xF6
-#define	REG_COMMAND		0xF7
-#define	REG_STATUS		0xF7
-#define	REG_DEVCTRL		0xEE
-#define	REG_ALTSTAT		0xEE
+#define	REG_DATA		0b11110000	/* Select Data register */
+#define	REG_ERROR		0b11110001	/* Select Error register */
+#define	REG_FEATURES	0b11110001	/* Select Features register */
+#define	REG_COUNT		0b11110010	/* Select Count register */
+#define	REG_SECTOR		0b11110011	/* Select Sector register */
+#define	REG_CYLL		0b11110100	/* Select Cylinder low register */
+#define	REG_CYLH		0b11110101	/* Select Cylinder high regitser */
+#define	REG_DEV			0b11110110	/* Select Device register */
+#define	REG_COMMAND		0b11110111	/* Select Command register */
+#define	REG_STATUS		0b11110111	/* Select Status register */
+#define	REG_DEVCTRL		0b11101110	/* Select Device control register */
+#define	REG_ALTSTAT		0b11101110	/* Select Alternative Setatus register */
+#define	IORD			0b00100000	/* IORD# bit in the control port */
+#define	IOWR			0b01000000	/* IOWR# bit in the control port */
+#define	RESET			0b10000000	/* RESE# bit in the control port */
+#define CFPOWER			0b00000100	/* POWER# bit in the socket control port */
+#define CFINS			0b00000011	/* INS# bit in the socket control port */
+#define CF_EXIST		((SOCK_PIN & CFINS) == 0)	/* Both CD1, CD2 are low */
+
+/* ATA command */
+#define CMD_READ		0x20	/* READ SECTOR(S) */
+#define CMD_WRITE		0x30	/* WRITE SECTOR(S) */
+#define CMD_ERASE		0xC0	/* ERASE SECTOR(S) */
+#define CMD_IDENTIFY	0xEC	/* DEVICE IDENTIFY */
+#define CMD_SETFEATURES	0xEF	/* SET FEATURES */
+
+/* ATA register bit definitions */
+#define	LBA				0x40	/* REG_DEV */
+#define	BSY				0x80	/* REG_STATUS */
+#define	DRDY			0x40	/* REG_STATUS */
+#define	DRQ				0x08	/* REG_STATUS */
+#define	ERR				0x01	/* REG_STATUS */
+#define	SRST			0x04	/* REG_DEVCTRL */
+#define	NIEN			0x02	/* REG_DEVCTRL */
 
 
 /*---------------------------------------------------*/
-/* Definitions for MMC */
+/* Definitions for MMC/SDC                           */
+/*---------------------------------------------------*/
 
-/* MMC/SD command (in SPI) */
-#define CMD0	(0x40+0)	/* GO_IDLE_STATE */
-#define CMD1	(0x40+1)	/* SEND_OP_COND (MMC) */
-#define	ACMD41	(0xC0+41)	/* SEND_OP_COND (SDC) */
-#define CMD8	(0x40+8)	/* SEND_IF_COND */
-#define CMD9	(0x40+9)	/* SEND_CSD */
-#define CMD10	(0x40+10)	/* SEND_CID */
-#define CMD12	(0x40+12)	/* STOP_TRANSMISSION */
-#define ACMD13	(0xC0+13)	/* SD_STATUS (SDC) */
-#define CMD16	(0x40+16)	/* SET_BLOCKLEN */
-#define CMD17	(0x40+17)	/* READ_SINGLE_BLOCK */
-#define CMD18	(0x40+18)	/* READ_MULTIPLE_BLOCK */
-#define CMD23	(0x40+23)	/* SET_BLOCK_COUNT (MMC) */
-#define	ACMD23	(0xC0+23)	/* SET_WR_BLK_ERASE_COUNT (SDC) */
-#define CMD24	(0x40+24)	/* WRITE_BLOCK */
-#define CMD25	(0x40+25)	/* WRITE_MULTIPLE_BLOCK */
-#define CMD55	(0x40+55)	/* APP_CMD */
-#define CMD58	(0x40+58)	/* READ_OCR */
+/* MMC/SD command (in SPI mode) */
+#define CMD0	(0)			/* GO_IDLE_STATE */
+#define CMD1	(1)			/* SEND_OP_COND (MMC) */
+#define	ACMD41	(0x80+41)	/* SEND_OP_COND (SDC) */
+#define CMD8	(8)			/* SEND_IF_COND */
+#define CMD9	(9)			/* SEND_CSD */
+#define CMD10	(10)		/* SEND_CID */
+#define CMD12	(12)		/* STOP_TRANSMISSION */
+#define ACMD13	(0x80+13)	/* SD_STATUS (SDC) */
+#define CMD16	(16)		/* SET_BLOCKLEN */
+#define CMD17	(17)		/* READ_SINGLE_BLOCK */
+#define CMD18	(18)		/* READ_MULTIPLE_BLOCK */
+#define CMD23	(23)		/* SET_BLOCK_COUNT (MMC) */
+#define	ACMD23	(0x80+23)	/* SET_WR_BLK_ERASE_COUNT (SDC) */
+#define CMD24	(24)		/* WRITE_BLOCK */
+#define CMD25	(25)		/* WRITE_MULTIPLE_BLOCK */
+#define CMD55	(55)		/* APP_CMD */
+#define CMD58	(58)		/* READ_OCR */
 
+/* Control signals and macros (Platform dependent) */
+#define CS_LOW()	PORTB &= ~1		/* MMC CS = L */
+#define	CS_HIGH()	PORTB |= 1		/* MMC CS = H */
 
-/* Control signals (Platform dependent) */
-#define SELECT()	PORTB &= ~1		/* MMC CS = L */
-#define	DESELECT()	PORTB |= 1		/* MMC CS = H */
+#define MMWP	(PINB & 0x20)		/* Write protected. yes:true, no:false, default:false */
+#define MMINS	(!(PINB & 0x10))	/* Card detected.   yes:true, no:false, default:true */
 
-#define MM_SOCKPORT	PINB			/* Socket contact port */
-#define MM_SOCKWP	0x20			/* Write protect switch (PB5) */
-#define MM_SOCKINS	0x10			/* Card detect switch (PB4) */
-
-#define	FCLK_SLOW()					/* Set slow clock (100k-400k) */
-#define	FCLK_FAST()					/* Set fast clock (depends on the CSD) */
-
+#define	FCLK_SLOW()	SPCR = 0x52		/* Set slow clock (100k-400k) */
+#define	FCLK_FAST()	SPCR = 0x50		/* Set fast clock (depends on the CSD) */
 
 
 
@@ -105,175 +104,376 @@
 
 ---------------------------------------------------------------------------*/
 
-
-static volatile
-DSTATUS Stat[2] = { STA_NOINIT, STA_NOINIT };	/* Disk status {CFC, MMC}*/
-
-static volatile
-BYTE Timer1, Timer2;		/* 100Hz decrement timers */
+static
+volatile DSTATUS Stat[2] = { STA_NOINIT, STA_NOINIT };	/* Disk status {CFC, MMC}*/
 
 static
-BYTE CardType;
+volatile UINT Timer[2];		/* 100Hz decrement timers */
 
+static
+BYTE CardType;	/* Card type of the mounted MMC/SDC */
+
+
+static
+void set_timer (
+	UINT ch,
+	UINT ms
+)
+{
+	ms /= 10;
+	cli(); Timer[ch] = ms; sei();
+}
+
+
+static
+UINT get_timer (
+	UINT ch
+)
+{
+	UINT n;
+
+	cli(); n = Timer[ch]; sei();
+	return n * 10;
+}
+
+
+static
+void delay_ms (
+	UINT ch,
+	UINT ms
+)
+{
+	ms /= 10;
+	cli(); Timer[ch] = ms; sei();
+
+	do {
+		cli(); ms = Timer[ch]; sei();
+	} while (ms);
+}
+
+
+/*-----------------------------------------------------------------------*/
+/* CFC Power Control (Platform dependent)                                */
+/*-----------------------------------------------------------------------*/
+
+static
+void CF_power_on (void)
+{
+	SOCK_DDR |= CFPOWER;		/* Socket power on */
+	SOCK_PORT &= ~CFPOWER;
+	delay_ms(0, 50);			/* 50ms */
+
+	CTRL_PORT = IORD | IOWR;	/* Enable control signals, RESET# = L */
+	CTRL_DDR = 0xFF;
+	DAT_PORT = 0xFF;			/* Pull-up D7..D0 */
+
+	CTRL_PORT |= RESET;			/* RESET# = H */
+	delay_ms(0, 20);			/* 20ms */
+}
+
+
+static
+void CF_power_off (void)
+{
+	DAT_PORT = 0; 					/* Set D7..D0 as hi-z */
+	CTRL_DDR = 0; CTRL_PORT = 0;	/* Set bus controls as hi-z */
+
+	SOCK_PORT |= CFPOWER;			/* Socket power off */
+	SOCK_PORT |= CFINS;				/* Pull-up CD1#/CD2# */
+	delay_ms(0, 100);				/* 100ms */
+}
 
 
 
 /*-----------------------------------------------------------------------*/
-/* Read an ATA register  (Platform dependent)                            */
+/* Read ATA register  (Platform dependent)                               */
 /*-----------------------------------------------------------------------*/
 
+/* Read ATA register */
 static
-BYTE CF_read_ata (
+BYTE read_ata (
 	BYTE reg			/* Register to be read */
 )
 {
 	BYTE rd;
 
 
-	CTRL_PORT = reg;
-	CTRL_PORT &= ~CTL_READ;
-	CTRL_PORT &= ~CTL_READ;
-	CTRL_PORT &= ~CTL_READ;
-	rd = DAT0_PIN;
-	CTRL_PORT |= CTL_READ;
+	CTRL_PORT = reg;		/* Set address [CS1#,CS0#,A2..A0] */
+	CTRL_PORT &= ~IORD;		/* IORD# = L */
+	CTRL_PORT; CTRL_PORT;	/* Delay */
+	rd = DAT_PIN;			/* Get data */
+	CTRL_PORT |= IORD;		/* IORD# = H */
 	return rd;
 }
 
 
-
-/*-----------------------------------------------------------------------*/
-/* Write a byte to an ATA register  (Platform dependent)                 */
-/*-----------------------------------------------------------------------*/
-
+/* Read 512 bytes from ATA data register */
 static
-void CF_write_ata (
+void read_block (
+	BYTE *buff		/* Buffer for read data (512 bytes) */
+)
+{
+	BYTE d, c, iord_l, iord_h;
+
+
+	CTRL_PORT = REG_DATA;		/* Select data register */
+	iord_h = REG_DATA;
+	iord_l = REG_DATA & ~IORD;
+	c = 255;
+	CTRL_PORT = iord_l;		/* IORD# = L */
+	CTRL_PORT; CTRL_PORT;	/* delay */
+	d = DAT_PIN;			/* Get even data */
+	CTRL_PORT = iord_h;		/* IORD# = H */
+	do {	/* Receive 2 bytes/loop */
+		CTRL_PORT = iord_l;		/* IORD# = L */
+		*buff++ = d;			/* Store even data (delay) */
+		d = DAT_PIN;			/* Get odd data */
+		CTRL_PORT = iord_h;		/* IORD# = H */
+		CTRL_PORT = iord_l;		/* IORD# = L */
+		*buff++ = d;			/* Store odd data (delay) */
+		d = DAT_PIN;			/* Get even data */
+		CTRL_PORT = iord_h;		/* IORD# = H */
+	} while (--c);	/* Repeat 255 times */
+	CTRL_PORT = iord_l;		/* IORD# = L */
+	*buff++ = d;			/* Store even data (delay) */
+	d = DAT_PIN;			/* Get odd data */
+	CTRL_PORT = iord_h;		/* IORD# = H */
+	*buff++ = d;			/* Store odd data */
+}
+
+
+/* Read 512 bytes from ATA data register but store a part of block */
+static
+void read_block_part (
+	BYTE *buf,
+	BYTE ofs,
+	BYTE nw
+)
+{
+	BYTE c, dl, dh;
+
+
+	CTRL_PORT = REG_DATA;		/* Select Data register */
+	c = 0;
+	do {
+		CTRL_PORT &= ~IORD;		/* IORD# = L */
+		CTRL_PORT; CTRL_PORT;	/* Delay */
+		dl = DAT_PIN;			/* Read even byte */
+		CTRL_PORT |= IORD;		/* IORD# = H */
+		CTRL_PORT &= ~IORD;		/* IORD# = L */
+		CTRL_PORT; CTRL_PORT;	/* Delay */
+		dh = DAT_PIN;			/* Read odd byte */
+		CTRL_PORT |= IORD;		/* IORD# = H */
+		if (nw && (c >= ofs)) {	/* Pick up a part of block */
+			*buf++ = dl; *buf++ = dh;
+			nw--;
+		}
+	} while (++c);
+}
+
+
+
+/*-----------------------------------------------------------------------*/
+/* Write data to ATA register (Platform dependent)                       */
+/*-----------------------------------------------------------------------*/
+
+/* Write a byte to the ATA register */
+static
+void write_ata (
 	BYTE reg,		/* Register to be written */
 	BYTE dat		/* Data to be written */
 )
 {
-	CTRL_PORT = reg;
-	DAT0_PORT = dat;
-	DAT0_DDR = 0xFF;
-	CTRL_PORT &= ~CTL_WRITE;
-	CTRL_PORT &= ~CTL_WRITE;
-	CTRL_PORT |= CTL_WRITE;
-	DAT0_PORT = 0xFF;
-	DAT0_DDR = 0;
+	CTRL_PORT = reg;		/* Set address [CS1#,CS0#,A2..A0] */
+	DAT_DDR = 0xFF;			/* Set D7..D0 as output */
+	DAT_PORT = dat;			/* Set data on the D7..D0 */
+	CTRL_PORT &= ~IOWR;		/* IOWR# = L */
+	CTRL_PORT;				/* Delay */
+	CTRL_PORT |= IOWR;		/* IOWR# = H */
+	DAT_PORT = 0xFF;		/* Set D7..D0 as input (pull-up) */
+	DAT_DDR = 0;
 }
 
 
-
-/*-----------------------------------------------------------------------*/
-/* Read a part of data block  (Platform dependent)                       */
-/*-----------------------------------------------------------------------*/
-
+/* Write 512 byte block to ATA data register */
 static
-void CF_read_part (
-	BYTE *buff, 	/* Data buffer to store read data */
-	BYTE ofs,		/* Offset of the part of data in unit of word */
-	BYTE count		/* Number of word to pick up */
+void write_block (
+	const BYTE *buff	/* Data to write (512 bytes) */
 )
 {
-	BYTE c = 0, dl, dh;
+	BYTE c, iowr_l, iowr_h;
 
 
-	CTRL_PORT = REG_DATA;		/* Select Data register */
-	do {
-		CTRL_PORT &= ~CTL_READ;		/* IORD = L */
-		CTRL_PORT &= ~CTL_READ;		/* delay */
-		dl = DAT0_PIN;				/* Read Even data */
-		CTRL_PORT |= CTL_READ;		/* IORD = H */
-		CTRL_PORT &= ~CTL_READ;		/* IORD = L */
-		CTRL_PORT &= ~CTL_READ;		/* delay */
-		dh = DAT0_PIN;				/* Read Odd data */
-		CTRL_PORT |= CTL_READ;		/* IORD = H */
-		if (count && (c >= ofs)) {	/* Pick up a part of block */
-			*buff++ = dl;
-			*buff++ = dh;
-			count--;
-		}
-	} while (++c);
-	CF_read_ata(REG_ALTSTAT);
-	CF_read_ata(REG_STATUS);
+	CTRL_PORT = REG_DATA;	/* Select data register */
+	iowr_h = REG_DATA;
+	iowr_l = REG_DATA & ~IOWR;
+	DAT_DDR = 0xFF;			/* Set D0..D7 as output */
+	c = 0;
+	do {	/* Write 2 bytes/loop */
+		DAT_PORT = *buff++;		/* Set even data */
+		CTRL_PORT = iowr_l;		/* IOWR# = L */
+		CTRL_PORT = iowr_h;		/* IOWR# = H */
+		DAT_PORT = *buff++;		/* Set odd data */
+		CTRL_PORT = iowr_l;		/* IOWR# = L */
+		CTRL_PORT = iowr_h;		/* IOWR# = H */
+	} while (--c);	/* Repeat 256 times */
+	DAT_PORT = 0xFF;		/* Set D0..D7 as input (pull-up) */
+	DAT_DDR = 0;
 }
 
 
 
 /*-----------------------------------------------------------------------*/
-/* Wait for Data Ready  (Platform dependent)                             */
+/* Wait for BSY goes 0 and the bit goes 1                                */
 /*-----------------------------------------------------------------------*/
 
 static
-BOOL CF_wait_data (void)
+int wait_stat (	/* 0:Timeout or or ERR goes 1 */
+	UINT ms,
+	BYTE bit
+)
 {
 	BYTE s;
 
 
-	Timer1 = 100;	/* Time out = 1 sec */
+	set_timer(0, ms);
 	do {
-		if (!Timer1) return FALSE;		/* Abort when timeout occured */
-		s = CF_read_ata(REG_STATUS);	/* Get status */
-	} while ((s & (BUSY|DRQ)) != DRQ);	/* Wait for BUSY goes low and DRQ goes high */
+		s = read_ata(REG_STATUS);					/* Get status */
+		if (!get_timer(0) || (s & ERR)) return 0;	/* Abort when timeout or error occured */
+	} while ((s & BSY) || (bit && !(bit & s)));		/* Wait for BSY goes 0 and the bit goes 1 */
 
-	CF_read_ata(REG_ALTSTAT);
-	return TRUE;
+	read_ata(REG_ALTSTAT);
+	return 1;
 }
 
 
 
 /*-----------------------------------------------------------------------*/
-/* Transmit a byte to MMC via SPI (Platform dependent)                   */
-/*-----------------------------------------------------------------------*/
-
-#define MM_xmit_spi(dat) 	SPDR=(dat); loop_until_bit_is_set(SPSR,SPIF)
-
-
-/*-----------------------------------------------------------------------*/
-/* Receive a byte from MMC via SPI  (Platform dependent)                 */
+/* MMC Power Control (Platform dependent)                                */
 /*-----------------------------------------------------------------------*/
 
 static
-BYTE MM_rcvr_spi (void)
+void MM_power_on (void)
 {
-	SPDR = 0xFF;
-	loop_until_bit_is_set(SPSR, SPIF);
-	return SPDR;
+	{	/* Remove this block if no socket power control */
+		PORTE &= ~_BV(7);		/* Socket power on (PE7=low) */
+		DDRE |= _BV(7);
+		delay_ms(0, 20);		/* Wait for 20ms */
+	}
+
+	PORTB |= 0b00000101;	/* Configure SCK/MOSI/CS as output */
+	DDRB  |= 0b00000111;
+
+	SPCR = 0x52;			/* Enable SPI function in mode 0 */
+	SPSR = 0x01;			/* SPI 2x mode */
 }
 
-/* Alternative macro to receive data fast */
-#define MM_rcvr_spi_m(dst)	SPDR=0xFF; loop_until_bit_is_set(SPSR,SPIF); *(dst)=SPDR
+
+static
+void MM_power_off (void)
+{
+	SPCR = 0;				/* Disable SPI function */
+
+	DDRB  &= ~0b00110111;	/* Set SCK/MOSI/CS as hi-z, INS#/WP as pull-up */
+	PORTB &= ~0b00000111;
+	PORTB |=  0b00110000;
+
+	{	/* Remove this block if no socket power control */
+		PORTE |= _BV(7);	/* Socket power off (PE7=high) */
+		delay_ms(0, 200);	/* Wait for 200ms */
+	}
+}
+
 
 
 /*-----------------------------------------------------------------------*/
-/* Wait for card ready                                                   */
+/* Transmit/Receive data from/to MMC via SPI  (Platform dependent)       */
+/*-----------------------------------------------------------------------*/
+
+/* Exchange a byte */
+static
+BYTE xchg_spi (		/* Returns received data */
+	BYTE dat		/* Data to be sent */
+)
+{
+	SPDR = dat;							/* Initiate an SPI transfer */
+	loop_until_bit_is_set(SPSR, SPIF);	/* Wait for end of the transfer */
+	return SPDR;						/* Return received data */
+}
+
+/* Send a data block */
+static
+void xmit_spi_multi (
+	const BYTE *p,	/* Data block to be sent */
+	UINT cnt		/* Size of data block */
+)
+{
+	do {
+		SPDR = *p++; loop_until_bit_is_set(SPSR,SPIF);
+		SPDR = *p++; loop_until_bit_is_set(SPSR,SPIF);
+	} while (cnt -= 2);
+}
+
+/* Receive a data block */
+static
+void rcvr_spi_multi (
+	BYTE *p,	/* Data buffer */
+	UINT cnt	/* Size of data block */
+)
+{
+	do {
+		SPDR = 0xFF; loop_until_bit_is_set(SPSR,SPIF); *p++ = SPDR;
+		SPDR = 0xFF; loop_until_bit_is_set(SPSR,SPIF); *p++ = SPDR;
+	} while (cnt -= 2);
+}
+
+
+
+/*-----------------------------------------------------------------------*/
+/* Wait for MMC ready                                                    */
 /*-----------------------------------------------------------------------*/
 
 static
-BYTE MM_wait_ready (void)
+int wait_ready (void)
 {
-	BYTE res;
+	BYTE d;
 
-
-	Timer2 = 50;	/* Wait for ready in timeout of 500ms */
-	MM_rcvr_spi();
+	set_timer(1, 500);	/* Wait for ready in timeout of 500ms */
 	do
-		res = MM_rcvr_spi();
-	while ((res != 0xFF) && Timer2);
+		d = xchg_spi(0xFF);
+	while (d != 0xFF && get_timer(1));
 
-	return res;
+	return d == 0xFF ? 1 : 0;
 }
 
 
 
 /*-----------------------------------------------------------------------*/
-/* Deselect the card and release SPI bus                                 */
+/* Deselect the MMC and release SPI bus                                  */
 /*-----------------------------------------------------------------------*/
 
 static
-void MM_release_spi (void)
+void deselect (void)
 {
-	DESELECT();
-	MM_rcvr_spi();
+	CS_HIGH();
+	xchg_spi(0xFF);	/* Dummy clock (force DO hi-z for multiple slave SPI) */
+}
+
+
+
+/*-----------------------------------------------------------------------*/
+/* Select the MMC and wait ready                                         */
+/*-----------------------------------------------------------------------*/
+
+static
+int select (void)	/* 1:Successful, 0:Timeout */
+{
+	CS_LOW();
+	xchg_spi(0xFF);	/* Dummy clock (force DO enabled) */
+
+	if (wait_ready()) return 1;	/* OK */
+	deselect();
+	return 0;	/* Timeout */
 }
 
 
@@ -283,7 +483,7 @@ void MM_release_spi (void)
 /*-----------------------------------------------------------------------*/
 
 static
-BOOL MM_rcvr_datablock (
+int rcvr_datablock (
 	BYTE *buff,			/* Data buffer to store received data */
 	UINT btr			/* Byte count (must be multiple of 4) */
 )
@@ -291,22 +491,17 @@ BOOL MM_rcvr_datablock (
 	BYTE token;
 
 
-	Timer1 = 10;
-	do {							/* Wait for data packet in timeout of 100ms */
-		token = MM_rcvr_spi();
-	} while ((token == 0xFF) && Timer1);
-	if(token != 0xFE) return FALSE;	/* If not valid data token, retutn with error */
+	set_timer(0, 200);
+	do {							/* Wait for data packet in timeout of 200ms */
+		token = xchg_spi(0xFF);
+	} while ((token == 0xFF) && get_timer(0));
+	if (token != 0xFE) return 0;	/* If not valid data token, retutn with error */
 
-	do {							/* Receive the data block into buffer */
-		MM_rcvr_spi_m(buff++);
-		MM_rcvr_spi_m(buff++);
-		MM_rcvr_spi_m(buff++);
-		MM_rcvr_spi_m(buff++);
-	} while (btr -= 4);
-	MM_rcvr_spi();						/* Discard CRC */
-	MM_rcvr_spi();
+	rcvr_spi_multi(buff, btr);		/* Receive the data block into buffer */
+	xchg_spi(0xFF);					/* Discard CRC */
+	xchg_spi(0xFF);
 
-	return TRUE;					/* Return with success */
+	return 1;						/* Return with success */
 }
 
 
@@ -315,34 +510,29 @@ BOOL MM_rcvr_datablock (
 /* Send a data packet to MMC                                             */
 /*-----------------------------------------------------------------------*/
 
-#if _READONLY == 0
 static
-BOOL MM_xmit_datablock (
+int xmit_datablock (
 	const BYTE *buff,	/* 512 byte data block to be transmitted */
 	BYTE token			/* Data/Stop token */
 )
 {
-	BYTE resp, wc = 0;
+	BYTE resp;
 
 
-	if (MM_wait_ready() != 0xFF) return FALSE;
+	if (!wait_ready()) return 0;
 
-	MM_xmit_spi(token);					/* Xmit data token */
+	xchg_spi(token);				/* Transmit data token */
 	if (token != 0xFD) {	/* Is data token */
-		do {							/* Xmit the 512 byte data block to MMC */
-			MM_xmit_spi(*buff++);
-			MM_xmit_spi(*buff++);
-		} while (--wc);
-		MM_xmit_spi(0xFF);					/* CRC (Dummy) */
-		MM_xmit_spi(0xFF);
-		resp = MM_rcvr_spi();			/* Reveive data response */
-		if ((resp & 0x1F) != 0x05)		/* If not accepted, return with error */
-			return FALSE;
+		xmit_spi_multi(buff, 512);	/* Transmit the data block to the MMC */
+		xchg_spi(0xFF);				/* CRC (Dummy) */
+		xchg_spi(0xFF);
+		resp = xchg_spi(0xFF);		/* Reveive data response */
+		if ((resp & 0x1F) != 0x05)	/* If not accepted, return with error */
+			return 0;
 	}
 
-	return TRUE;
+	return 1;
 }
-#endif /* _READONLY */
 
 
 
@@ -351,9 +541,9 @@ BOOL MM_xmit_datablock (
 /*-----------------------------------------------------------------------*/
 
 static
-BYTE MM_send_cmd (
-	BYTE cmd,		/* Command byte */
-	DWORD arg		/* Argument */
+BYTE send_cmd (	/* Returns R1 resp (bit7==1:Send failed) */
+	BYTE cmd,	/* Command index */
+	DWORD arg	/* Argument */
 )
 {
 	BYTE n, res;
@@ -361,91 +551,33 @@ BYTE MM_send_cmd (
 
 	if (cmd & 0x80) {	/* ACMD<n> is the command sequense of CMD55-CMD<n> */
 		cmd &= 0x7F;
-		res = MM_send_cmd(CMD55, 0);
+		res = send_cmd(CMD55, 0);
 		if (res > 1) return res;
 	}
 
 	/* Select the card and wait for ready */
-	DESELECT();
-	SELECT();
-	if (MM_wait_ready() != 0xFF) return 0xFF;
+	deselect();
+	if (!select()) return 0xFF;
 
 	/* Send command packet */
-	MM_xmit_spi(cmd);					/* Start + Command index */
-	MM_xmit_spi((BYTE)(arg >> 24));		/* Argument[31..24] */
-	MM_xmit_spi((BYTE)(arg >> 16));		/* Argument[23..16] */
-	MM_xmit_spi((BYTE)(arg >> 8));		/* Argument[15..8] */
-	MM_xmit_spi((BYTE)arg);				/* Argument[7..0] */
-	n = 0x01;							/* Dummy CRC + Stop */
-	if (cmd == CMD0) n = 0x95;			/* Valid CRC for CMD0(0) */
-	if (cmd == CMD8) n = 0x87;			/* Valid CRC for CMD8(0x1AA) */
-	MM_xmit_spi(n);
+	xchg_spi(0x40 | cmd);			/* Start + Command index */
+	xchg_spi((BYTE)(arg >> 24));	/* Argument[31..24] */
+	xchg_spi((BYTE)(arg >> 16));	/* Argument[23..16] */
+	xchg_spi((BYTE)(arg >> 8));		/* Argument[15..8] */
+	xchg_spi((BYTE)arg);			/* Argument[7..0] */
+	n = 0x01;						/* Dummy CRC + Stop */
+	if (cmd == CMD0) n = 0x95;		/* Valid CRC for CMD0(0) */
+	if (cmd == CMD8) n = 0x87;		/* Valid CRC for CMD8(0x1AA) */
+	xchg_spi(n);
 
 	/* Receive command response */
-	if (cmd == CMD12) MM_rcvr_spi();	/* Skip a stuff byte when stop reading */
-	n = 10;								/* Wait for a valid response in timeout of 10 attempts */
+	if (cmd == CMD12) xchg_spi(0xFF);	/* Skip a stuff byte when stop reading */
+	n = 10;							/* Wait for a valid response in timeout of 10 attempts */
 	do
-		res = MM_rcvr_spi();
+		res = xchg_spi(0xFF);
 	while ((res & 0x80) && --n);
 
 	return res;			/* Return with the response value */
-}
-
-
-
-
-/*-----------------------------------------------------------------------*/
-/* Power control (Platform dependent)                                    */
-/*-----------------------------------------------------------------------*/
-
-static
-void MM_power_off (void)
-{
-	SELECT();
-	MM_wait_ready();
-	MM_release_spi();
-
-	SPCR = 0;				/* Disable SPI function */
-	DDRB  = 0b11000000;		/* Disable drivers */
-	PORTB = 0b10110000;
-	PORTE |=  0x80;			/* Socket power OFF */
-	Stat[1] |= STA_NOINIT;
-}
-
-
-static
-void MM_power_on (void)
-{
-	PORTE &= ~0x80;				/* Socke power (PE7) */
-	for (Timer1 = 3; Timer1; );	/* Wait for 30ms */
-	PORTB = 0b10110101;			/* Enable drivers */
-	DDRB  = 0b11000111;
-	SPCR = 0b01010000;			/* Initialize SPI port (Mode 0) */
-	SPSR = 0b00000001;
-}
-
-
-static
-void CF_power_off()
-{
-	CF_SOCK_PORT = 0xFF;
-	CF_SOCK_DDR = CF_SOCKPWR;
-	DAT0_PORT = 0;
-	CTRL_DDR = 0;
-}
-
-
-static
-void CF_power_on(void)
-{
-	CF_SOCK_PORT &= ~CF_SOCKPWR;			/* Power ON */
-	for (Timer1 = 1; Timer1; );				/* 10ms */
-	CTRL_PORT = CTL_READ | CTL_WRITE;		/* Enable control signals */
-	CTRL_DDR = 0xFF;
-	DAT0_PORT = 0xFF;						/* Pull-up D0-D7 */
-	for (Timer1 = 5; Timer1; );				/* 50ms */
-	CTRL_PORT |= CTL_RESET;					/* RESET = H */
-	for (Timer1 = 5; Timer1; );				/* 50ms */
 }
 
 
@@ -464,39 +596,33 @@ void CF_power_on(void)
 static
 DSTATUS CF_disk_initialize (void)
 {
-	Stat[0] |= STA_NOINIT;
+	CF_power_off();							/* Turn off the socket power to reset the card */
+	Stat[CFC] |= STA_NOINIT;
+	if (Stat[CFC] & STA_NODISK) return Stat[CFC];	/* Exit if socket is empty */
 
-	CF_power_off();								/* Power OFF */
-	for (Timer1 = 10; Timer1; );				/* 100ms */
+	CF_power_on();							/* Turn on the socket power */
 
-	if (Stat[0] & STA_NODISK) return Stat[0];	/* Exit when socket is empty */
+	write_ata(REG_DEVCTRL, SRST);			/* Set software reset */
+	delay_ms(0, 20);
+	write_ata(REG_DEVCTRL, 0);				/* Release software reset */
+	delay_ms(0, 20);
 
-	CF_power_on();								/* Power ON */
-	CF_write_ata(REG_DEV, LBA);					/* Select Device 0 */
-	Timer1 = 200;
-	do {										/* Wait for card goes ready */
-		if (!Timer1) return Stat[0];
-	} while (CF_read_ata(REG_STATUS) & BUSY);
+	if (!wait_stat(3000, 0)) return Stat[CFC];	/* Select device 0 */
+	write_ata(REG_DEV, 0);
+	if (!wait_stat(3000, DRDY)) return Stat[CFC];
 
-	CF_write_ata(REG_DEVCTRL, SRST | nIEN);		/* Software reset */
-	for (Timer1 = 2; Timer1; );					/* 20ms */
-	CF_write_ata(REG_DEVCTRL, nIEN);			/* Release software reset */
-	for (Timer1 = 2; Timer1; );					/* 20ms */
-	Timer1 = 200;
-	do {										/* Wait for card goes ready */
-		if (!Timer1) return Stat[0];
-	} while ((CF_read_ata(REG_STATUS) & (DRDY|BUSY)) != DRDY);
+	write_ata(REG_FEATURES, 0x03);			/* Set default PIO mode wo IORDY */
+	write_ata(REG_COUNT, 0x01);
+	write_ata(REG_COMMAND, CMD_SETFEATURES);
+	if (!wait_stat(3000, DRDY)) return Stat[CFC];
 
-	CF_write_ata(REG_FEATURES, 0x01);			/* Select 8-bit PIO transfer mode */
-	CF_write_ata(REG_COMMAND, CMD_SETFEATURES);
-	Timer1 = 100;
-	do {
-		if (!Timer1) return Stat[0];
-	} while (CF_read_ata(REG_STATUS) & BUSY);
+	write_ata(REG_FEATURES, 0x01);			/* Select 8-bit PIO transfer mode */
+	write_ata(REG_COMMAND, CMD_SETFEATURES);
+	if (!wait_stat(1000, DRDY)) return Stat[CFC];
 
-	Stat[0] &= ~STA_NOINIT;						/* When device goes ready, clear STA_NOINIT */
+	Stat[CFC] &= ~STA_NOINIT;				/* Initialization succeeded */
 
-	return Stat[0];
+	return Stat[CFC];
 }
 
 
@@ -506,47 +632,47 @@ DSTATUS MM_disk_initialize (void)
 	BYTE n, ty, cmd, ocr[4];
 
 
-	if (Stat[1] & STA_NODISK)			/* No card in the socket */
-		return Stat[1];
-
-	MM_power_on();						/* Force socket power ON */
+	MM_power_off();							/* Turn off the socket power to reset the card */
+	if (Stat[MMC] & STA_NODISK) return Stat[1];	/* No card in the socket? */
+	MM_power_on();							/* Turn on the socket power */
 	FCLK_SLOW();
-	for (n = 10; n; n--) MM_rcvr_spi();	/* 80 dummy clocks */
+	for (n = 10; n; n--) xchg_spi(0xFF);	/* 80 dummy clocks */
 
 	ty = 0;
-	if (MM_send_cmd(CMD0, 0) == 1) {			/* Enter Idle state */
-		Timer1 = 100;							/* Initialization timeout of 1000 msec */
-		if (MM_send_cmd(CMD8, 0x1AA) == 1) {	/* SDC ver 2.00 */
-			for (n = 0; n < 4; n++) ocr[n] = MM_rcvr_spi();
+	if (send_cmd(CMD0, 0) == 1) {			/* Enter Idle state */
+		set_timer(0, 1000);					/* Initialization timeout of 1000 msec */
+		if (send_cmd(CMD8, 0x1AA) == 1) {	/* SDC ver 2.00 */
+			for (n = 0; n < 4; n++) ocr[n] = xchg_spi(0xFF);
 			if (ocr[2] == 0x01 && ocr[3] == 0xAA) {	/* The card can work at vdd range of 2.7-3.6V */
-				while (Timer1 && MM_send_cmd(ACMD41, 1UL << 30));	/* ACMD41 with HCS bit */
-				if (Timer1 && MM_send_cmd(CMD58, 0) == 0) {	/* Check CCS bit */
-					for (n = 0; n < 4; n++) ocr[n] = MM_rcvr_spi();
-					ty = (ocr[0] & 0x40) ? CT_SD2|CT_BLOCK : CT_SD2;
+				while (get_timer(0) && send_cmd(ACMD41, 1UL << 30));	/* ACMD41 with HCS bit */
+				if (get_timer(0) && send_cmd(CMD58, 0) == 0) {	/* Check CCS bit */
+					for (n = 0; n < 4; n++) ocr[n] = xchg_spi(0xFF);
+					ty = (ocr[0] & 0x40) ? CT_SD2|CT_BLOCK : CT_SD2;	/* SDv2 */
 				}
 			}
-		} else {							/* SDC ver 1.XX or MMC */
-			if (MM_send_cmd(ACMD41, 0) <= 1) {
-				ty = CT_SD1; cmd = ACMD41;	/* SDC ver 1.XX */
+		} else {							/* SDv1 or MMCv3 */
+			if (send_cmd(ACMD41, 0) <= 1) {
+				ty = CT_SD1; cmd = ACMD41;	/* SDv1 */
 			} else {
-				ty = CT_MMC; cmd = CMD1;	/* MMC */
+				ty = CT_MMC; cmd = CMD1;	/* MMCv3 */
 			}
-			while (Timer1 && MM_send_cmd(cmd, 0));	/* Wait for leaving idle state */
-			if (!Timer1 || MM_send_cmd(CMD16, 512) != 0)	/* Select R/W block length */
+			while (get_timer(0) && send_cmd(cmd, 0));	/* Wait for leaving idle state */
+			if (!get_timer(0) || send_cmd(CMD16, 512) != 0)	/* Select R/W block length */
 				ty = 0;
 		}
 	}
 	CardType = ty;
-	MM_release_spi();
+	deselect();
 
 	if (ty) {			/* Initialization succeded */
-		Stat[1] &= ~STA_NOINIT;		/* Clear STA_NOINIT */
+		Stat[MMC] &= ~STA_NOINIT;	/* Clear STA_NOINIT */
 		FCLK_FAST();
 	} else {			/* Initialization failed */
 		MM_power_off();
+		Stat[MMC] |= STA_NOINIT;/* Force uninitialized */
 	}
 
-	return Stat[1];
+	return Stat[MMC];
 }
 
 
@@ -576,9 +702,9 @@ DSTATUS disk_status (
 {
 	switch (drv) {
 	case CFC :
-		return Stat[0];
+		return Stat[CFC];
 	case MMC :
-		return Stat[1];
+		return Stat[MMC];
 	}
 	return STA_NOINIT;
 }
@@ -596,42 +722,26 @@ DRESULT CF_disk_read (
 	BYTE count		/* Sector count (1..255) */
 )
 {
-	BYTE c, iord_l, iord_h;
-
-
 	if (!count) return RES_PARERR;
-	if (Stat[0] & STA_NOINIT) return RES_NOTRDY;
+	if (Stat[CFC] & STA_NOINIT) return RES_NOTRDY;
 
 	/* Issue Read Setor(s) command */
-	CF_write_ata(REG_COUNT, count);
-	CF_write_ata(REG_SECTOR, (BYTE)sector);
-	CF_write_ata(REG_CYLL, (BYTE)(sector >> 8));
-	CF_write_ata(REG_CYLH, (BYTE)(sector >> 16));
-	CF_write_ata(REG_DEV, ((BYTE)(sector >> 24) & 0x0F) | LBA);
-	CF_write_ata(REG_COMMAND, CMD_READ);
+	if (!wait_stat(1000, DRDY)) return RES_ERROR;
+	write_ata(REG_DEV, ((BYTE)(sector >> 24) & 0x0F) | LBA);
+	write_ata(REG_CYLH, (BYTE)(sector >> 16));
+	write_ata(REG_CYLL, (BYTE)(sector >> 8));
+	write_ata(REG_SECTOR, (BYTE)sector);
+	write_ata(REG_COUNT, count);
+	write_ata(REG_COMMAND, CMD_READ);
 
 	do {
-		if (!CF_wait_data()) return RES_ERROR;	/* Wait data ready */
-		CTRL_PORT = REG_DATA;
-		iord_h = REG_DATA;
-		iord_l = REG_DATA & ~CTL_READ;
-		c = 0;
-		do {
-			CTRL_PORT = iord_l;		/* IORD = L */
-			CTRL_PORT = iord_l;		/* delay */
-			CTRL_PORT = iord_l;		/* delay */
-			*buff++ = DAT0_PIN;		/* Get even data */
-			CTRL_PORT = iord_h;		/* IORD = H */
-			CTRL_PORT = iord_l;		/* IORD = L */
-			CTRL_PORT = iord_l;		/* delay */
-			CTRL_PORT = iord_l;		/* delay */
-			*buff++ = DAT0_PIN;		/* Get Odd data */
-			CTRL_PORT = iord_h;		/* IORD = H */
-		} while (--c);
+		if (!wait_stat(2000, DRQ)) return RES_ERROR;
+		read_block(buff);
+		buff += 512;
 	} while (--count);
 
-	CF_read_ata(REG_ALTSTAT);
-	CF_read_ata(REG_STATUS);
+	read_ata(REG_ALTSTAT);
+	read_ata(REG_STATUS);
 
 	return RES_OK;
 }
@@ -646,25 +756,25 @@ DRESULT MM_disk_read (
 )
 {
 	if (!count) return RES_PARERR;
-	if (Stat[1] & STA_NOINIT) return RES_NOTRDY;
+	if (Stat[MMC] & STA_NOINIT) return RES_NOTRDY;
 
 	if (!(CardType & CT_BLOCK)) sector *= 512;	/* Convert LBA to byte address if needed */
 
 	if (count == 1) {	/* Single block read */
-		if ((MM_send_cmd(CMD17, sector) == 0)	/* READ_SINGLE_BLOCK */
-			&& MM_rcvr_datablock(buff, 512))
+		if ((send_cmd(CMD17, sector) == 0)	/* READ_SINGLE_BLOCK */
+			&& rcvr_datablock(buff, 512))
 			count = 0;
 	}
 	else {				/* Multiple block read */
-		if (MM_send_cmd(CMD18, sector) == 0) {	/* READ_MULTIPLE_BLOCK */
+		if (send_cmd(CMD18, sector) == 0) {	/* READ_MULTIPLE_BLOCK */
 			do {
-				if (!MM_rcvr_datablock(buff, 512)) break;
+				if (!rcvr_datablock(buff, 512)) break;
 				buff += 512;
 			} while (--count);
-			MM_send_cmd(CMD12, 0);				/* STOP_TRANSMISSION */
+			send_cmd(CMD12, 0);				/* STOP_TRANSMISSION */
 		}
 	}
-	MM_release_spi();
+	deselect();
 
 	return count ? RES_ERROR : RES_OK;
 }
@@ -693,7 +803,7 @@ DRESULT disk_read (
 /* Write Sector(s)                                                       */
 /*-----------------------------------------------------------------------*/
 
-#if _READONLY == 0
+#if _USE_WRITE
 static
 DRESULT CF_disk_write (
 	const BYTE *buff,	/* Data to be written */
@@ -701,48 +811,28 @@ DRESULT CF_disk_write (
 	BYTE count			/* Sector count (1..255) */
 )
 {
-	BYTE s, c, iowr_l, iowr_h;
-
-
 	if (!count) return RES_PARERR;
 	if (Stat[0] & STA_NOINIT) return RES_NOTRDY;
 
 	/* Issue Write Setor(s) command */
-	CF_write_ata(REG_COUNT, count);
-	CF_write_ata(REG_SECTOR, (BYTE)sector);
-	CF_write_ata(REG_CYLL, (BYTE)(sector >> 8));
-	CF_write_ata(REG_CYLH, (BYTE)(sector >> 16));
-	CF_write_ata(REG_DEV, ((BYTE)(sector >> 24) & 0x0F) | LBA);
-	CF_write_ata(REG_COMMAND, CMD_WRITE);
+	if (!wait_stat(1000, DRDY)) return RES_ERROR;
+	write_ata(REG_DEV, ((BYTE)(sector >> 24) & 0x0F) | LBA);
+	write_ata(REG_CYLH, (BYTE)(sector >> 16));
+	write_ata(REG_CYLL, (BYTE)(sector >> 8));
+	write_ata(REG_SECTOR, (BYTE)sector);
+	write_ata(REG_COUNT, count);
+	write_ata(REG_COMMAND, CMD_WRITE);
 
 	do {
-		if (!CF_wait_data()) return RES_ERROR;
-		CTRL_PORT = REG_DATA;
-		iowr_h = REG_DATA;
-		iowr_l = REG_DATA & ~CTL_WRITE;
-		DAT0_DDR = 0xFF;		/* Set D0-D7 as output */
-		c = 0;
-		do {
-			DAT0_PORT = *buff++;	/* Set even data */
-			CTRL_PORT = iowr_l;		/* IOWR = L */
-			CTRL_PORT = iowr_h;		/* IOWR = H */
-			DAT0_PORT = *buff++;	/* Set odd data */
-			CTRL_PORT = iowr_l;		/* IOWR = L */
-			CTRL_PORT = iowr_h;		/* IOWR = H */
-		} while (--c);
-		DAT0_PORT = 0xFF;		/* Set D0-D7 as input */
-		DAT0_DDR = 0;
+		if (!wait_stat(2000, DRQ)) return RES_ERROR;
+		write_block(buff);
+		buff += 512;
 	} while (--count);
 
-	Timer1 = 100;
-	do {
-		if (!Timer1) return RES_ERROR;
-		s = CF_read_ata(REG_STATUS);
-	} while (s & BUSY);
-	if (s & ERR) return RES_ERROR;
+	if (!wait_stat(1000, 0)) return RES_ERROR;
 
-	CF_read_ata(REG_ALTSTAT);
-	CF_read_ata(REG_STATUS);
+	read_ata(REG_ALTSTAT);
+	read_ata(REG_STATUS);
 
 	return RES_OK;
 }
@@ -762,24 +852,24 @@ DRESULT MM_disk_write (
 	if (!(CardType & CT_BLOCK)) sector *= 512;	/* Convert LBA to byte address if needed */
 
 	if (count == 1) {	/* Single block write */
-		if ((MM_send_cmd(CMD24, sector) == 0)	/* WRITE_BLOCK */
-			&& MM_xmit_datablock(buff, 0xFE))
+		if ((send_cmd(CMD24, sector) == 0)	/* WRITE_BLOCK */
+			&& xmit_datablock(buff, 0xFE))
 			count = 0;
 	}
 	else {				/* Multiple block write */
 		if (CardType & CT_SDC) {
-			MM_send_cmd(CMD55, 0); MM_send_cmd(CMD23, count);	/* ACMD23 */
+			send_cmd(CMD55, 0); send_cmd(CMD23, count);	/* ACMD23 */
 		}
-		if (MM_send_cmd(CMD25, sector) == 0) {	/* WRITE_MULTIPLE_BLOCK */
+		if (send_cmd(CMD25, sector) == 0) {	/* WRITE_MULTIPLE_BLOCK */
 			do {
-				if (!MM_xmit_datablock(buff, 0xFC)) break;
+				if (!xmit_datablock(buff, 0xFC)) break;
 				buff += 512;
 			} while (--count);
-			if (!MM_xmit_datablock(0, 0xFD))	/* STOP_TRAN token */
+			if (!xmit_datablock(0, 0xFD))	/* STOP_TRAN token */
 				count = 1;
 		}
 	}
-	MM_release_spi();
+	deselect();
 
 	return count ? RES_ERROR : RES_OK;
 }
@@ -800,37 +890,36 @@ DRESULT disk_write (
 	}
 	return RES_PARERR;
 }
-#endif /* _READONLY */
-
+#endif
 
 
 /*-----------------------------------------------------------------------*/
 /* Miscellaneous Functions                                               */
 /*-----------------------------------------------------------------------*/
 
-#if _USE_IOCTL != 0
+#if _USE_IOCTL
 static
 DRESULT CF_disk_ioctl (
 	BYTE ctrl,		/* Control code */
 	void *buff		/* Buffer to send/receive data block */
 )
 {
-	BYTE n, w, ofs, dl, dh, *ptr = buff;
+	BYTE n, w, ofs, dl, dh, *ptr = (BYTE*)buff;
 
 
-	if (Stat[0] & STA_NOINIT) return RES_NOTRDY;
+	if (Stat[CFC] & STA_NOINIT) return RES_NOTRDY;
 
 	switch (ctrl) {
 		case GET_SECTOR_COUNT :	/* Get number of sectors on the disk (DWORD) */
 			ofs = 60; w = 2; n = 0;
 			break;
 
-		case GET_SECTOR_SIZE :	/* Get sectors on the disk (WORD) */
+		case GET_SECTOR_SIZE :	/* Get sector size (WORD) */
 			*(WORD*)buff = 512;
 			return RES_OK;
 
 		case GET_BLOCK_SIZE :	/* Get erase block size in sectors (DWORD) */
-			*(DWORD*)buff = 32;
+			*(DWORD*)buff = 128;
 			return RES_OK;
 
 		case CTRL_SYNC :		/* Nothing to do */
@@ -852,13 +941,17 @@ DRESULT CF_disk_ioctl (
 			return RES_PARERR;
 	}
 
-	CF_write_ata(REG_COMMAND, CMD_IDENTIFY);
-	if (!CF_wait_data()) return RES_ERROR;
-	CF_read_part(ptr, ofs, w);
-	while (n--) {
-		dl = *ptr; dh = *(ptr+1);
+	if (!wait_stat(1000, DRDY)) return RES_ERROR;
+	write_ata(REG_COMMAND, CMD_IDENTIFY);	/* Get device ID data block */
+	if (!wait_stat(1000, DRQ)) return RES_ERROR;	/* Wait for data ready */
+	read_block_part(ptr, ofs, w);
+	while (n--) {				/* Swap byte order */
+		dl = *ptr++; dh = *ptr--;
 		*ptr++ = dh; *ptr++ = dl; 
 	}
+
+	read_ata(REG_ALTSTAT);
+	read_ata(REG_STATUS);
 
 	return RES_OK;
 }
@@ -872,28 +965,29 @@ DRESULT MM_disk_ioctl (
 {
 	DRESULT res;
 	BYTE n, csd[16], *ptr = buff;
-	WORD csize;
+	DWORD csize;
 
 
-	if (Stat[1] & STA_NOINIT) return RES_NOTRDY;
+	if (Stat[MMC] & STA_NOINIT) return RES_NOTRDY;
 
 	res = RES_ERROR;
 	switch (ctrl) {
 	case CTRL_SYNC :	/* Make sure that pending write process has been finished */
-		SELECT();
-		if (MM_wait_ready() == 0xFF)
+		if (select()) {
 			res = RES_OK;
+			deselect();
+		}
 		break;
 
 	case GET_SECTOR_COUNT :	/* Get number of sectors on the disk (DWORD) */
-		if ((MM_send_cmd(CMD9, 0) == 0) && MM_rcvr_datablock(csd, 16)) {
+		if ((send_cmd(CMD9, 0) == 0) && rcvr_datablock(csd, 16)) {
 			if ((csd[0] >> 6) == 1) {	/* SDC ver 2.00 */
-				csize = csd[9] + ((WORD)csd[8] << 8) + 1;
-				*(DWORD*)buff = (DWORD)csize << 10;
+				csize = csd[9] + ((WORD)csd[8] << 8) + ((DWORD)(csd[7] & 63) << 16) + 1;
+				*(DWORD*)buff = csize << 10;
 			} else {					/* MMC or SDC ver 1.XX */
 				n = (csd[5] & 15) + ((csd[10] & 128) >> 7) + ((csd[9] & 3) << 1) + 2;
 				csize = (csd[8] >> 6) + ((WORD)csd[7] << 2) + ((WORD)(csd[6] & 3) << 10) + 1;
-				*(DWORD*)buff = (DWORD)csize << (n - 9);
+				*(DWORD*)buff = csize << (n - 9);
 			}
 			res = RES_OK;
 		}
@@ -906,16 +1000,16 @@ DRESULT MM_disk_ioctl (
 
 	case GET_BLOCK_SIZE :	/* Get erase block size in unit of sectors (DWORD) */
 		if (CardType & CT_SD2) {	/* SDC ver 2.00 */
-			if (MM_send_cmd(ACMD13, 0) == 0) {	/* Read SD status */
-				MM_rcvr_spi();
-				if (MM_rcvr_datablock(csd, 16)) {				/* Read partial block */
-					for (n = 64 - 16; n; n--) MM_rcvr_spi();	/* Purge trailing data */
+			if (send_cmd(ACMD13, 0) == 0) {	/* Read SD status */
+				xchg_spi(0xFF);
+				if (rcvr_datablock(csd, 16)) {				/* Read partial block */
+					for (n = 64 - 16; n; n--) xchg_spi(0xFF);	/* Purge trailing data */
 					*(DWORD*)buff = 16UL << (csd[10] >> 4);
 					res = RES_OK;
 				}
 			}
 		} else {					/* SDC ver 1.XX or MMC */
-			if ((MM_send_cmd(CMD9, 0) == 0) && MM_rcvr_datablock(csd, 16)) {	/* Read CSD */
+			if ((send_cmd(CMD9, 0) == 0) && rcvr_datablock(csd, 16)) {	/* Read CSD */
 				if (CardType & CT_SD1) {	/* SDC ver 1.XX */
 					*(DWORD*)buff = (((csd[10] & 63) << 1) + ((WORD)(csd[11] & 128) >> 7) + 1) << ((csd[13] >> 6) - 1);
 				} else {					/* MMC */
@@ -927,29 +1021,29 @@ DRESULT MM_disk_ioctl (
 		break;
 
 	case MMC_GET_CSD :		/* Receive CSD as a data block (16 bytes) */
-		if (MM_send_cmd(CMD9, 0) == 0		/* READ_CSD */
-			&& MM_rcvr_datablock(ptr, 16))
+		if (send_cmd(CMD9, 0) == 0		/* READ_CSD */
+			&& rcvr_datablock(ptr, 16))
 			res = RES_OK;
 		break;
 
 	case MMC_GET_CID :		/* Receive CID as a data block (16 bytes) */
-		if (MM_send_cmd(CMD10, 0) == 0		/* READ_CID */
-			&& MM_rcvr_datablock(ptr, 16))
+		if (send_cmd(CMD10, 0) == 0		/* READ_CID */
+			&& rcvr_datablock(ptr, 16))
 			res = RES_OK;
 		break;
 
 	case MMC_GET_OCR :		/* Receive OCR as an R3 resp (4 bytes) */
-		if (MM_send_cmd(CMD58, 0) == 0) {	/* READ_OCR */
+		if (send_cmd(CMD58, 0) == 0) {	/* READ_OCR */
 			for (n = 0; n < 4; n++)
-				*ptr++ = MM_rcvr_spi();
+				*ptr++ = xchg_spi(0xFF);
 			res = RES_OK;
 		}
 		break;
 
 	case MMC_GET_SDSTAT :	/* Receive SD statsu as a data block (64 bytes) */
-		if (MM_send_cmd(ACMD13, 0) == 0) {		/* SD_STATUS */
-			MM_rcvr_spi();
-			if (MM_rcvr_datablock(ptr, 64))
+		if (send_cmd(ACMD13, 0) == 0) {		/* SD_STATUS */
+			xchg_spi(0xFF);
+			if (rcvr_datablock(ptr, 64))
 				res = RES_OK;
 		}
 		break;
@@ -958,7 +1052,7 @@ DRESULT MM_disk_ioctl (
 		res = RES_PARERR;
 	}
 
-	MM_release_spi();
+	deselect();
 
 	return res;
 }
@@ -978,8 +1072,7 @@ DRESULT disk_ioctl (
 	}
 	return RES_PARERR;
 }
-#endif /* _USE_IOCTL != 0 */
-
+#endif
 
 
 /*-----------------------------------------------------------------------*/
@@ -989,50 +1082,34 @@ DRESULT disk_ioctl (
 
 void disk_timerproc (void)
 {
-	static BYTE pvc, pvm;
 	BYTE n;
+	UINT d;
 	DSTATUS s;
 
 
-	n = Timer1;						/* 100Hz decrement timer */
-	if (n) Timer1 = --n;
-	n = Timer2;
-	if (n) Timer2 = --n;
+	for (n = 0; n < 2; n++) {		/* 100Hz decrement timers */
+		d = Timer[n];
+		if (d) Timer[n] = --d;
+	}
 
 	/* CF control */
-	n = pvc;
-	pvc = CF_SOCK_PIN & CF_SOCKINS;	/* Sapmle socket switch */
-
-	if (n == pvc) {					/* Have contacts stabled? */
-		if (pvc & CF_SOCKINS) {		/* CD1 or CD2 is high (Socket empty) */
-			Stat[0] |= (STA_NODISK | STA_NOINIT);
-			DAT0_DDR = 0; DAT0_PORT = 0;			/* Float D0-D7 */
-			CTRL_DDR = CTL_RESET; CTRL_PORT = 0;	/* Assert RESET# */
-			CF_SOCK_PORT |= CF_SOCKPWR;				/* Power OFF */
-		} else {					/* CD1 and CD2 are low (Card inserted) */
-			Stat[0] &= ~STA_NODISK;
-		}
+	if (!CF_EXIST) {			/* Socket empty */
+		Stat[CFC] |= STA_NODISK | STA_NOINIT;
+	} else {					/* Card inserted */
+		Stat[CFC] &= ~STA_NODISK;
 	}
 
 	/* MMC control */
-	n = pvm;
-	pvm = MM_SOCKPORT & (MM_SOCKWP | MM_SOCKINS);	/* Sample socket switch */
-
-	if (n == pvm) {					/* Have contacts stabled? */
-		s = Stat[1];
-
-		if (pvm & MM_SOCKWP)		/* WP is H (write protected) */
-			s |= STA_PROTECT;
-		else						/* WP is L (write enabled) */
-			s &= ~STA_PROTECT;
-
-		if (pvm & MM_SOCKINS)		/* INS = H (Socket empty) */
-			s |= (STA_NODISK | STA_NOINIT);
-		else						/* INS = L (Card inserted) */
-			s &= ~STA_NODISK;
-
-		Stat[1] = s;
-	}
+	s = Stat[MMC];
+	if (MMWP)		/* MMC write protected */
+		s |= STA_PROTECT;
+	else			/* MMC not write enabled */
+		s &= ~STA_PROTECT;
+	if (MMINS)		/* MMC inserted */
+		s &= ~STA_NODISK;
+	else			/* MMC socket empty */
+		s |= (STA_NODISK | STA_NOINIT);
+	Stat[MMC] = s;
 
 }
 

@@ -1,66 +1,61 @@
 /*------------------------------------------------*/
 /* UART functions                                 */
+/*------------------------------------------------*/
 
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include "uart.h"
 
-#define	SYSCLK		9216000
 #define	BAUD		115200
 
 
-typedef struct _fifo {
-	uint8_t	idx_w;
-	uint8_t	idx_r;
-	uint8_t	count;
+typedef struct {
+	uint8_t	wi, ri, ct;
 	uint8_t buff[64];
 } FIFO;
-
-
-static volatile
-FIFO txfifo, rxfifo;
+static
+volatile FIFO TxFifo, RxFifo;
 
 
 
 /* Initialize UART */
 
-void uart_init()
+void uart_init (void)
 {
-	rxfifo.idx_r = 0;
-	rxfifo.idx_w = 0;
-	rxfifo.count = 0;
-	txfifo.idx_r = 0;
-	txfifo.idx_w = 0;
-	txfifo.count = 0;
+	UCSR0B = 0;
 
-	UBRR0L = SYSCLK/BAUD/16-1;
-	UCSR0B = _BV(RXEN0)|_BV(RXCIE0)|_BV(TXEN0);
+	PORTE |= _BV(1); DDRE |= _BV(1);	/* Set TXD as output */
+	DDRE &= ~_BV(0); PORTE &= ~_BV(0); 	/* Set RXD as input */
+
+	RxFifo.ct = 0; RxFifo.ri = 0; RxFifo.wi = 0;
+	TxFifo.ct = 0; TxFifo.ri = 0; TxFifo.wi = 0;
+
+	UBRR0L = F_CPU / BAUD / 16 - 1;
+	UCSR0B = _BV(RXEN0) | _BV(RXCIE0) | _BV(TXEN0);
 }
 
 
 /* Get a received character */
 
-uint8_t uart_test ()
+uint8_t uart_test (void)
 {
-	return rxfifo.count;
+	return RxFifo.ct;
 }
 
 
-uint8_t uart_get ()
+uint8_t uart_get (void)
 {
 	uint8_t d, i;
 
 
-	i = rxfifo.idx_r;
-	while(rxfifo.count == 0);
-	d = rxfifo.buff[i++];
+	while (RxFifo.ct == 0) ;
+	i = RxFifo.ri;
+	d = RxFifo.buff[i];
 	cli();
-	rxfifo.count--;
+	RxFifo.ct--;
 	sei();
-	if(i >= sizeof(rxfifo.buff))
-		i = 0;
-	rxfifo.idx_r = i;
+	RxFifo.ri = (i + 1) % sizeof RxFifo.buff;
 
 	return d;
 }
@@ -73,56 +68,49 @@ void uart_put (uint8_t d)
 	uint8_t i;
 
 
-	i = txfifo.idx_w;
-	while(txfifo.count >= sizeof(txfifo.buff));
-	txfifo.buff[i++] = d;
+	while (TxFifo.ct >= sizeof TxFifo.buff) ;
+	i = TxFifo.wi;
+	TxFifo.buff[i] = d;
 	cli();
-	txfifo.count++;
-	UCSR0B = _BV(RXEN0)|_BV(RXCIE0)|_BV(TXEN0)|_BV(UDRIE0);
+	TxFifo.ct++;
+	UCSR0B = _BV(RXEN0) | _BV(RXCIE0) | _BV(TXEN0) | _BV(UDRIE0);
 	sei();
-	if(i >= sizeof(txfifo.buff))
-		i = 0;
-	txfifo.idx_w = i;
+	TxFifo.wi = (i + 1) % sizeof TxFifo.buff;
 }
 
 
 /* UART RXC interrupt */
 
-SIGNAL(SIG_UART0_RECV)
+ISR(USART0_RX_vect)
 {
 	uint8_t d, n, i;
 
 
 	d = UDR0;
-	n = rxfifo.count;
-	if(n < sizeof(rxfifo.buff)) {
-		rxfifo.count = ++n;
-		i = rxfifo.idx_w;
-		rxfifo.buff[i++] = d;
-		if(i >= sizeof(rxfifo.buff))
-			i = 0;
-		rxfifo.idx_w = i;
+	n = RxFifo.ct;
+	if (n < sizeof RxFifo.buff) {
+		RxFifo.ct = ++n;
+		i = RxFifo.wi;
+		RxFifo.buff[i] = d;
+		RxFifo.wi = (i + 1) % sizeof RxFifo.buff;
 	}
 }
 
 
 /* UART UDRE interrupt */
 
-SIGNAL(SIG_UART0_DATA)
+ISR(USART0_UDRE_vect)
 {
 	uint8_t n, i;
 
 
-	n = txfifo.count;
-	if(n) {
-		txfifo.count = --n;
-		i = txfifo.idx_r;
-		UDR0 = txfifo.buff[i++];
-		if(i >= sizeof(txfifo.buff))
-			i = 0;
-		txfifo.idx_r = i;
+	n = TxFifo.ct;
+	if (n) {
+		TxFifo.ct = --n;
+		i = TxFifo.ri;
+		UDR0 = TxFifo.buff[i];
+		TxFifo.ri = (i + 1) % sizeof TxFifo.buff;
 	}
-	if(n == 0)
-		UCSR0B = _BV(RXEN0)|_BV(RXCIE0)|_BV(TXEN0);
+	if (n == 0) UCSR0B = _BV(RXEN0) | _BV(RXCIE0) | _BV(TXEN0);
 }
 

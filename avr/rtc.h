@@ -1,3 +1,6 @@
+#ifndef RTC_DEFINED
+#define RTC_DEFINED
+
 #include "integer.h"
 
 typedef struct {
@@ -10,9 +13,12 @@ typedef struct {
 	BYTE	sec;	/* 0..59 */
 } RTC;
 
-BOOL rtc_init (void);						/* Initialize RTC */
-BOOL rtc_gettime (RTC*);					/* Get time */
-BOOL rtc_settime (const RTC*);				/* Set time */
-BOOL rtc_write (UINT, UINT, const void*);	/* Write RTC regs */
-BOOL rtc_read (UINT, UINT, void*);			/* Read RTC regs */
+int iic_write (BYTE, UINT, UINT, const void*);	/* Write to IIC device */
+int iic_read (BYTE, UINT, UINT, void*);		/* Read from IIC device */
 
+int rtc_init (void);						/* Initialize RTC */
+int rtc_gettime (RTC*);					/* Get time */
+int rtc_settime (const RTC*);				/* Set time */
+
+
+#endif

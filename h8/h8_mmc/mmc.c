@@ -1,35 +1,49 @@
-/*-----------------------------------------------------------------------*/
-/* MMC/SDSC/SDHC (in SPI mode) control module  (C)ChaN, 2007             */
-/*-----------------------------------------------------------------------*/
-/* Only rcvr_spi(), xmit_spi(), disk_timerproc() and some macros are     */
-/* platform dependent.                                                   */
-/*-----------------------------------------------------------------------*/
-
+/*------------------------------------------------------------------------/
+/  MMCv3/SDv1/SDv2 (in SPI mode) control module
+/-------------------------------------------------------------------------/
+/
+/  Copyright (C) 2010, ChaN, all right reserved.
+/
+/ * This software is a free software and there is NO WARRANTY.
+/ * No restriction on use. You can use, modify and redistribute it for
+/   personal, non-profit or commercial products UNDER YOUR RESPONSIBILITY.
+/ * Redistributions of source code must retain the above copyright notice.
+/
+/-------------------------------------------------------------------------*/
 
 #include <machine.h>
 #include "iodefine.h"
 #include "diskio.h"
 
+#define	_USE_CD		1	/* Use card detect contact */
+#define _USE_WP		0	/* Use write protect contact */
 
 /* MMC/SD command (in SPI) */
-#define CMD0	(0x40+0)	/* GO_IDLE_STATE */
-#define CMD1	(0x40+1)	/* SEND_OP_COND */
-#define	ACMD41	(0xC0+41)	/* SEND_OP_COND (SDC) */
-#define CMD8	(0x40+8)	/* SEND_IF_COND */
-#define CMD9	(0x40+9)	/* SEND_CSD */
-#define CMD10	(0x40+10)	/* SEND_CID */
-#define CMD12	(0x40+12)	/* STOP_TRANSMISSION */
-#define ACMD13	(0xC0+13)	/* SD_STATUS (SDC) */
-#define CMD16	(0x40+16)	/* SET_BLOCKLEN */
-#define CMD17	(0x40+17)	/* READ_SINGLE_BLOCK */
-#define CMD18	(0x40+18)	/* READ_MULTIPLE_BLOCK */
-#define CMD23	(0x40+23)	/* SET_BLOCK_COUNT */
-#define	ACMD23	(0xC0+23)	/* SET_WR_BLK_ERASE_COUNT (SDC) */
-#define CMD24	(0x40+24)	/* WRITE_BLOCK */
-#define CMD25	(0x40+25)	/* WRITE_MULTIPLE_BLOCK */
-#define CMD41	(0x40+41)	/* SEND_OP_COND (ACMD) */
-#define CMD55	(0x40+55)	/* APP_CMD */
-#define CMD58	(0x40+58)	/* READ_OCR */
+#define CMD0	(0)			/* GO_IDLE_STATE */
+#define CMD1	(1)			/* SEND_OP_COND */
+#define	ACMD41	(0x80+41)	/* SEND_OP_COND (SDC) */
+#define CMD8	(8)			/* SEND_IF_COND */
+#define CMD9	(9)			/* SEND_CSD */
+#define CMD10	(10)		/* SEND_CID */
+#define CMD12	(12)		/* STOP_TRANSMISSION */
+#define ACMD13	(0x80+13)	/* SD_STATUS (SDC) */
+#define CMD16	(16)		/* SET_BLOCKLEN */
+#define CMD17	(17)		/* READ_SINGLE_BLOCK */
+#define CMD18	(18)		/* READ_MULTIPLE_BLOCK */
+#define CMD23	(23)		/* SET_BLOCK_COUNT */
+#define	ACMD23	(0x80+23)	/* SET_WR_BLK_ERASE_COUNT (SDC) */
+#define CMD24	(24)		/* WRITE_BLOCK */
+#define CMD25	(25)		/* WRITE_MULTIPLE_BLOCK */
+#define CMD41	(41)		/* SEND_OP_COND (ACMD) */
+#define CMD55	(55)		/* APP_CMD */
+#define CMD58	(58)		/* READ_OCR */
+
+/* Card type flags (CardType) */
+#define CT_MMC		0x01		/* MMC ver 3 */
+#define CT_SD1		0x02		/* SD ver 1 */
+#define CT_SD2		0x04		/* SD ver 2 */
+#define CT_SDC		(CT_SD1|CT_SD2)	/* SD */
+#define CT_BLOCK	0x08		/* Block addressing */
 
 
 /* Control signals (Platform dependent) */
@@ -37,8 +51,8 @@
 #define MMDI		IO.PDR5.BIT.B1	/* MMC DI */
 #define MMDO		IO.PDR5.BIT.B2	/* MMC DO */
 #define	MMCS		IO.PDR5.BIT.B3	/* MMC CS */
-#define SELECT()	MMCS = 0		/* MMC CS = L */
-#define	DESELECT()	MMCS = 1		/* MMC CS = H */
+#define CS_LOW()	MMCS = 0		/* MMC CS = L */
+#define	CS_HIGH()	MMCS = 1		/* MMC CS = H */
 
 #define SOCKPORT	IO.PDR5.BYTE	/* Socket control port */
 #define SOCKWP		0x10			/* Write protect switch (PB5) */
@@ -128,17 +142,18 @@ BYTE rcvr_spi (void)
 /*-----------------------------------------------------------------------*/
 
 static
-BYTE wait_ready (void)
+int wait_ready (void)	/* 1:OK, 0:Timeout */
 {
 	BYTE res;
 
 
-	Timer2 = 50;			/* Wait for ready in timeout of 500ms */
+	Timer2 = 50;	/* Wait for ready in timeout of 500ms */
 	rcvr_spi();
 	do
-		res = rcvr_spi();
-	while ((res != 0xFF) && Timer2);
-	return res;
+		if (rcvr_spi() == 0xFF) return 1;
+	while (Timer2);
+
+	return 0;
 }
 
 
@@ -148,10 +163,27 @@ BYTE wait_ready (void)
 /*-----------------------------------------------------------------------*/
 
 static
-void release_spi (void)
+void deselect (void)
 {
-	DESELECT();
+	CS_HIGH();
 	rcvr_spi();
+}
+
+
+
+/*-----------------------------------------------------------------------*/
+/* Select the card and wait for ready                                    */
+/*-----------------------------------------------------------------------*/
+
+static
+int select (void)	/* 1:OK, 0:Timeout */
+{
+	CS_LOW();
+	if (!wait_ready()) {
+		deselect();
+		return 0;
+	}
+	return 1;
 }
 
 
@@ -166,9 +198,10 @@ static
 void power_on (void)
 {
 	IO.PUCR5.BYTE = 0x30;		/* Enable pull-up for socket contacts */
-	IO.PDR5.BYTE = 0x00;		/* Power ON */
+	IO.PDR5.BYTE = 0x00;		/* Socket power ON */
 	IO.PCR5 = 0x80;
 	for (Timer1 = 2; Timer1; );	/* Wait for 20ms */
+
 	IO.PDR5.BYTE = 0x0E;		/* Enable Driver */
 	IO.PCR5 = 0x8B;
 	for (Timer1 = 1; Timer1; );	/* Wait for 10ms */
@@ -178,14 +211,12 @@ void power_on (void)
 static
 void power_off (void)
 {
-	SELECT();				/* Wait for card ready */
-	wait_ready();
-	DESELECT();
-	rcvr_spi();
+	select();				/* Wait for card ready */
+	deselect();
 
 	IO.PDR5.BYTE = 0x00;	/* Disable driver */
 	IO.PCR5 = 0x80;
-	IO.PDR5.BYTE = 0x80;	/* Power OFF */
+	IO.PDR5.BYTE = 0x80;	/* Socket power OFF */
 
 	Stat |= STA_NOINIT;		/* Set STA_NOINIT */
 }
@@ -197,7 +228,7 @@ void power_off (void)
 /*-----------------------------------------------------------------------*/
 
 static
-BOOL rcvr_datablock (
+int rcvr_datablock (	/* 1:OK, 0:Failed */
 	BYTE *buff,			/* Data buffer to store received data */
 	UINT btr			/* Byte count (must be even number) */
 )
@@ -209,7 +240,7 @@ BOOL rcvr_datablock (
 	do {							/* Wait for data packet in timeout of 100ms */
 		token = rcvr_spi();
 	} while ((token == 0xFF) && Timer1);
-	if(token != 0xFE) return FALSE;	/* If not valid data token, retutn with error */
+	if(token != 0xFE) return 0;		/* If not valid data token, retutn with error */
 
 	do {							/* Receive the data block into buffer */
 		*buff++ = rcvr_spi();
@@ -218,7 +249,7 @@ BOOL rcvr_datablock (
 	rcvr_spi();						/* Discard CRC */
 	rcvr_spi();
 
-	return TRUE;					/* Return with success */
+	return 1;						/* Return with success */
 }
 
 
@@ -227,9 +258,9 @@ BOOL rcvr_datablock (
 /* Send a data packet to MMC                                             */
 /*-----------------------------------------------------------------------*/
 
-#if _READONLY == 0
+#if _USE_WRITE
 static
-BOOL xmit_datablock (
+int xmit_datablock (	/* 1:OK, 0:Failed */
 	const BYTE *buff,	/* 512 byte data block to be transmitted */
 	BYTE token			/* Data/Stop token */
 )
@@ -237,7 +268,7 @@ BOOL xmit_datablock (
 	BYTE resp, wc;
 
 
-	if (wait_ready() != 0xFF) return FALSE;
+	if (!wait_ready()) return 0;
 
 	xmit_spi(token);					/* Xmit data token */
 	if (token != 0xFD) {	/* Is data token */
@@ -250,12 +281,12 @@ BOOL xmit_datablock (
 		xmit_spi(0xFF);
 		resp = rcvr_spi();				/* Reveive data response */
 		if ((resp & 0x1F) != 0x05)		/* If not accepted, return with error */
-			return FALSE;
+			return 0;
 	}
 
-	return TRUE;
+	return 1;
 }
-#endif /* _READONLY */
+#endif
 
 
 
@@ -264,7 +295,7 @@ BOOL xmit_datablock (
 /*-----------------------------------------------------------------------*/
 
 static
-BYTE send_cmd (
+BYTE send_cmd (		/* Returns command response (bit7==1:Send failed)*/
 	BYTE cmd,		/* Command byte */
 	DWORD arg		/* Argument */
 )
@@ -279,12 +310,11 @@ BYTE send_cmd (
 	}
 
 	/* Select the card and wait for ready */
-	DESELECT();
-	SELECT();
-	if (wait_ready() != 0xFF) return 0xFF;
+	deselect();
+	if (!select()) return 0xFF;
 
 	/* Send command packet */
-	xmit_spi(cmd);						/* Start + Command index */
+	xmit_spi(0x40 | cmd);				/* Start + Command index */
 	xmit_spi((BYTE)(arg >> 24));		/* Argument[31..24] */
 	xmit_spi((BYTE)(arg >> 16));		/* Argument[23..16] */
 	xmit_spi((BYTE)(arg >> 8));			/* Argument[15..8] */
@@ -333,20 +363,20 @@ DSTATUS disk_initialize (
 	ty = 0;
 	if (send_cmd(CMD0, 0) == 1) {			/* Enter Idle state */
 		Timer1 = 100;						/* Initialization timeout of 1000 msec */
-		if (send_cmd(CMD8, 0x1AA) == 1) {	/* SDHC */
+		if (send_cmd(CMD8, 0x1AA) == 1) {	/* SDv2? */
 			for (n = 0; n < 4; n++) ocr[n] = rcvr_spi();		/* Get trailing return value of R7 resp */
 			if (ocr[2] == 0x01 && ocr[3] == 0xAA) {				/* The card can work at vdd range of 2.7-3.6V */
 				while (Timer1 && send_cmd(ACMD41, 1UL << 30));	/* Wait for leaving idle state (ACMD41 with HCS bit) */
 				if (Timer1 && send_cmd(CMD58, 0) == 0) {		/* Check CCS bit in the OCR */
 					for (n = 0; n < 4; n++) ocr[n] = rcvr_spi();
-					ty = (ocr[0] & 0x40) ? 12 : 4;
+					ty = (ocr[0] & 0x40) ? CT_SD2 | CT_BLOCK : CT_SD2;	/* SDv2 */
 				}
 			}
-		} else {							/* SDSC or MMC */
+		} else {							/* SDv1 or MMCv3 */
 			if (send_cmd(ACMD41, 0) <= 1) 	{
-				ty = 2; cmd = ACMD41;	/* SDSC */
+				ty = CT_SD1; cmd = ACMD41;	/* SDv1 */
 			} else {
-				ty = 1; cmd = CMD1;		/* MMC */
+				ty = CT_MMC; cmd = CMD1;	/* MMCv3 */
 			}
 			while (Timer1 && send_cmd(cmd, 0));			/* Wait for leaving idle state */
 			if (!Timer1 || send_cmd(CMD16, 512) != 0)	/* Set R/W block length to 512 */
@@ -354,7 +384,7 @@ DSTATUS disk_initialize (
 		}
 	}
 	CardType = ty;
-	release_spi();
+	deselect();
 
 	if (ty) {			/* Initialization succeded */
 		Stat &= ~STA_NOINIT;		/* Clear STA_NOINIT */
@@ -394,7 +424,7 @@ DRESULT disk_read (
 	if (drv || !count) return RES_PARERR;
 	if (Stat & STA_NOINIT) return RES_NOTRDY;
 
-	if (!(CardType & 8)) sector *= 512;	/* Convert to byte address if needed */
+	if (!(CardType & CT_BLOCK)) sector *= 512;	/* Convert to byte address if needed */
 
 	if (count == 1) {	/* Single block read */
 		if ((send_cmd(CMD17, sector) == 0)	/* READ_SINGLE_BLOCK */
@@ -410,7 +440,7 @@ DRESULT disk_read (
 			send_cmd(CMD12, 0);				/* STOP_TRANSMISSION */
 		}
 	}
-	release_spi();
+	deselect();
 
 	return count ? RES_ERROR : RES_OK;
 }
@@ -421,7 +451,7 @@ DRESULT disk_read (
 /* Write Sector(s)                                                       */
 /*-----------------------------------------------------------------------*/
 
-#if _READONLY == 0
+#if _USE_WRITE
 DRESULT disk_write (
 	BYTE drv,			/* Physical drive nmuber (0) */
 	const BYTE *buff,	/* Pointer to the data to be written */
@@ -433,7 +463,7 @@ DRESULT disk_write (
 	if (Stat & STA_NOINIT) return RES_NOTRDY;
 	if (Stat & STA_PROTECT) return RES_WRPRT;
 
-	if (!(CardType & 8)) sector *= 512;	/* Convert to byte address if needed */
+	if (!(CardType & CT_BLOCK)) sector *= 512;	/* Convert to byte address if needed */
 
 	if (count == 1) {	/* Single block write */
 		if ((send_cmd(CMD24, sector) == 0)	/* WRITE_BLOCK */
@@ -441,7 +471,7 @@ DRESULT disk_write (
 			count = 0;
 	}
 	else {				/* Multiple block write */
-		if (CardType & 6) send_cmd(ACMD23, count);
+		if (CardType & CT_SDC) send_cmd(ACMD23, count);
 		if (send_cmd(CMD25, sector) == 0) {	/* WRITE_MULTIPLE_BLOCK */
 			do {
 				if (!xmit_datablock(buff, 0xFC)) break;
@@ -451,11 +481,11 @@ DRESULT disk_write (
 				count = 1;
 		}
 	}
-	release_spi();
+	deselect();
 
 	return count ? RES_ERROR : RES_OK;
 }
-#endif /* _READONLY == 0 */
+#endif
 
 
 
@@ -463,6 +493,7 @@ DRESULT disk_write (
 /* Miscellaneous Functions                                               */
 /*-----------------------------------------------------------------------*/
 
+#if _USE_IOCTL
 DRESULT disk_ioctl (
 	BYTE drv,		/* Physical drive nmuber (0) */
 	BYTE ctrl,		/* Control code */
@@ -471,7 +502,7 @@ DRESULT disk_ioctl (
 {
 	DRESULT res;
 	BYTE n, csd[16], *ptr = buff;
-	WORD csize;
+	DWORD cs;
 
 
 	if (drv) return RES_PARERR;
@@ -480,20 +511,21 @@ DRESULT disk_ioctl (
 	res = RES_ERROR;
 	switch (ctrl) {
 		case CTRL_SYNC :		/* Make sure that no pending write process */
-			SELECT();
-			if (wait_ready() == 0xFF)
+			if (select()) {
+				deselect();
 				res = RES_OK;
+			}
 			break;
 
 		case GET_SECTOR_COUNT :	/* Get number of sectors on the disk (DWORD) */
 			if ((send_cmd(CMD9, 0) == 0) && rcvr_datablock(csd, 16)) {
 				if ((csd[0] >> 6) == 1) {	/* SDC ver 2.00 */
-					csize = csd[9] + ((WORD)csd[8] << 8) + 1;
-					*(DWORD*)buff = (DWORD)csize << 10;
+					cs = csd[9] + ((WORD)csd[8] << 8) + ((DWORD)(csd[7] & 63) << 16) + 1;
+					*(DWORD*)buff = cs << 10;
 				} else {					/* SDC ver 1.XX or MMC */
 					n = (csd[5] & 15) + ((csd[10] & 128) >> 7) + ((csd[9] & 3) << 1) + 2;
-					csize = (csd[8] >> 6) + ((WORD)csd[7] << 2) + ((WORD)(csd[6] & 3) << 10) + 1;
-					*(DWORD*)buff = (DWORD)csize << (n - 9);
+					cs = (csd[8] >> 6) + ((WORD)csd[7] << 2) + ((WORD)(csd[6] & 3) << 10) + 1;
+					*(DWORD*)buff = cs << (n - 9);
 				}
 				res = RES_OK;
 			}
@@ -505,7 +537,7 @@ DRESULT disk_ioctl (
 			break;
 
 		case GET_BLOCK_SIZE :	/* Get erase block size in unit of sector (DWORD) */
-			if (CardType & 4) {			/* SDC ver 2.00 */
+			if (CardType & CT_SD2) {			/* SDv2 */
 				if (send_cmd(ACMD13, 0) == 0) {		/* Read SD status */
 					rcvr_spi();
 					if (rcvr_datablock(csd, 16)) {				/* Read partial block */
@@ -514,9 +546,9 @@ DRESULT disk_ioctl (
 						res = RES_OK;
 					}
 				}
-			} else {					/* SDC ver 1.XX or MMC */
+			} else {					/* SDv1 or MMCv3 */
 				if ((send_cmd(CMD9, 0) == 0) && rcvr_datablock(csd, 16)) {	/* Read CSD */
-					if (CardType & 2) {			/* SDC ver 1.XX */
+					if (CardType & CT_SD1) {	/* SDv1 */
 						*(DWORD*)buff = (((csd[10] & 63) << 1) + ((WORD)(csd[11] & 128) >> 7) + 1) << ((csd[13] >> 6) - 1);
 					} else {					/* MMC */
 						*(DWORD*)buff = ((WORD)((csd[10] & 124) >> 2) + 1) * (((csd[11] & 3) << 3) + ((csd[11] & 224) >> 5) + 1);
@@ -562,11 +594,11 @@ DRESULT disk_ioctl (
 			res = RES_PARERR;
 	}
 
-	release_spi();
+	deselect();
 
 	return res;
 }
-
+#endif
 
 
 /*-----------------------------------------------------------------------*/
@@ -592,14 +624,14 @@ void disk_timerproc (void)
 	if (n == pv) {					/* Have contacts stabled? */
 		s = Stat;
 
-		if (pv & SOCKWP)			/* WP is H (write protected) */
+		if (_USE_WP && (pv & SOCKWP))	/* WP is H (write protected) */
 			s |= STA_PROTECT;
-		else						/* WP is L (write enabled) */
+		else							/* WP is L (write enabled) */
 			s &= ~STA_PROTECT;
 
-		if (pv & SOCKINS)			/* INS = H (Socket empty) */
+		if (_USE_CD && (pv & SOCKINS))	/* INS = H (Socket empty) */
 			s |= (STA_NODISK | STA_NOINIT);
-		else						/* INS = L (Card inserted) */
+		else							/* INS = L (Card inserted) */
 			s &= ~STA_NODISK;
 
 		Stat = s;

@@ -13,21 +13,22 @@
 #include <string.h>
 #include <machine.h>
 #include "iodefine.h"
-#include "monitor.h"
+#include "sci.h"
+#include "xprintf.h"
 #include "ff.h"
 #include "diskio.h"
 
-
+extern void disk_timerproc (void);
 
 
 DWORD acc_size;				/* Work register for fs command */
 WORD acc_files, acc_dirs;
-FILINFO finfo;
+FILINFO Finfo;
 
-char linebuf[80];			/* Console input buffer */
+char Line[80];				/* Console input buffer */
 BYTE Buff[512];				/* Working buffer */
 
-FATFS fatfs;				/* File system object */
+FATFS Fatfs;				/* File system object */
 
 
 
@@ -73,39 +74,19 @@ DWORD get_fattime ()
 
 
 static
-void put_dump (BYTE *buff, DWORD ofs, BYTE cnt)
-{
-	BYTE n;
-
-
-	xprintf("%08lX ", ofs);
-	for(n = 0; n < cnt; n++)
-		xprintf(" %02X", buff[n]);
-	xputc(' ');
-	for(n = 0; n < cnt; n++) {
-		if ((buff[n] < 0x20)||(buff[n] >= 0x7F))
-			xputc('.');
-		else
-			xputc(buff[n]);
-	}
-	xputc('\n');
-}
-
-
-static
 void put_rc (FRESULT rc)
 {
-	const char *p;
-	static const char str[] =
+	const char *str =
 		"OK\0" "DISK_ERR\0" "INT_ERR\0" "NOT_READY\0" "NO_FILE\0" "NO_PATH\0"
 		"INVALID_NAME\0" "DENIED\0" "EXIST\0" "INVALID_OBJECT\0" "WRITE_PROTECTED\0"
-		"INVALID_DRIVE\0" "NOT_ENABLED\0" "NO_FILE_SYSTEM\0" "MKFS_ABORTED\0" "TIMEOUT\0";
+		"INVALID_DRIVE\0" "NOT_ENABLED\0" "NO_FILE_SYSTEM\0" "MKFS_ABORTED\0" "TIMEOUT\0"
+		"LOCKED\0" "NOT_ENOUGH_CORE\0" "TOO_MANY_OPEN_FILES\0";
 	FRESULT i;
 
-	for (p = str, i = 0; i != rc && *p; i++) {
-		while(*p++);
+	for (i = 0; i != rc && *str; i++) {
+		while (*str++) ;
 	}
-	xprintf("rc=%u FR_%s\n", (WORD)rc, p);
+	xprintf("rc=%u FR_%s\n", (UINT)rc, str);
 }
 
 
@@ -119,16 +100,17 @@ FRESULT scan_files (char* path)
 
 	if ((res = f_opendir(&dirs, path)) == FR_OK) {
 		i = strlen(path);
-		while (((res = f_readdir(&dirs, &finfo)) == FR_OK) && finfo.fname[0]) {
-			if (finfo.fattrib & AM_DIR) {
+		while (((res = f_readdir(&dirs, &Finfo)) == FR_OK) && Finfo.fname[0]) {
+			if (Finfo.fname[0] == '.') continue;
+			if (Finfo.fattrib & AM_DIR) {
 				acc_dirs++;
-				*(path+i) = '/'; strcpy(path+i+1, &finfo.fname[0]);
+				*(path+i) = '/'; strcpy(path+i+1, &Finfo.fname[0]);
 				res = scan_files(path);
 				*(path+i) = '\0';
 				if (res != FR_OK) break;
 			} else {
 				acc_files++;
-				acc_size += finfo.fsize;
+				acc_size += Finfo.fsize;
 			}
 		}
 	}
@@ -142,9 +124,10 @@ FRESULT scan_files (char* path)
 /* Main                                                                  */
 
 
-int main ()
+int main (void)
 {
-	BYTE res, b1;
+	BYTE res, b;
+	const BYTE ft[] = {0,12,16,32};
 	char *ptr, *ptr2;
 	long p1, p2, p3;
 	DWORD dw, ofs, sect = 0;
@@ -155,13 +138,15 @@ int main ()
 	FATFS *fs;
 
 
-	xputs("\nFatFs module test monitor\n");
+	xdev_in(sci3_get);
+	xdev_out(sci3_put);
+	xputs("\nFatFs module test monitor for H8\n");
 
 	for (;;) {
 		xputc('>');
-		ptr = linebuf;
-		get_line(ptr, sizeof(linebuf));
+		xgets(Line, sizeof Line);
 
+		ptr = Line;
 		switch (*ptr++) {
 
 		case 'd' :
@@ -170,15 +155,15 @@ int main ()
 				if (!xatoi(&ptr, &p1))
 					p1 = sect;
 				res = disk_read(0, Buff, p1, 1);
-				if (res) { xprintf("rc=%u\n", (WORD)res); break; }
+				if (res) { xprintf("rc=%u\n", res); break; }
 				sect = p1 + 1;
 				xprintf("Sector:%lu\n", p1);
 				for (ptr = (char*)Buff, ofs = 0; ofs < 0x200; ptr+=16, ofs+=16)
-					put_dump((BYTE*)ptr, ofs, 16);
+					put_dump((BYTE*)ptr, ofs, 16, DW_CHAR);
 				break;
 
 			case 'i' :	/* di - Initialize disk */
-				xprintf("rc=%u\n", (WORD)disk_initialize(0));
+				xprintf("rc=%u\n", disk_initialize(0));
 				break;
 
 			case 's' :	/* ds - Show disk status */
@@ -188,17 +173,17 @@ int main ()
 					{ xprintf("Sector size: %u\n", w1); }
 				if (disk_ioctl(0, GET_BLOCK_SIZE, &p2) == RES_OK)
 					{ xprintf("Erase block size: %lu sectors\n", p2); }
-				if (disk_ioctl(0, MMC_GET_TYPE, &b1) == RES_OK)
-					{ xprintf("MMC/SDC type: %u\n", b1); }
+				if (disk_ioctl(0, MMC_GET_TYPE, &b) == RES_OK)
+					{ xprintf("MMC/SDC type: %u\n", b); }
 				if (disk_ioctl(0, MMC_GET_CSD, Buff) == RES_OK)
-					{ xputs("CSD:"); put_dump(Buff, 0, 16); }
+					{ xputs("CSD:"); put_dump(Buff, 0, 16, DW_CHAR); }
 				if (disk_ioctl(0, MMC_GET_CID, Buff) == RES_OK)
-					{ xputs("CID:"); put_dump(Buff, 0, 16); }
+					{ xputs("CID:"); put_dump(Buff, 0, 16, DW_CHAR); }
 				if (disk_ioctl(0, MMC_GET_OCR, Buff) == RES_OK)
-					{ xputs("OCR:"); put_dump(Buff, 0, 4); }
+					{ xputs("OCR:"); put_dump(Buff, 0, 4, DW_CHAR); }
 				if (disk_ioctl(0, MMC_GET_SDSTAT, Buff) == RES_OK) {
 					xputs("SD Status:");
-					for (s1 = 0; s1 < 64; s1 += 16) put_dump(Buff+s1, s1, 16);
+					for (s1 = 0; s1 < 64; s1 += 16) put_dump(Buff+s1, s1, 16, DW_CHAR);
 				}
 				break;
 			}
@@ -209,7 +194,7 @@ int main ()
 			case 'd' :	/* bd <addr> - Dump R/W buffer */
 				if (!xatoi(&ptr, &p1)) break;
 				for (ptr=(char*)(&Buff[p1]), ofs = p1, cnt = 32; cnt; cnt--, ptr+=16, ofs+=16)
-					put_dump((BYTE*)ptr, ofs, 16);
+					put_dump((BYTE*)ptr, ofs, 16, DW_CHAR);
 				break;
 
 			case 'e' :	/* be <addr> [<data>] ... - Edit R/W buffer */
@@ -221,9 +206,9 @@ int main ()
 					break;
 				}
 				for (;;) {
-					xprintf("%04X %02X-", (WORD)(p1), (WORD)Buff[p1]);
-					get_line(linebuf, sizeof(linebuf));
-					ptr = linebuf;
+					xprintf("%04X %02X-", (WORD)p1, Buff[p1]);
+					xgets(Line, sizeof Line);
+					ptr = Line;
 					if (*ptr == '.') break;
 					if (*ptr < ' ') { p1++; continue; }
 					if (xatoi(&ptr, &p2))
@@ -236,18 +221,18 @@ int main ()
 			case 'r' :	/* br <sector> <n> - Read disk into R/W buffer */
 				if (!xatoi(&ptr, &p1)) break;
 				if (!xatoi(&ptr, &p2)) p2 = 1;
-				xprintf("rc=%u\n", (WORD)disk_read(0, Buff, p1, p2));
+				xprintf("rc=%u\n", disk_read(0, Buff, p1, p2));
 				break;
 
 			case 'w' :	/* bw <sector> <n> - Write R/W buffer into disk */
 				if (!xatoi(&ptr, &p1)) break;
 				if (!xatoi(&ptr, &p2)) p2 = 1;
-				xprintf("rc=%u\n", (WORD)disk_write(0, Buff, p1, p2));
+				xprintf("rc=%u\n", disk_write(0, Buff, p1, p2));
 				break;
 
 			case 'f' :	/* bf <n> - Fill R/W buffer */
 				if (!xatoi(&ptr, &p1)) break;
-				memset(Buff, (BYTE)p1, sizeof(Buff));
+				memset(Buff, (BYTE)p1, sizeof Buff);
 				break;
 
 			}
@@ -257,26 +242,26 @@ int main ()
 			switch (*ptr++) {
 
 			case 'i' :	/* fi - Initialize logical drive */
-				put_rc(f_mount(0, &fatfs));
+				put_rc(f_mount(0, &Fatfs));
 				break;
 
 			case 's' :	/* fs - Show file system status */
 				res = f_getfree("", (DWORD*)&p2, &fs);
 				if (res) { put_rc(res); break; }
-				xprintf("FAT type = %u\nBytes/Cluster = %lu\nNumber of FATs = %u\n"
+				xprintf("FAT type = FAT%u\nBytes/Cluster = %lu\nNumber of FATs = %u\n"
 						"Root DIR entries = %u\nSectors/FAT = %lu\nNumber of clusters = %lu\n"
-						"FAT start (lba) = %lu\nDIR start (lba,clustor) = %lu\nData start (lba) = %lu\n",
-						(WORD)fs->fs_type, (DWORD)fs->csize * 512, (WORD)fs->n_fats,
-						fs->n_rootdir, (DWORD)fs->sects_fat, (DWORD)(fs->max_clust - 2),
+						"FAT start (lba) = %lu\nDIR start (lba,clustor) = %lu\nData start (lba) = %lu\n\n...",
+						ft[fs->fs_type & 3], fs->csize * 512UL, fs->n_fats,
+						fs->n_rootdir, fs->fsize, fs->n_fatent - 2,
 						fs->fatbase, fs->dirbase, fs->database
 				);
 				acc_size = acc_files = acc_dirs = 0;
 				res = scan_files(ptr);
 				if (res) { put_rc(res); break; }
-				xprintf("%u files, %lu bytes.\n%u folders.\n"
+				xprintf("\r%u files, %lu bytes.\n%u folders.\n"
 						"%lu bytes total disk space.\n%lu bytes available.\n",
 						acc_files, acc_size, acc_dirs,
-						(DWORD)(fs->max_clust - 2) * fs->csize * 512, (DWORD)p2 * fs->csize * 512
+						(fs->n_fatent - 2) * fs->csize * 512, p2 * fs->csize * 512
 				);
 				break;
 
@@ -286,22 +271,22 @@ int main ()
 				if (res) { put_rc(res); break; }
 				p1 = s1 = s2 = 0;
 				for(;;) {
-					res = f_readdir(&dir, &finfo);
-					if ((res != FR_OK) || !finfo.fname[0]) break;
-					if (finfo.fattrib & AM_DIR) {
+					res = f_readdir(&dir, &Finfo);
+					if ((res != FR_OK) || !Finfo.fname[0]) break;
+					if (Finfo.fattrib & AM_DIR) {
 						s2++;
 					} else {
-						s1++; p1 += finfo.fsize;
+						s1++; p1 += Finfo.fsize;
 					}
 					xprintf("%c%c%c%c%c %u/%02u/%02u %02u:%02u %9lu  %s\n", 
-							(finfo.fattrib & AM_DIR) ? 'D' : '-',
-							(finfo.fattrib & AM_RDO) ? 'R' : '-',
-							(finfo.fattrib & AM_HID) ? 'H' : '-',
-							(finfo.fattrib & AM_SYS) ? 'S' : '-',
-							(finfo.fattrib & AM_ARC) ? 'A' : '-',
-							(finfo.fdate >> 9) + 1980, (finfo.fdate >> 5) & 15, finfo.fdate & 31,
-							(finfo.ftime >> 11), (finfo.ftime >> 5) & 63,
-							finfo.fsize, &(finfo.fname[0]));
+							(Finfo.fattrib & AM_DIR) ? 'D' : '-',
+							(Finfo.fattrib & AM_RDO) ? 'R' : '-',
+							(Finfo.fattrib & AM_HID) ? 'H' : '-',
+							(Finfo.fattrib & AM_SYS) ? 'S' : '-',
+							(Finfo.fattrib & AM_ARC) ? 'A' : '-',
+							(Finfo.fdate >> 9) + 1980, (Finfo.fdate >> 5) & 15, Finfo.fdate & 31,
+							(Finfo.ftime >> 11), (Finfo.ftime >> 5) & 63,
+							Finfo.fsize, &(Finfo.fname[0]));
 				}
 				xprintf("%4u File(s),%10lu bytes\n%4u Dir(s)", s1, p1, s2);
 				if (f_getfree(ptr, (DWORD*)&p1, &fs) == FR_OK)
@@ -333,7 +318,7 @@ int main ()
 				p2 = 0;
 				Timer = 0;
 				while (p1) {
-					if (p1 >= sizeof(Buff))	{ cnt = sizeof(Buff); p1 -= sizeof(Buff); }
+					if (p1 >= sizeof Buff)	{ cnt = sizeof Buff; p1 -= sizeof Buff; }
 					else 			{ cnt = (WORD)p1; p1 = 0; }
 					res = f_read(&file1, Buff, cnt, &s2);
 					if (res != FR_OK) { put_rc(res); break; }
@@ -353,18 +338,18 @@ int main ()
 					res = f_read(&file1, Buff, cnt, &cnt);
 					if (res != FR_OK) { put_rc(res); break; }
 					if (!cnt) break;
-					put_dump(Buff, ofs, cnt);
+					put_dump(Buff, ofs, cnt, DW_CHAR);
 					ofs += 16;
 				}
 				break;
 
 			case 'w' :	/* fw <len> <val> - write file */
 				if (!xatoi(&ptr, &p1) || !xatoi(&ptr, &p2)) break;
-				memset(Buff, (BYTE)p2, sizeof(Buff));
+				memset(Buff, (int)p2, sizeof Buff);
 				p2 = 0;
 				Timer = 0;
 				while (p1) {
-					if (p1 >= sizeof(Buff))	{ cnt = sizeof(Buff); p1 -= sizeof(Buff); }
+					if (p1 >= sizeof Buff)	{ cnt = sizeof Buff; p1 -= sizeof Buff; }
 					else 			{ cnt = (WORD)p1; p1 = 0; }
 					res = f_write(&file1, Buff, cnt, &s2);
 					if (res != FR_OK) { put_rc(res); break; }
@@ -406,10 +391,10 @@ int main ()
 
 			case 't' :	/* ft <year> <month> <day> <hour> <min> <sec> <name> */
 				if (!xatoi(&ptr, &p1) || !xatoi(&ptr, &p2) || !xatoi(&ptr, &p3)) break;
-				finfo.fdate = ((p1 - 1980) << 9) | ((p2 & 15) << 5) | (p3 & 31);
+				Finfo.fdate = ((p1 - 1980) << 9) | ((p2 & 15) << 5) | (p3 & 31);
 				if (!xatoi(&ptr, &p1) || !xatoi(&ptr, &p2) || !xatoi(&ptr, &p3)) break;
-				finfo.ftime = ((p1 & 31) << 11) | ((p1 & 63) << 5) | ((p1 >> 1) & 31);
-				put_rc(f_utime(ptr, &finfo));
+				Finfo.ftime = ((p1 & 31) << 11) | ((p2 & 63) << 5) | ((p3 >> 1) & 31);
+				put_rc(f_utime(ptr, &Finfo));
 				break;
 
 			case 'x' : /* fx <src_name> <dst_name> - Copy file */
@@ -420,23 +405,21 @@ int main ()
 				if (!*ptr2) break;
 				xprintf("Opening \"%s\"", ptr);
 				res = f_open(&file1, ptr, FA_OPEN_EXISTING | FA_READ);
-				xputc('\n');
 				if (res) {
 					put_rc(res);
 					break;
 				}
-				xprintf("Creating \"%s\"\n", ptr2);
+				xprintf("\nCreating \"%s\"", ptr2);
 				res = f_open(&file2, ptr2, FA_CREATE_ALWAYS | FA_WRITE);
-				xputc('\n');
 				if (res) {
 					put_rc(res);
 					f_close(&file1);
 					break;
 				}
-				xprintf("Copying...");
+				xprintf("\nCopying...");
 				p1 = 0;
 				for (;;) {
-					res = f_read(&file1, Buff, sizeof(Buff), &s1);
+					res = f_read(&file1, Buff, sizeof Buff, &s1);
 					if (res || s1 == 0) break;   /* error or eof */
 					res = f_write(&file2, Buff, s1, &s2);
 					p1 += s2;
@@ -446,13 +429,36 @@ int main ()
 				f_close(&file1);
 				f_close(&file2);
 				break;
-
+#if _FS_RPATH >= 1
+			case 'g' :	/* fg <path> - Change current directory */
+				while (*ptr == ' ') ptr++;
+				put_rc(f_chdir(ptr));
+				break;
+#if _FS_RPATH >= 2
+			case 'q' :	/* fq - Show current dir path */
+				res = f_getcwd(Line, sizeof Line);
+				if (res)
+					put_rc(res);
+				else
+					xprintf("%s\n", Line);
+				break;
+#endif
+#endif
+#if _USE_MKFS
+			case 'm' :	/* fm <partition rule> <sect/clust> - Create file system */
+				if (!xatoi(&ptr, &p2) || !xatoi(&ptr, &p3)) break;
+				xprintf("The memory card will be formatted. Are you sure? (Y/n)=", p1);
+				xgets(ptr, sizeof Line);
+				if (*ptr == 'Y')
+					put_rc(f_mkfs(0, (BYTE)p2, (UINT)p3));
+				break;
+#endif
 			}
 			break;
 
 		case 't' :	/* t [<year> <mon> <mday> <hour> <min> <sec>] */
 			if (xatoi(&ptr, &p1)) {
-				rtcYear = p1-1900;
+				rtcYear = p1 - 1900;
 				xatoi(&ptr, &p1); rtcMon = p1;
 				xatoi(&ptr, &p1); rtcMday = p1;
 				xatoi(&ptr, &p1); rtcHour = p1;

@@ -17,7 +17,8 @@
 //#include 	<stdlib.h>					// Remove the comment when you use rand()
 #include	"stacksct.h"
 #include	"iodefine.h"
-#include	"monitor.h"
+#include	"xprintf.h"
+#include	"sci.h"
 
 extern void main(void);
 

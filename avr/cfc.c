@@ -9,53 +9,51 @@
 #include "diskio.h"
 
 
-/* ATA command */
-#define CMD_RESET		0x08	/* DEVICE RESET */
-#define CMD_READ		0x20	/* READ SECTOR(S) */
-#define CMD_WRITE		0x30	/* WRITE SECTOR(S) */
-#define CMD_IDENTIFY	0xEC	/* DEVICE IDENTIFY */
-#define CMD_SETFEATURES	0xEF	/* SET FEATURES */
-
-/* ATA register bit definitions */
-#define	LBA				0xE0
-#define	BUSY			0x80
-#define	DRDY			0x40
-#define	DF				0x20
-#define	DRQ				0x08
-#define	ERR				0x01
-#define	SRST			0x40
-#define	nIEN			0x20
-
 /* Contorl Ports */
 #define	CTRL_PORT		PORTA
 #define	CTRL_DDR		DDRA
 #define	SOCK_PORT		PORTC
 #define	SOCK_DDR		DDRC
 #define	SOCK_PIN		PINC
-#define	DAT0_PORT		PORTD
-#define	DAT0_DDR		DDRD
-#define	DAT0_PIN		PIND
-#define	SOCKINS			0x03
-#define	SOCKPWR			0x04
+#define	DAT_PORT		PORTD
+#define	DAT_DDR			DDRD
+#define	DAT_PIN			PIND
 
 /* Bit definitions for Control Port */
-#define	CTL_READ		0x20
-#define	CTL_WRITE		0x40
-#define	CTL_RESET		0x80
-#define	REG_DATA		0xF0
-#define	REG_ERROR		0xF1
-#define	REG_FEATURES	0xF1
-#define	REG_COUNT		0xF2
-#define	REG_SECTOR		0xF3
-#define	REG_CYLL		0xF4
-#define	REG_CYLH		0xF5
-#define	REG_DEV			0xF6
-#define	REG_COMMAND		0xF7
-#define	REG_STATUS		0xF7
-#define	REG_DEVCTRL		0xEE
-#define	REG_ALTSTAT		0xEE
+#define	REG_DATA		0b11110000	/* Select Data register */
+#define	REG_ERROR		0b11110001	/* Select Error register */
+#define	REG_FEATURES	0b11110001	/* Select Features register */
+#define	REG_COUNT		0b11110010	/* Select Count register */
+#define	REG_SECTOR		0b11110011	/* Select Sector register */
+#define	REG_CYLL		0b11110100	/* Select Cylinder low register */
+#define	REG_CYLH		0b11110101	/* Select Cylinder high regitser */
+#define	REG_DEV			0b11110110	/* Select Device register */
+#define	REG_COMMAND		0b11110111	/* Select Command register */
+#define	REG_STATUS		0b11110111	/* Select Status register */
+#define	REG_DEVCTRL		0b11101110	/* Select Device control register */
+#define	REG_ALTSTAT		0b11101110	/* Select Alternative Setatus register */
+#define	IORD			0b00100000	/* IORD# bit in the control port */
+#define	IOWR			0b01000000	/* IOWR# bit in the control port */
+#define	RESET			0b10000000	/* RESE# bit in the control port */
+#define POWER			0b00000100	/* POWER# bit in the socket control port */
+#define INS				0b00000011	/* INS# bit in the socket control port */
+#define CF_EXIST		(!(SOCK_PIN & INS))	/* CD1 and CD2 are low */
 
+/* ATA command */
+#define CMD_READ		0x20	/* READ SECTOR(S) */
+#define CMD_WRITE		0x30	/* WRITE SECTOR(S) */
+#define CMD_ERASE		0xC0	/* ERASE SECTOR(S) */
+#define CMD_IDENTIFY	0xEC	/* DEVICE IDENTIFY */
+#define CMD_SETFEATURES	0xEF	/* SET FEATURES */
 
+/* ATA register bit definitions */
+#define	LBA				0x40	/* REG_DEV */
+#define	BSY				0x80	/* REG_STATUS */
+#define	DRDY			0x40	/* REG_STATUS */
+#define	DRQ				0x08	/* REG_STATUS */
+#define	ERR				0x01	/* REG_STATUS */
+#define	SRST			0x04	/* REG_DEVCTRL */
+#define	NIEN			0x02	/* REG_DEVCTRL */
 
 
 /*--------------------------------------------------------------------------
@@ -64,16 +62,90 @@
 
 ---------------------------------------------------------------------------*/
 
-static volatile
-DSTATUS Stat = STA_NOINIT;	/* Disk status */
+static
+volatile DSTATUS Stat = STA_NOINIT;	/* Disk status */
 
-static volatile
-BYTE Timer;			/* 100Hz decrement timer */
+static
+volatile UINT Timer;				/* 100Hz decrement timer */
+
+
+
+static
+void set_timer (
+	UINT ms
+)
+{
+	ms /= 10;
+	cli();
+	Timer = ms;
+	sei();
+}
+
+
+static
+UINT get_timer (void)
+{
+	UINT n;
+
+
+	cli();
+	n = Timer;
+	sei();
+
+	return n * 10;
+}
+
+
+static
+void delay_ms (
+	UINT ms
+)
+{
+	ms /= 10;
+	cli(); Timer = ms; sei();
+
+	do {
+		cli(); ms = Timer; sei();
+	} while (ms);
+}
 
 
 
 /*-----------------------------------------------------------------------*/
-/* Read an ATA register                                                  */
+/* Socket Power Controls  (Platform dependent)                           */
+/*-----------------------------------------------------------------------*/
+
+static
+void power_on (void)
+{
+	SOCK_DDR |= POWER;			/* Socket power on */
+	SOCK_PORT &= ~POWER;
+	delay_ms(50);				/* 50ms */
+
+	CTRL_PORT = IORD | IOWR;	/* Enable control signals, RESET# = L */
+	CTRL_DDR = 0xFF;
+	DAT_PORT = 0xFF;			/* Pull-up D7..D0 */
+
+	CTRL_PORT |= RESET;			/* RESET# = H */
+	delay_ms(20);				/* 20ms */
+}
+
+
+static
+void power_off (void)
+{
+	DAT_PORT = 0; 					/* Set D7..D0 as hi-z */
+	CTRL_DDR = 0; CTRL_PORT = 0;	/* Set bus controls as hi-z */
+
+	SOCK_PORT |= POWER;			/* Socket power off */
+	SOCK_PORT |= INS;			/* Pull-up CD1#/CD2# for card detection */
+	delay_ms(100);				/* 100ms */
+}
+
+
+
+/*-----------------------------------------------------------------------*/
+/* Read ATA register (Platform dependent)                                */
 /*-----------------------------------------------------------------------*/
 
 static
@@ -84,19 +156,82 @@ BYTE read_ata (
 	BYTE rd;
 
 
-	CTRL_PORT = reg;
-	CTRL_PORT &= ~CTL_READ;
-	CTRL_PORT &= ~CTL_READ;
-	CTRL_PORT &= ~CTL_READ;
-	rd = DAT0_PIN;
-	CTRL_PORT |= CTL_READ;
+	CTRL_PORT = reg;		/* Set address [CS1#,CS0#,A2..A0] */
+	CTRL_PORT &= ~IORD;		/* IORD# = L */
+	CTRL_PORT; CTRL_PORT;	/* Delay */
+	rd = DAT_PIN;			/* Get data */
+	CTRL_PORT |= IORD;		/* IORD# = H */
+
 	return rd;
+}
+
+
+static
+void read_block (
+	BYTE *buff		/* Buffer for read data (512 bytes) */
+)
+{
+	BYTE d, c, iord_l, iord_h;
+
+
+	CTRL_PORT = REG_DATA;		/* Select data register */
+	iord_h = REG_DATA;
+	iord_l = REG_DATA & ~IORD;
+	c = 255;
+	CTRL_PORT = iord_l;		/* IORD# = L */
+	CTRL_PORT; CTRL_PORT;	/* delay */
+	d = DAT_PIN;			/* Get even data */
+	CTRL_PORT = iord_h;		/* IORD# = H */
+	do {	/* Receive 2 bytes/loop */
+		CTRL_PORT = iord_l;		/* IORD# = L */
+		*buff++ = d;			/* Store even data (delay) */
+		d = DAT_PIN;			/* Get odd data */
+		CTRL_PORT = iord_h;		/* IORD# = H */
+		CTRL_PORT = iord_l;		/* IORD# = L */
+		*buff++ = d;			/* Store odd data (delay) */
+		d = DAT_PIN;			/* Get even data */
+		CTRL_PORT = iord_h;		/* IORD# = H */
+	} while (--c);	/* Repeat 255 times */
+	CTRL_PORT = iord_l;		/* IORD# = L */
+	*buff++ = d;			/* Store even data (delay) */
+	d = DAT_PIN;			/* Get odd data */
+	CTRL_PORT = iord_h;		/* IORD# = H */
+	*buff++ = d;			/* Store odd data */
+}
+
+
+static
+void read_block_part (
+	BYTE *buf,
+	BYTE ofs,
+	BYTE nw
+)
+{
+	BYTE c, dl, dh;
+
+
+	CTRL_PORT = REG_DATA;		/* Select Data register */
+	c = 0;
+	do {
+		CTRL_PORT &= ~IORD;		/* IORD# = L */
+		CTRL_PORT; CTRL_PORT;	/* Delay */
+		dl = DAT_PIN;			/* Read even byte */
+		CTRL_PORT |= IORD;		/* IORD# = H */
+		CTRL_PORT &= ~IORD;		/* IORD# = L */
+		CTRL_PORT; CTRL_PORT;	/* Delay */
+		dh = DAT_PIN;			/* Read odd byte */
+		CTRL_PORT |= IORD;		/* IORD# = H */
+		if (nw && (c >= ofs)) {	/* Pick up a part of block */
+			*buf++ = dl; *buf++ = dh;
+			nw--;
+		}
+	} while (++c);
 }
 
 
 
 /*-----------------------------------------------------------------------*/
-/* Write a byte to an ATA register                                       */
+/* Write data to ATA register (Platform dependent)                       */
 /*-----------------------------------------------------------------------*/
 
 static
@@ -105,74 +240,66 @@ void write_ata (
 	BYTE dat		/* Data to be written */
 )
 {
-	CTRL_PORT = reg;
-	DAT0_PORT = dat;
-	DAT0_DDR = 0xFF;
-	CTRL_PORT &= ~CTL_WRITE;
-	CTRL_PORT &= ~CTL_WRITE;
-	CTRL_PORT |= CTL_WRITE;
-	DAT0_PORT = 0xFF;
-	DAT0_DDR = 0;
+	CTRL_PORT = reg;		/* Set address [CS1#,CS0#,A2..A0] */
+	DAT_DDR = 0xFF;			/* Set D7..D0 as output */
+	DAT_PORT = dat;			/* Set data on the D7..D0 */
+	CTRL_PORT &= ~IOWR;		/* IOWR# = L */
+	CTRL_PORT;				/* Delay */
+	CTRL_PORT |= IOWR;		/* IOWR# = H */
+	DAT_PORT = 0xFF;		/* Set D7..D0 as input (pull-up) */
+	DAT_DDR = 0;
 }
 
 
-
-/*-----------------------------------------------------------------------*/
-/* Read a part of data block                                             */
-/*-----------------------------------------------------------------------*/
-
 static
-void read_part (
-	BYTE *buff, 	/* Data buffer to store read data */
-	BYTE ofs,		/* Offset of the part of data in unit of word */
-	BYTE count		/* Number of word to pick up */
+void write_block (
+	const BYTE *buff	/* Data to write (512 bytes) */
 )
 {
-	BYTE c = 0, dl, dh;
+	BYTE c, iowr_l, iowr_h;
 
 
-	CTRL_PORT = REG_DATA;		/* Select Data register */
-	do {
-		CTRL_PORT &= ~CTL_READ;		/* IORD = L */
-		CTRL_PORT &= ~CTL_READ;		/* delay */
-		dl = DAT0_PIN;				/* Read Even data */
-		CTRL_PORT |= CTL_READ;		/* IORD = H */
-		CTRL_PORT &= ~CTL_READ;		/* IORD = L */
-		CTRL_PORT &= ~CTL_READ;		/* delay */
-		dh = DAT0_PIN;				/* Read Odd data */
-		CTRL_PORT |= CTL_READ;		/* IORD = H */
-		if (count && (c >= ofs)) {	/* Pick up a part of block */
-			*buff++ = dl;
-			*buff++ = dh;
-			count--;
-		}
-	} while (++c);
-	read_ata(REG_ALTSTAT);
-	read_ata(REG_STATUS);
+	CTRL_PORT = REG_DATA;	/* Select data register */
+	iowr_h = REG_DATA;
+	iowr_l = REG_DATA & ~IOWR;
+	DAT_DDR = 0xFF;			/* Set D0..D7 as output */
+	c = 0;
+	do {	/* Write 2 bytes/loop */
+		DAT_PORT = *buff++;		/* Set even data */
+		CTRL_PORT = iowr_l;		/* IOWR# = L */
+		CTRL_PORT = iowr_h;		/* IOWR# = H */
+		DAT_PORT = *buff++;		/* Set odd data */
+		CTRL_PORT = iowr_l;		/* IOWR# = L */
+		CTRL_PORT = iowr_h;		/* IOWR# = H */
+	} while (--c);	/* Repeat 256 times */
+	DAT_PORT = 0xFF;		/* Set D0..D7 as input (pull-up) */
+	DAT_DDR = 0;
 }
 
 
 
 /*-----------------------------------------------------------------------*/
-/* Wait for Data Ready                                                   */
+/* Wait for BSY goes 0 and the bit goes 1                                */
 /*-----------------------------------------------------------------------*/
 
 static
-BOOL wait_data (void)
+int wait_stat (	/* 0:Timeout or or ERR goes 1 */
+	UINT ms,
+	BYTE bit
+)
 {
 	BYTE s;
 
 
-	Timer = 100;	/* Time out = 1 sec */
+	set_timer(ms);
 	do {
-		if (!Timer) return FALSE;		/* Abort when timeout occured */
-		s = read_ata(REG_STATUS);		/* Get status */
-	} while ((s & (BUSY|DRQ)) != DRQ);	/* Wait for BUSY goes low and DRQ goes high */
+		s = read_ata(REG_STATUS);					/* Get status */
+		if (!get_timer() || (s & ERR)) return 0;	/* Abort when timeout or error occured */
+	} while ((s & BSY) || (bit && !(bit & s)));		/* Wait for BSY goes 0 and the bit goes 1 */
 
 	read_ata(REG_ALTSTAT);
-	return TRUE;
+	return 1;
 }
-
 
 
 
@@ -192,49 +319,31 @@ DSTATUS disk_initialize (
 )
 {
 	if (drv) return STA_NOINIT;				/* Supports only single drive */
-
+	power_off();							/* Power off */
 	Stat |= STA_NOINIT;
+	if (Stat & STA_NODISK) return Stat;		/* Exit if socket is empty */
 
-	SOCK_PORT = 0xFF;						/* Power OFF */
-	SOCK_DDR = SOCKPWR;
-	DAT0_PORT = 0;
-	CTRL_DDR = 0;
-	for (Timer = 10; Timer; );				/* 100ms */
+	power_on();								/* Initialize CFC control port and socket power on */
 
-	if (Stat & STA_NODISK) return Stat;		/* Exit when socket is empty */
+	write_ata(REG_DEVCTRL, SRST);			/* Set software reset */
+	delay_ms(20);
+	write_ata(REG_DEVCTRL, 0);				/* Release software reset */
+	delay_ms(20);
 
-	/* Initialize CFC control port */
-	SOCK_PORT &= ~SOCKPWR;					/* Power ON */
-	for (Timer = 1; Timer; );				/* 10ms */
-	CTRL_PORT = CTL_READ | CTL_WRITE;		/* Enable control signals */
-	CTRL_DDR = 0xFF;
-	DAT0_PORT = 0xFF;						/* Pull-up D0-D7 */
-	for (Timer = 5; Timer; );				/* 50ms */
-	CTRL_PORT |= CTL_RESET;					/* RESET = H */
-	for (Timer = 5; Timer; );				/* 50ms */
-	write_ata(REG_DEV, LBA);				/* Select Device 0 */
-	Timer = 200;
-	do {									/* Wait for card goes ready */
-		if (!Timer) return Stat;
-	} while (read_ata(REG_STATUS) & BUSY);
+	if (!wait_stat(3000, 0)) return Stat;	/* Select device 0 */
+	write_ata(REG_DEV, 0);
+	if (!wait_stat(3000, DRDY)) return Stat;
 
-	write_ata(REG_DEVCTRL, SRST | nIEN);	/* Software reset */
-	for (Timer = 2; Timer; );				/* 20ms */
-	write_ata(REG_DEVCTRL, nIEN);			/* Release software reset */
-	for (Timer = 2; Timer; );				/* 20ms */
-	Timer = 200;
-	do {									/* Wait for card goes ready */
-		if (!Timer) return Stat;
-	} while ((read_ata(REG_STATUS) & (DRDY|BUSY)) != DRDY);
+	write_ata(REG_FEATURES, 0x03);			/* Set default PIO mode wo IORDY */
+	write_ata(REG_COUNT, 0x01);
+	write_ata(REG_COMMAND, CMD_SETFEATURES);
+	if (!wait_stat(3000, DRDY)) return Stat;
 
 	write_ata(REG_FEATURES, 0x01);			/* Select 8-bit PIO transfer mode */
 	write_ata(REG_COMMAND, CMD_SETFEATURES);
-	Timer = 100;
-	do {
-		if (!Timer) return Stat;
-	} while (read_ata(REG_STATUS) & BUSY);
+	if (!wait_stat(1000, DRDY)) return Stat;
 
-	Stat &= ~STA_NOINIT;					/* When device goes ready, clear STA_NOINIT */
+	Stat &= ~STA_NOINIT;					/* Initialization succeeded */
 
 	return Stat;
 }
@@ -266,38 +375,22 @@ DRESULT disk_read (
 	BYTE count		/* Sector count (1..255) */
 )
 {
-	BYTE c, iord_l, iord_h;
-
-
 	if (drv || !count) return RES_PARERR;
 	if (Stat & STA_NOINIT) return RES_NOTRDY;
 
 	/* Issue Read Setor(s) command */
-	write_ata(REG_COUNT, count);
-	write_ata(REG_SECTOR, (BYTE)sector);
-	write_ata(REG_CYLL, (BYTE)(sector >> 8));
-	write_ata(REG_CYLH, (BYTE)(sector >> 16));
+	if (!wait_stat(1000, DRDY)) return RES_ERROR;
 	write_ata(REG_DEV, ((BYTE)(sector >> 24) & 0x0F) | LBA);
+	write_ata(REG_CYLH, (BYTE)(sector >> 16));
+	write_ata(REG_CYLL, (BYTE)(sector >> 8));
+	write_ata(REG_SECTOR, (BYTE)sector);
+	write_ata(REG_COUNT, count);
 	write_ata(REG_COMMAND, CMD_READ);
 
 	do {
-		if (!wait_data()) return RES_ERROR;	/* Wait data ready */
-		CTRL_PORT = REG_DATA;
-		iord_h = REG_DATA;
-		iord_l = REG_DATA & ~CTL_READ;
-		c = 0;
-		do {
-			CTRL_PORT = iord_l;		/* IORD = L */
-			CTRL_PORT = iord_l;		/* delay */
-			CTRL_PORT = iord_l;		/* delay */
-			*buff++ = DAT0_PIN;		/* Get even data */
-			CTRL_PORT = iord_h;		/* IORD = H */
-			CTRL_PORT = iord_l;		/* IORD = L */
-			CTRL_PORT = iord_l;		/* delay */
-			CTRL_PORT = iord_l;		/* delay */
-			*buff++ = DAT0_PIN;		/* Get Odd data */
-			CTRL_PORT = iord_h;		/* IORD = H */
-		} while (--c);
+		if (!wait_stat(2000, DRQ)) return RES_ERROR;
+		read_block(buff);
+		buff += 512;
 	} while (--count);
 
 	read_ata(REG_ALTSTAT);
@@ -312,7 +405,7 @@ DRESULT disk_read (
 /* Write Sector(s)                                                       */
 /*-----------------------------------------------------------------------*/
 
-#if _READONLY == 0
+#if _USE_WRITE
 DRESULT disk_write (
 	BYTE drv,			/* Physical drive nmuber (0) */
 	const BYTE *buff,	/* Data to be written */
@@ -320,67 +413,46 @@ DRESULT disk_write (
 	BYTE count			/* Sector count (1..255) */
 )
 {
-	BYTE s, c, iowr_l, iowr_h;
-
-
 	if (drv || !count) return RES_PARERR;
 	if (Stat & STA_NOINIT) return RES_NOTRDY;
 
 	/* Issue Write Setor(s) command */
-	write_ata(REG_COUNT, count);
-	write_ata(REG_SECTOR, (BYTE)sector);
-	write_ata(REG_CYLL, (BYTE)(sector >> 8));
-	write_ata(REG_CYLH, (BYTE)(sector >> 16));
+	if (!wait_stat(1000, DRDY)) return RES_ERROR;
 	write_ata(REG_DEV, ((BYTE)(sector >> 24) & 0x0F) | LBA);
+	write_ata(REG_CYLH, (BYTE)(sector >> 16));
+	write_ata(REG_CYLL, (BYTE)(sector >> 8));
+	write_ata(REG_SECTOR, (BYTE)sector);
+	write_ata(REG_COUNT, count);
 	write_ata(REG_COMMAND, CMD_WRITE);
 
 	do {
-		if (!wait_data()) return RES_ERROR;
-		CTRL_PORT = REG_DATA;
-		iowr_h = REG_DATA;
-		iowr_l = REG_DATA & ~CTL_WRITE;
-		DAT0_DDR = 0xFF;		/* Set D0-D7 as output */
-		c = 0;
-		do {
-			DAT0_PORT = *buff++;	/* Set even data */
-			CTRL_PORT = iowr_l;		/* IOWR = L */
-			CTRL_PORT = iowr_h;		/* IOWR = H */
-			DAT0_PORT = *buff++;	/* Set odd data */
-			CTRL_PORT = iowr_l;		/* IOWR = L */
-			CTRL_PORT = iowr_h;		/* IOWR = H */
-		} while (--c);
-		DAT0_PORT = 0xFF;		/* Set D0-D7 as input */
-		DAT0_DDR = 0;
+		if (!wait_stat(2000, DRQ)) return RES_ERROR;
+		write_block(buff);
+		buff += 512;
 	} while (--count);
 
-	Timer = 100;
-	do {
-		if (!Timer) return RES_ERROR;
-		s = read_ata(REG_STATUS);
-	} while (s & BUSY);
-	if (s & ERR) return RES_ERROR;
+	if (!wait_stat(1000, 0)) return RES_ERROR;
 
 	read_ata(REG_ALTSTAT);
 	read_ata(REG_STATUS);
 
 	return RES_OK;
 }
-#endif /* _READONLY */
-
+#endif
 
 
 /*-----------------------------------------------------------------------*/
 /* Miscellaneous Functions                                               */
 /*-----------------------------------------------------------------------*/
 
-#if _USE_IOCTL != 0
+#if _USE_IOCTL
 DRESULT disk_ioctl (
 	BYTE drv,		/* Physical drive nmuber (0) */
 	BYTE ctrl,		/* Control code */
 	void *buff		/* Buffer to send/receive data block */
 )
 {
-	BYTE n, w, ofs, dl, dh, *ptr = buff;
+	BYTE n, c, w, ofs, dl, dh, *ptr = (BYTE*)buff;
 
 
 	if (drv) return RES_PARERR;
@@ -391,12 +463,12 @@ DRESULT disk_ioctl (
 			ofs = 60; w = 2; n = 0;
 			break;
 
-		case GET_SECTOR_SIZE :	/* Get sectors on the disk (WORD) */
+		case GET_SECTOR_SIZE :	/* Get sector size (WORD) */
 			*(WORD*)buff = 512;
 			return RES_OK;
 
 		case GET_BLOCK_SIZE :	/* Get erase block size in sectors (DWORD) */
-			*(DWORD*)buff = 32;
+			*(DWORD*)buff = 128;
 			return RES_OK;
 
 		case CTRL_SYNC :		/* Nothing to do */
@@ -418,18 +490,21 @@ DRESULT disk_ioctl (
 			return RES_PARERR;
 	}
 
-	write_ata(REG_COMMAND, CMD_IDENTIFY);
-	if (!wait_data()) return RES_ERROR;
-	read_part(ptr, ofs, w);
-	while (n--) {
-		dl = *ptr; dh = *(ptr+1);
+	if (!wait_stat(1000, DRDY)) return RES_ERROR;
+	write_ata(REG_COMMAND, CMD_IDENTIFY);	/* Get device ID data block */
+	if (!wait_stat(1000, DRQ)) return RES_ERROR;	/* Wait for data ready */
+	read_block_part(ptr, ofs, w);
+	while (n--) {				/* Swap byte order */
+		dl = *ptr++; dh = *ptr--;
 		*ptr++ = dh; *ptr++ = dl; 
 	}
 
+	read_ata(REG_ALTSTAT);
+	read_ata(REG_STATUS);
+
 	return RES_OK;
 }
-#endif /* _USE_IOCTL != 0 */
-
+#endif
 
 
 /*-----------------------------------------------------------------------*/
@@ -440,25 +515,16 @@ DRESULT disk_ioctl (
 
 void disk_timerproc (void)
 {
-	static BYTE pv;
-	BYTE n;
+	UINT t;
 
 
-	n = Timer;					/* 100Hz decrement timer */
-	if (n) Timer = --n;
+	t = Timer;					/* 100Hz decrement timer */
+	if (t) Timer = --t;
 
-	n = pv;
-	pv = SOCK_PIN & SOCKINS;	/* Sapmle socket switch */
-
-	if (n == pv) {					/* Have contacts stabled? */
-		if (pv & SOCKINS) {			/* CD1 or CD2 is high (Socket empty) */
-			Stat |= (STA_NODISK | STA_NOINIT);
-			DAT0_DDR = 0; DAT0_PORT = 0;			/* Float D0-D7 */
-			CTRL_DDR = CTL_RESET; CTRL_PORT = 0;	/* Assert RESET# */
-			SOCK_PORT |= SOCKPWR;					/* Power OFF */
-		} else {					/* CD1 and CD2 are low (Card inserted) */
-			Stat &= ~STA_NODISK;
-		}
+	if (!CF_EXIST) {			/* Socket empty */
+		Stat |= STA_NODISK | STA_NOINIT;
+	} else {					/* Card inserted */
+		Stat &= ~STA_NODISK;
 	}
 }
 

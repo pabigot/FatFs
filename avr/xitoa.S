@@ -1,16 +1,18 @@
 ;---------------------------------------------------------------------------;
-; Extended itoa, puts, printf and atoi                     (C)ChaN, 2006
-;
-; Module size: 277/261 words (max)
-;
+; Extended itoa, puts, printf and atoi                     (C)ChaN, 2011
+;---------------------------------------------------------------------------;
 
-#define USE_XPUTS
-#define USE_XITOA
-#define USE_XPRINTF
-#define	CR_CRLF
-#define USE_XATOI
+				// Base size is 152 bytes
+#define	CR_CRLF		1	// Convert \n to \r\n (+10 bytes)
+#define USE_XPRINTF	1	// Enable xprintf function (+194 bytes)
+#define USE_XSPRINTF	0	// Add xsprintf function (+78 bytes)
+#define USE_XFPRINTF	0	// Add xfprintf function (+54 bytes)
+#define USE_XATOI	1	// Enable xatoi function (+182 bytes)
 
 
+#if FLASHEND > 0x1FFFF
+#error xitoa module does not support 256K devices
+#endif
 
 .nolist
 #include <avr/io.h>	// Include device specific definitions.
@@ -42,20 +44,18 @@
 ;
 ;Prototype: void xputc (char chr	// a character to be output
 ;			);
-;Size: 15/15 words
+;Size: 10/10 words
 
 .section .bss
-
 .global xfunc_out	; xfunc_out must be initialized before using this module.
 xfunc_out:	.ds.w	1
-
 .section .text
 
 
-.global xputc
 .func xputc
+.global xputc
 xputc:
-#ifdef CR_CRLF
+#if CR_CRLF
 	cpi	r24, 10		;LF --> CRLF
 	brne	1f		;
 	ldi	r24, 13		;
@@ -67,8 +67,10 @@ xputc:
 	push	ZL
 	lds	ZL, xfunc_out+0	;Pointer to the registered output function.
 	lds	ZH, xfunc_out+1	;/
+	sbiw	ZL, 0		;Skip if null
+	breq	2f		;/
 	icall
-	pop	ZL
+2:	pop	ZL
 	pop	ZH
 	ret
 .endfunc
@@ -80,11 +82,9 @@ xputc:
 ;
 ;Prototype: void xputs (const prog_char *str // rom string to be output
 ;			);
-;Size: 10/7 words
 
-#ifdef USE_XPUTS
-.global xputs
 .func xputs
+.global xputs
 xputs:
 	_MOVW	ZH,ZL, r25,r24	; Z = pointer to rom string
 1:	_LPMI	r24
@@ -94,7 +94,6 @@ xputs:
 	rjmp	1b
 2:	ret
 .endfunc
-#endif
 
 
 ;---------------------------------------------------------------------------
@@ -103,12 +102,10 @@ xputs:
 ;Prototype: void xitoa (long value,	// value to be output
 ;                       char radix,	// radix
 ;                       char width);	// minimum width
-;Size: 59/59 words
 ;
 
-#ifdef USE_XITOA
-.global xitoa
 .func xitoa
+.global xitoa
 xitoa:
 				;r25:r22 = value, r20 = base, r18 = digits
 	clr	r31		;r31 = stack level
@@ -175,7 +172,6 @@ xitoa:
 
 	ret
 .endfunc
-#endif
 
 
 
@@ -184,26 +180,14 @@ xitoa:
 ;
 ;Prototype:
 ; void xprintf (const prog_char *format, ...);
-;Size: 104/94 words
+; void xsprintf(char*, const prog_char *format, ...);
+; void xfprintf(void(*func)(char), const prog_char *format, ...);
 ;
 
-#ifdef USE_XPRINTF
-.global xprintf
-.func xprintf
-xprintf:
-	push	YH
-	push	YL
-	in	YL, _SFR_IO_ADDR(SPL)
-#ifdef SPH
-	in	YH, _SFR_IO_ADDR(SPH)
-#else
-	clr	YH
-#endif
-#if FLASHEND > 0x1FFFF
-	adiw	YL, 6		;Y = pointer to arguments
-#else
-	adiw	YL, 5		;Y = pointer to arguments
-#endif
+#if USE_XPRINTF
+
+.func xvprintf
+xvprintf:
 	ld	ZL, Y+		;Z = pointer to format string
 	ld	ZH, Y+		;/
 
@@ -214,9 +198,7 @@ xprintf:
 	breq	20f		;/
 1:	rcall	xputc		;Put a normal character
 	rjmp	0b		;/
-90:	pop	YL
-	pop	YH
-	ret
+90:	ret
 
 20:	ldi	r18, 0		;r18: digits
 	clt			;T: filler
@@ -277,7 +259,7 @@ xprintf:
 	cpi	r21, 'b'	;Is type binary?
 	ldi	r20, 2		;
 	breq	40f		;/
-	rjmp	90b		;abort
+	ret			;abort
 40:	push	ZH		;Output the value
 	push	ZL		;
 	rcall	xitoa		;
@@ -298,8 +280,107 @@ xprintf:
 	push	ZL
 	rcall	xputs
 	rjmp	42b
-
 .endfunc
+
+
+.func xprintf
+.global xprintf
+xprintf:
+	push	YH
+	push	YL
+	in	YL, _SFR_IO_ADDR(SPL)
+#ifdef SPH
+	in	YH, _SFR_IO_ADDR(SPH)
+#else
+	clr	YH
+#endif
+	adiw	YL, 5		;Y = pointer to arguments
+	rcall	xvprintf
+	pop	YL
+	pop	YH
+	ret
+.endfunc
+
+
+#if USE_XSPRINTF
+
+.func xsprintf
+putram:
+	_MOVW	ZH,ZL, r15,r14
+	st	Z+, r24
+	_MOVW	r15,r14, ZH,ZL
+	ret
+.global xsprintf
+xsprintf:
+	push	YH
+	push	YL
+	in	YL, _SFR_IO_ADDR(SPL)
+#ifdef SPH
+	in	YH, _SFR_IO_ADDR(SPH)
+#else
+	clr	YH
+#endif
+	adiw	YL, 5		;Y = pointer to arguments
+	lds	ZL, xfunc_out+0	;Save registered output function
+	lds	ZH, xfunc_out+1	;
+	push	ZL		;
+	push	ZH		;/
+	ldi	ZL, lo8(pm(putram));Set local output function
+	ldi	ZH, hi8(pm(putram));
+	sts	xfunc_out+0, ZL	;
+	sts	xfunc_out+1, ZH	;/
+	push	r15		;Initialize pointer to string buffer
+	push	r14		;
+	ld	r14, Y+		;
+	ld	r15, Y+		;/
+	rcall	xvprintf
+	_MOVW	ZH,ZL, r15,r14	;Terminate string
+	st	Z, r1		;
+	pop	r14		;
+	pop	r15		;/
+	pop	ZH		;Restore registered output function
+	pop	ZL		;
+	sts	xfunc_out+0, ZL	;
+	sts	xfunc_out+1, ZH	;/
+	pop	YL
+	pop	YH
+	ret
+.endfunc
+#endif
+
+
+#if USE_XFPRINTF
+.func xfprintf
+.global xfprintf
+xfprintf:
+	push	YH
+	push	YL
+	in	YL, _SFR_IO_ADDR(SPL)
+#ifdef SPH
+	in	YH, _SFR_IO_ADDR(SPH)
+#else
+	clr	YH
+#endif
+	adiw	YL, 5		;Y = pointer to arguments
+	lds	ZL, xfunc_out+0	;Save registered output function
+	lds	ZH, xfunc_out+1	;
+	push	ZL		;
+	push	ZH		;/
+	ld	ZL, Y+		;Set output function
+	ld	ZH, Y+		;
+	sts	xfunc_out+0, ZL	;
+	sts	xfunc_out+1, ZH	;/
+	rcall	xvprintf
+	pop	ZH		;Restore registered output function
+	pop	ZL		;
+	sts	xfunc_out+0, ZL	;
+	sts	xfunc_out+1, ZH	;/
+	pop	YL
+	pop	YH
+	ret
+.endfunc
+#endif
+
 #endif
 
 
@@ -312,12 +393,12 @@ xprintf:
 ;      const char **str, /* pointer to pointer to source string */
 ;      long *res         /* result */
 ; );
-;Size: 94/91 words
 ;
 
-#ifdef USE_XATOI
-.global xatoi
+
+#if USE_XATOI
 .func xatoi
+.global xatoi
 xatoi:
 	_MOVW	r1, r0, r23, r22
 	_MOVW	XH, XL, r25, r24

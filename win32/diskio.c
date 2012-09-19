@@ -1,12 +1,19 @@
 /*-----------------------------------------------------------------------*/
-/* Low level disk control module for Win32              (C)ChaN, 2007    */
+/* Low level disk control module for Win32              (C)ChaN, 2012    */
 /*-----------------------------------------------------------------------*/
 
+#include <windows.h>
+#include <tchar.h>
+#include <winioctl.h>
 #include <stdio.h>
 #include "diskio.h"
-#include <windows.h>
-#include <winioctl.h>
+#include "ff.h"
 
+
+#define MAX_DRIVES	10	/* Max number of physical drives to be used */
+
+#define SZ_RAMDISK	64	/* Size of RAM disk [MB] */
+#define SS_RAMDISK	512	/* Sector size of RAM disk [byte] */
 
 
 /*--------------------------------------------------------------------------
@@ -15,9 +22,7 @@
 
 ---------------------------------------------------------------------------*/
 
-
-#define	IHV	INVALID_HANDLE_VALUE
-#define	BUFSIZE 65536UL
+#define	BUFSIZE 65536UL	/* Size of data transfer buffer */
 
 typedef struct {
 	DSTATUS	status;
@@ -26,18 +31,15 @@ typedef struct {
 	HANDLE h_drive;
 } STAT;
 
-static
-HANDLE hMutex, hTmrThread;
+static HANDLE hMutex, hTmrThread;
+static int Drives;
 
-static volatile
-STAT Stat[10];
+static volatile STAT Stat[MAX_DRIVES];
 
 
-static
-DWORD TmrThreadID;
+static DWORD TmrThreadID;
 
-static
-BYTE *Buffer;	/* Poiter to the data transfer buffer */
+static BYTE *Buffer, *RamDisk;	/* Poiter to the data transfer buffer and ramdisk */
 
 
 /*-----------------------------------------------------------------------*/
@@ -52,11 +54,12 @@ DWORD WINAPI tmr_thread (LPVOID parms)
 
 
 	for (;;) {
-		for (drv = 0; drv < 10; drv++) {
+		Sleep(100);
+		for (drv = 1; drv < Drives; drv++) {
 			Sleep(1);
-			if (Stat[drv].h_drive == IHV || Stat[drv].status & STA_NOINIT || WaitForSingleObject(hMutex, 100) != WAIT_OBJECT_0) continue;
+			if (Stat[drv].h_drive == INVALID_HANDLE_VALUE || Stat[drv].status & STA_NOINIT || WaitForSingleObject(hMutex, 100) != WAIT_OBJECT_0) continue;
 
-			if (!DeviceIoControl(Stat[drv].h_drive, IOCTL_STORAGE_CHECK_VERIFY, NULL, 0, NULL, 0, &dw, NULL))
+			if (!DeviceIoControl(Stat[drv].h_drive, IOCTL_STORAGE_CHECK_VERIFY, 0, 0, 0, 0, &dw, 0))
 				Stat[drv].status |= STA_NOINIT;
 			ReleaseMutex(hMutex);
 			Sleep(100);
@@ -66,24 +69,36 @@ DWORD WINAPI tmr_thread (LPVOID parms)
 
 
 
-BOOL get_status (volatile STAT *stat) {
-	DISK_GEOMETRY parms;
-	PARTITION_INFORMATION part;
-	DWORD dw;
+int get_status (
+	BYTE drv
+)
+{
+	volatile STAT *stat = &Stat[drv];
 	HANDLE h = stat->h_drive;
+	DISK_GEOMETRY parms;
+	DWORD dw;
 
 
-	if (h == IHV
-		|| !DeviceIoControl(h, IOCTL_STORAGE_CHECK_VERIFY, NULL, 0, NULL, 0, &dw, NULL)
-		|| !DeviceIoControl(h, IOCTL_DISK_GET_PARTITION_INFO, NULL, 0, &part, sizeof(part), &dw, NULL)
-		|| !DeviceIoControl(h, IOCTL_DISK_GET_DRIVE_GEOMETRY, NULL, 0, &parms, sizeof(parms), &dw, NULL)) {
-		stat->status = STA_NOINIT;
-		return FALSE;
+	if (drv == 0) {	/* RAMDISK */
+		stat->sz_sector = SS_RAMDISK;
+		stat->n_sectors = SZ_RAMDISK * 0x100000 / SS_RAMDISK;
+		stat->status = 0;
+		return 1;
 	}
+
+	/* Get physical drive parameters */
+	if (   !DeviceIoControl(h, IOCTL_STORAGE_CHECK_VERIFY, 0, 0, 0, 0, &dw, 0)
+		|| !DeviceIoControl(h, IOCTL_DISK_GET_DRIVE_GEOMETRY, 0, 0, &parms, sizeof parms, &dw, 0)) {
+		stat->status = STA_NOINIT;
+		return 0;
+	}
+
 	stat->sz_sector = (WORD)parms.BytesPerSector;
-	stat->n_sectors = (DWORD)(part.PartitionLength.QuadPart / parms.BytesPerSector);
-	stat->status = DeviceIoControl(h, IOCTL_DISK_IS_WRITABLE, NULL, 0, NULL, 0, &dw, NULL) ? 0 : STA_PROTECT;
-	return TRUE;
+	if (_MAX_SS == 512 && stat->sz_sector != 512) return 0;
+	stat->n_sectors = parms.SectorsPerTrack * parms.TracksPerCylinder * (DWORD)parms.Cylinders.QuadPart; //(DWORD)(part.PartitionLength.QuadPart / parms.BytesPerSector);
+	stat->status = DeviceIoControl(h, IOCTL_DISK_IS_WRITABLE, 0, 0, 0, 0, &dw, 0) ? 0 : STA_PROTECT;
+
+	return 1;
 }
 
 
@@ -96,45 +111,59 @@ BOOL get_status (volatile STAT *stat) {
 ---------------------------------------------------------------------------*/
 
 
-BOOL assign_drives (int argc, char *argv[])
+/*-----------------------------------------------------------------------*/
+/* Initialize Windows disk accesss layer                                 */
+/*-----------------------------------------------------------------------*/
+
+int assign_drives (void)
 {
-	int pd, n, nd;
-	char str[30];
+	BYTE drv;
+	TCHAR str[30];
 	HANDLE h;
+	OSVERSIONINFO vinfo = { sizeof (OSVERSIONINFO) };
 
 
-	Buffer = VirtualAlloc(NULL, BUFSIZE, MEM_COMMIT, PAGE_READWRITE);
-	if (!Buffer) return FALSE;
+	hMutex = CreateMutex(0, 0, 0);
+	if (hMutex == INVALID_HANDLE_VALUE) return 0;
 
-	hMutex = CreateMutex(0, FALSE, NULL);
-	if (hMutex == IHV) return FALSE;
+	Buffer = VirtualAlloc(0, BUFSIZE, MEM_COMMIT, PAGE_READWRITE);
+	if (!Buffer) return 0;
 
-	pd = nd = 0;
-	while (pd < 10 && pd < argc - 1) {
-		n = atoi(argv[pd + 1]);
-		if (!n) return FALSE;
-		sprintf(str, "\\\\.\\PhysicalDrive%u", n);
-		printf("%s ==> Disk#%u on FatFs", str, pd);
-		h = CreateFile(str, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_NO_BUFFERING, NULL);
-		Stat[pd].h_drive = h;
-		if (h == IHV) {
-			Stat[pd].status = STA_NOINIT;
-			printf(" (Not Available)\n");
+	RamDisk = VirtualAlloc(0, SZ_RAMDISK * 0x100000, MEM_COMMIT, PAGE_READWRITE);
+	if (!RamDisk) return 0;
+
+	for (drv = 0; drv < MAX_DRIVES; drv++) {
+		if (drv) {
+			_stprintf(str, _T("\\\\.\\PhysicalDrive%u"), drv);
+			h = CreateFile(str, GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_FLAG_NO_BUFFERING, 0);
+			if (h == INVALID_HANDLE_VALUE) break;
+			Stat[drv].h_drive = h;
 		} else {
-			if (get_status(&Stat[pd])) {
-				printf(" (%u Sectors, %u Bytes/Sector)\n", Stat[pd].n_sectors, Stat[pd].sz_sector);
-			} else {
-				printf(" (Not Ready)\n");
-			}
-			nd++;
+			_stprintf(str, _T("RAM Disk"));
 		}
-		pd++;
+		_tprintf(_T("Disk# %u <== %s"), drv, str);
+		if (get_status(drv))
+			_tprintf(_T(" (%uMB, %u bytes * %u sectors)\n"), (UINT)((LONGLONG)Stat[drv].sz_sector * Stat[drv].n_sectors / 1024 / 1024), Stat[drv].sz_sector, Stat[drv].n_sectors);
+		else
+			_tprintf(_T(" (Not Ready)\n"));
 	}
 
-	hTmrThread = CreateThread(NULL, 0, tmr_thread, 0, 0, &TmrThreadID);
-	if (hTmrThread == IHV) nd = 0;
+	hTmrThread = CreateThread(0, 0, tmr_thread, 0, 0, &TmrThreadID);
+	if (hTmrThread == INVALID_HANDLE_VALUE) drv = 0;
 
-	return nd ? TRUE : FALSE;
+	if (drv > 1) {
+		if (GetVersionEx(&vinfo) == FALSE) {
+			drv = 0;
+		} else {
+			if (vinfo.dwMajorVersion > 5) {
+				printf( "\nOn the Windows Vista/7, you must unmount all volumes on the physical drive\n"
+						"to be accessed prior to start program, or write access to the drive will fail.\n");
+			}
+		}
+	}
+
+	Drives = drv;
+	return drv;
 }
 
 
@@ -152,12 +181,13 @@ DSTATUS disk_initialize (
 	DSTATUS sta;
 
 
-	if (WaitForSingleObject(hMutex, 5000) != WAIT_OBJECT_0) return STA_NOINIT;
+	if (WaitForSingleObject(hMutex, 5000) != WAIT_OBJECT_0)
+		return STA_NOINIT;
 
-	if (drv >= 10) {
+	if (drv >= Drives) {
 		sta = STA_NOINIT;
 	} else {
-		get_status(&Stat[drv]);
+		get_status(drv);
 		sta = Stat[drv].status;
 	}
 
@@ -178,7 +208,7 @@ DSTATUS disk_status (
 	DSTATUS sta;
 
 
-	if (drv >= 10) {
+	if (drv >= Drives) {
 		sta = STA_NOINIT;
 	} else {
 		sta = Stat[drv].status;
@@ -205,23 +235,30 @@ DRESULT disk_read (
 	DSTATUS res;
 
 
-	if (drv >= 10 || Stat[drv].status & STA_NOINIT || WaitForSingleObject(hMutex, 3000) != WAIT_OBJECT_0) return RES_NOTRDY;
+	if (drv >= Drives || Stat[drv].status & STA_NOINIT || WaitForSingleObject(hMutex, 3000) != WAIT_OBJECT_0)
+		return RES_NOTRDY;
 
+//	_tprintf(_T("[R:%d:%d]"), sector, count);
 	nc = (DWORD)count * Stat[drv].sz_sector;
-	if (nc > BUFSIZE) {
-		res = RES_PARERR;
-	} else {
-		ofs.QuadPart = (LONGLONG)sector * Stat[drv].sz_sector;
-		if (SetFilePointer(Stat[drv].h_drive, ofs.LowPart, &ofs.HighPart, FILE_BEGIN) != ofs.LowPart) {
-			res = RES_ERROR;
+	ofs.QuadPart = (LONGLONG)sector * Stat[drv].sz_sector;
+	if (drv) {
+		if (nc > BUFSIZE) {
+			res = RES_PARERR;
 		} else {
-			if (!ReadFile(Stat[drv].h_drive, Buffer, nc, &rnc, NULL) || nc != rnc) {
+			if (SetFilePointer(Stat[drv].h_drive, ofs.LowPart, &ofs.HighPart, FILE_BEGIN) != ofs.LowPart) {
 				res = RES_ERROR;
 			} else {
-				memcpy(buff, Buffer, nc);
-				res = RES_OK;
+				if (!ReadFile(Stat[drv].h_drive, Buffer, nc, &rnc, 0) || nc != rnc) {
+					res = RES_ERROR;
+				} else {
+					memcpy(buff, Buffer, nc);
+					res = RES_OK;
+				}
 			}
 		}
+	} else {
+		memcpy(buff, RamDisk + ofs.LowPart, nc);
+		res = RES_OK;		
 	}
 
 	ReleaseMutex(hMutex);
@@ -234,7 +271,7 @@ DRESULT disk_read (
 /* Write Sector(s)                                                       */
 /*-----------------------------------------------------------------------*/
 
-#if _READONLY == 0
+#if _USE_WRITE
 DRESULT disk_write (
 	BYTE drv,			/* Physical drive nmuber (0) */
 	const BYTE *buff,	/* Pointer to the data to be written */
@@ -247,8 +284,10 @@ DRESULT disk_write (
 	DRESULT res;
 
 
-	if (drv >= 10 || Stat[drv].status & STA_NOINIT || WaitForSingleObject(hMutex, 3000) != WAIT_OBJECT_0) return RES_NOTRDY;
+	if (drv >= Drives || Stat[drv].status & STA_NOINIT || WaitForSingleObject(hMutex, 3000) != WAIT_OBJECT_0)
+		return RES_NOTRDY;
 
+//	_tprintf(_T("[W:%d:%d]"), sector, count);
 	res = RES_OK;
 	if (Stat[drv].status & STA_PROTECT) {
 		res = RES_WRPRT;
@@ -258,21 +297,26 @@ DRESULT disk_write (
 			res = RES_PARERR;
 	}
 
-	if (res == RES_OK) {
-		ofs.QuadPart = (LONGLONG)sector * Stat[drv].sz_sector;
-		if (SetFilePointer(Stat[drv].h_drive, ofs.LowPart, &ofs.HighPart, FILE_BEGIN) != ofs.LowPart) {
-			res = RES_ERROR;
-		} else {
-			memcpy(Buffer, buff, nc);
-			if (!WriteFile(Stat[drv].h_drive, Buffer, nc, &rnc, NULL) || nc != rnc)
+	ofs.QuadPart = (LONGLONG)sector * Stat[drv].sz_sector;
+	if (drv) {
+		if (res == RES_OK) {
+			if (SetFilePointer(Stat[drv].h_drive, ofs.LowPart, &ofs.HighPart, FILE_BEGIN) != ofs.LowPart) {
 				res = RES_ERROR;
+			} else {
+				memcpy(Buffer, buff, nc);
+				if (!WriteFile(Stat[drv].h_drive, Buffer, nc, &rnc, 0) || nc != rnc)
+					res = RES_ERROR;
+			}
 		}
+	} else {
+		memcpy(RamDisk + ofs.LowPart, buff, nc);
+		res = RES_OK;		
 	}
 
 	ReleaseMutex(hMutex);
 	return res;
 }
-#endif /* _READONLY */
+#endif /* _USE_WRITE */
 
 
 
@@ -280,6 +324,7 @@ DRESULT disk_write (
 /* Miscellaneous Functions                                               */
 /*-----------------------------------------------------------------------*/
 
+#if _USE_IOCTL
 DRESULT disk_ioctl (
 	BYTE drv,		/* Physical drive nmuber (0) */
 	BYTE ctrl,		/* Control code */
@@ -289,7 +334,8 @@ DRESULT disk_ioctl (
 	DRESULT res = RES_PARERR;
 
 
-	if (drv >= 10 || (Stat[drv].status & STA_NOINIT)) return RES_NOTRDY;
+	if (drv >= Drives || (Stat[drv].status & STA_NOINIT))
+		return RES_NOTRDY;
 
 	switch (ctrl) {
 	case CTRL_SYNC:
@@ -310,11 +356,12 @@ DRESULT disk_ioctl (
 		*(DWORD*)buff = 128;
 		res = RES_OK;
 		break;
+
 	}
 
 	return res;
 }
-
+#endif /* _USE_IOCTL */
 
 
 

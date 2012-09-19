@@ -1,0 +1,25 @@
+[HIMDBVersion]
+2.0
+[DATABASE_VERSION]
+"1.2" 
+[CURRENT_PROJECT]
+"ff_rx62n" 
+[GENERAL_DATA]
+[BREAKPOINTS]
+[OPEN_WORKSPACE_FILES]
+"C:\user\Prj_Renesas\ff_rx62n\ff_rx62n\ffconf.h" 
+"C:\user\Prj_Renesas\ff_rx62n\ff_rx62n\main.c" 
+"C:\user\Prj_Renesas\ff_rx62n\ff_rx62n\mmc_rspi.c" 
+"C:\user\Prj_Renesas\ff_rx62n\ff_rx62n\scif.c" 
+"C:\user\Prj_Renesas\ff_rx62n\ff_rx62n\sound.c" 
+"C:\user\Prj_Renesas\ff_rx62n\ff_rx62n\stacksct.h" 
+[WORKSPACE_FILE_STATES]
+"C:\user\Prj_Renesas\ff_rx62n\ff_rx62n\ffconf.h" 88 88 1102 596 0 4 
+"C:\user\Prj_Renesas\ff_rx62n\ff_rx62n\main.c" 0 0 1396 909 0 0 
+"C:\user\Prj_Renesas\ff_rx62n\ff_rx62n\mmc_rspi.c" 0 0 1292 909 0 1 
+"C:\user\Prj_Renesas\ff_rx62n\ff_rx62n\scif.c" 110 110 1102 596 0 3 
+"C:\user\Prj_Renesas\ff_rx62n\ff_rx62n\sound.c" -4 -23 1292 909 1 2 
+"C:\user\Prj_Renesas\ff_rx62n\ff_rx62n\stacksct.h" 110 110 1102 596 0 5 
+[LOADED_PROJECTS]
+"ff_rx62n" 
+[END]

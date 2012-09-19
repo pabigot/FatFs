@@ -6,7 +6,7 @@
 #include "rtc.h"
 
 
-
+#define	IIC_INIT()	DDRE &= 0xF3; PORTE &= 0xF3	/* Set SCL/SDA as hi-z */
 #define SCL_LOW()	DDRE |=	0x04			/* SCL = LOW */
 #define SCL_HIGH()	DDRE &=	0xFB			/* SCL = High-Z */
 #define	SCL_VAL		((PINE & 0x04) ? 1 : 0)	/* SCL input level */
@@ -16,13 +16,16 @@
 
 
 
+/*-------------------------------------------------*/
+/* I2C bus protocol                                */
+
+
 static
 void iic_delay (void)
 {
 	int n;
-	BYTE d;
 
-	for (n = 4; n; n--) d = PINE;
+	for (n = 4; n; n--) PINB;
 }
 
 
@@ -56,10 +59,10 @@ void iic_stop (void)
 
 /* Send a byte to the IIC bus */
 static
-BOOL iic_send (BYTE dat)
+int iic_send (BYTE dat)
 {
 	BYTE b = 0x80;
-	BOOL ack;
+	int ack;
 
 
 	do {
@@ -77,7 +80,7 @@ BOOL iic_send (BYTE dat)
 	SDA_HIGH();
 	iic_delay();
 	SCL_HIGH();
-	ack = SDA_VAL ? FALSE : TRUE;	/* Sample ACK */
+	ack = SDA_VAL ? 0 : 1;	/* Sample ACK */
 	iic_delay();
 	SCL_LOW();
 	iic_delay();
@@ -87,7 +90,7 @@ BOOL iic_send (BYTE dat)
 
 /* Receive a byte from the IIC bus */
 static
-BYTE iic_rcvr (BOOL ack)
+BYTE iic_rcvr (int ack)
 {
 	UINT d = 1;
 
@@ -117,8 +120,12 @@ BYTE iic_rcvr (BOOL ack)
 
 
 
+/*-------------------------------------------------*/
+/* I2C block read/write controls                   */
 
-BOOL rtc_read (
+
+int iic_read (
+	BYTE dev,		/* Device address */
 	UINT adr,		/* Read start address */
 	UINT cnt,		/* Read byte count */
 	void* buff		/* Read data buffer */
@@ -128,33 +135,33 @@ BOOL rtc_read (
 	int n;
 
 
-	if (!cnt) return FALSE;
+	if (!cnt) return 0;
 
 	n = 10;
-	do {							/* Select DS1338 (0xD0) */
+	do {							/* Select device */
 		iic_start();
-	} while (!iic_send(0xD0) && --n);
-	if (!n) return FALSE;
-
-	if (iic_send((BYTE)adr)) {		/* Set start address */
-		iic_start();				/* Reselect DS1338 in read mode (0xD1) */
-		if (iic_send(0xD1)) {
-			do {					/* Receive data */
-				cnt--;
-				*rbuff++ = iic_rcvr(cnt ? TRUE : FALSE);
-			} while (cnt);
+	} while (!iic_send(dev) && --n);
+	if (n) {
+		if (iic_send((BYTE)adr)) {		/* Set start address */
+			iic_start();				/* Reselect device in read mode */
+			if (iic_send(dev | 1)) {
+				do {					/* Receive data */
+					cnt--;
+					*rbuff++ = iic_rcvr(cnt ? 1 : 0);
+				} while (cnt);
+			}
 		}
 	}
 
 	iic_stop();						/* Deselect device */
 
-	return cnt ? FALSE : TRUE;
+	return cnt ? 0 : 1;
 }
 
 
 
-
-BOOL rtc_write (
+int iic_write (
+	BYTE dev,			/* Device address */
 	UINT adr,			/* Write start address */
 	UINT cnt,			/* Write byte count */
 	const void* buff	/* Data to be written */
@@ -164,34 +171,37 @@ BOOL rtc_write (
 	int n;
 
 
-	if (!cnt) return FALSE;
+	if (!cnt) return 0;
 
 	n = 10;
-	do {							/* Select DS1338 (0xD0) */
+	do {							/* Select device */
 		iic_start();
-	} while (!iic_send(0xD0) && --n);
-	if (!n) return FALSE;
-
-	if (iic_send((BYTE)adr)) {		/* Set start address */
-		do {						/* Send data */
-			if (!iic_send(*wbuff++)) break;
-		} while (--cnt);
+	} while (!iic_send(dev) && --n);
+	if (n) {
+		if (iic_send((BYTE)adr)) {		/* Set start address */
+			do {						/* Send data */
+				if (!iic_send(*wbuff++)) break;
+			} while (--cnt);
+		}
 	}
 
 	iic_stop();						/* Deselect device */
 
-	return cnt ? FALSE : TRUE;
+	return cnt ? 0 : 1;
 }
 
 
 
+/*-------------------------------------------------*/
+/* RTC functions                                   */
 
-BOOL rtc_gettime (RTC *rtc)
+
+int rtc_gettime (RTC *rtc)
 {
 	BYTE buf[8];
 
 
-	if (!rtc_read(0, 7, buf)) return FALSE;
+	if (!iic_read(0xD0, 0, 7, buf)) return 0;
 
 	rtc->sec = (buf[0] & 0x0F) + ((buf[0] >> 4) & 7) * 10;
 	rtc->min = (buf[1] & 0x0F) + (buf[1] >> 4) * 10;
@@ -201,13 +211,13 @@ BOOL rtc_gettime (RTC *rtc)
 	rtc->month = (buf[5] & 0x0F) + ((buf[5] >> 4) & 1) * 10;
 	rtc->year = 2000 + (buf[6] & 0x0F) + (buf[6] >> 4) * 10;
 
-	return TRUE;
+	return 1;
 }
 
 
 
 
-BOOL rtc_settime (const RTC *rtc)
+int rtc_settime (const RTC *rtc)
 {
 
 	BYTE buf[8];
@@ -220,30 +230,32 @@ BOOL rtc_settime (const RTC *rtc)
 	buf[4] = rtc->mday / 10 * 16 + rtc->mday % 10;
 	buf[5] = rtc->month / 10 * 16 + rtc->month % 10;
 	buf[6] = (rtc->year - 2000) / 10 * 16 + (rtc->year - 2000) % 10;
-	return rtc_write(0, 7, buf);
+	return iic_write(0xD0, 0, 7, buf);
 }
 
 
 
 
-BOOL rtc_init (void)
+int rtc_init (void)
 {
 	BYTE buf[8];	/* RTC R/W buffer */
 	UINT adr;
 
 
+	IIC_INIT();		/* Initialize IIC function */
+
 	/* Read RTC registers */
-	if (!rtc_read(0, 8, buf)) return FALSE;	/* IIC error */
+	if (!iic_read(0xD0, 0, 8, buf)) return 0;	/* IIC error */
 
 	if (buf[7] & 0x20) {	/* When data has been volatiled, set default time */
 		/* Clear nv-ram. Reg[8..63] */
 		memset(buf, 0, 8);
 		for (adr = 8; adr < 64; adr += 8)
-			rtc_write(adr, 8, buf);
+			iic_write(0x0D, adr, 8, buf);
 		/* Reset time to Jan 1, '08. Reg[0..7] */
 		buf[4] = 1; buf[5] = 1; buf[6] = 8;
-		rtc_write(0, 8, buf);
+		iic_write(0x0D, 0, 8, buf);
 	}
-	return TRUE;
+	return 1;
 }
 
