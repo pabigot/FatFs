@@ -1,0 +1,7 @@
+ru
+tst850.a
+main.o
+mmc.o
+ff.o
+comm.o
+monitor.o

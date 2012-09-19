@@ -1,0 +1,72 @@
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\PRODUCT\ff.rel" : \
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\SOURCE\ff.c"\
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\SOURCE\ff.h"\
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\SOURCE\integer.h"\
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\SOURCE\diskio.h"\
+"C:\Program Files\TOSHIBA\T870C\include\string.h"\
+"C:\Program Files\TOSHIBA\T870C\include\stdarg.h"
+	"C:\Program Files\TOSHIBA\T870C\BIN\CC870C" \
+ -A -O3 -XS -l  -c \
+-o "C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\PRODUCT\ff.rel" \
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\SOURCE\ff.c"
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\PRODUCT\Stc86.rel" : \
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\SOURCE\Stc86.c"\
+"C:\Program Files\TOSHIBA\T870C\include\stdlib.h"\
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\SOURCE\integer.h"\
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\SOURCE\monitor.h"\
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\SOURCE\io86fm29.h"\
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\SOURCE\io86fm29.c"
+	"C:\Program Files\TOSHIBA\T870C\BIN\CC870C" \
+ -A -O3 -XS -l  -c \
+-o "C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\PRODUCT\Stc86.rel" \
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\SOURCE\Stc86.c"
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\PRODUCT\main.rel" : \
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\SOURCE\main.c"\
+"C:\Program Files\TOSHIBA\T870C\include\stdlib.h"\
+"C:\Program Files\TOSHIBA\T870C\include\string.h"\
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\SOURCE\integer.h"\
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\SOURCE\Io86fm29.h"\
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\SOURCE\monitor.h"\
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\SOURCE\ff.h"\
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\SOURCE\diskio.h"
+	"C:\Program Files\TOSHIBA\T870C\BIN\CC870C" \
+ -A -O3 -XS -l  -c \
+-o "C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\PRODUCT\main.rel" \
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\SOURCE\main.c"
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\PRODUCT\mmc.rel" : \
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\SOURCE\mmc.c"\
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\SOURCE\io86fm29.h"\
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\SOURCE\integer.h"\
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\SOURCE\diskio.h"
+	"C:\Program Files\TOSHIBA\T870C\BIN\CC870C" \
+ -A -O3 -XS -l  -c \
+-o "C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\PRODUCT\mmc.rel" \
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\SOURCE\mmc.c"
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\PRODUCT\monitor.rel" : \
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\SOURCE\monitor.c"\
+"C:\Program Files\TOSHIBA\T870C\include\stdlib.h"\
+"C:\Program Files\TOSHIBA\T870C\include\stdarg.h"\
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\SOURCE\integer.h"\
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\SOURCE\io86fm29.h"
+	"C:\Program Files\TOSHIBA\T870C\BIN\CC870C" \
+ -A -O3 -XS -l  -c \
+-o "C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\PRODUCT\monitor.rel" \
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\SOURCE\monitor.c"
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\PRODUCT\tlcs_mmc.abs" : \
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\SYSTEM\PROJ\tlcs_mmc.LCF" \
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\PRODUCT\ff.rel" \
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\PRODUCT\Stc86.rel" \
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\PRODUCT\main.rel" \
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\PRODUCT\mmc.rel" \
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\PRODUCT\monitor.rel" 
+	"C:\Program Files\TOSHIBA\T870C\BIN\CC870C" \
+   \
+-o "C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\PRODUCT\tlcs_mmc.abs" \
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\SYSTEM\PROJ\tlcs_mmc.LCF" \
+-laf "C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\PRODUCT\tlcs_mmc.MAP" \
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\PRODUCT\ff.rel" \
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\PRODUCT\Stc86.rel" \
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\PRODUCT\main.rel" \
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\PRODUCT\mmc.rel" \
+"C:\user\TLCS870\tlcs_mmc\tlcs_mmc.BLD\USER\PRODUCT\monitor.rel" \
+-T870C C86.LIB

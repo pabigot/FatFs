@@ -1,0 +1,29 @@
+[HIMDBVersion]
+2.0
+[DATABASE_VERSION]
+"4.0" 
+[WORKSPACE_DETAILS]
+"h8_mmc" "C:\user\Renesas\h8_mmc" "C:\user\Renesas\h8_mmc\h8_mmc.hws" "H8S,H8/300" "Hitachi H8S,H8/300 Standard" 
+[SHARED_WORKSPACE_CONTROL_STATUS]
+"" "" "" 
+"" "" "" 
+[PROJECTS]
+"h8_mmc" "C:\user\Renesas\h8_mmc\h8_mmc" "C:\user\Renesas\h8_mmc\h8_mmc\h8_mmc.hwp" 0 
+[INFORMATION]
+"No workspace information available" 
+[SCRAP]
+[PROJECT_DEPENDENCY]
+[WORKSPACE_PROPERTIES]
+[VCS]
+"" "" "" 0 
+[VCS_PROJECT]
+[HELP_FILES]
+"c:\hew3\tools\hitachi\h8\5_0_2\hew\Stdlib.hlp" "C/C++ Standard Library Help" 1 
+[GENERAL_DATA_PROJECT]
+[SYSMENUTOOLS]
+"Hitachi Mapview" "1.0" 
+"Hitachi Call Walker" "1.1" 
+"Hitachi H Series Librarian Interface" "1.1" 
+[USERMENUTOOLS]
+[CUSTOMPLACEHOLDERS]
+[END]

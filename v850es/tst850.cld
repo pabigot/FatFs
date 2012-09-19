@@ -1,0 +1,17 @@
+startup.o
+-cpu
+F3716
+-o
+tst850.out
+-D
+tst850.dir
+-m
+main.o
+mmc.o
+comm.o
+monitor.o
+ff.o
+cc932.o
+-lc
+-lr
+"C:\Program Files\NEC Electronics Tools\CA850\E3.11a\lib850\r32\rompcrt.o"
