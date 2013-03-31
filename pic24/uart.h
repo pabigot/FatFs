@@ -3,10 +3,10 @@
 
 #include "integer.h"
 
-void uart_init (void);
+void uart_init (DWORD bps);
 int uart_test (void);
-void uart_put (BYTE);
-BYTE uart_get (void);
+void uart_putc (BYTE d);
+BYTE uart_getc (void);
 
 #endif
 

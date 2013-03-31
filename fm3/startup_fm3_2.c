@@ -127,9 +127,9 @@ char mstk[STACK_SIZE] __attribute__ ((aligned(8), section(".STACK")));
 / Exception Vector Table for MB9BF616/617/618                         /
 /--------------------------------------------------------------------*/
 
-void const *vector[] __attribute__ ((section(".VECTOR"))) =
+void (*const vector[])(void) __attribute__ ((section(".VECTOR"))) =
 {
-	&mstk[STACK_SIZE],		/* 0 Initial value of MSP */
+	(void(*)(void))(int)&mstk[STACK_SIZE],	/* 0 Initial value of MSP */
 	Reset_Handler,			/* 1 Initial value of PC */
 	NMI_Handler,
 	HardFault_Hander,

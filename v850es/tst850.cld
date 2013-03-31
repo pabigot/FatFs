@@ -9,9 +9,9 @@ tst850.dir
 main.o
 mmc.o
 ff.o
-cc932.o
 uart.o
 xprintf.o
+cc932.o
 -lc
 -lr
 "C:\Program Files\NEC Electronics Tools\CA850\E3.11a\lib850\r32\rompcrt.o"

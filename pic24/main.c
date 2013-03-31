@@ -1,5 +1,5 @@
 /*---------------------------------------------------------------*/
-/* FAT file system module test program            (C)ChaN, 2008  */
+/* FAT file system module test program            (C)ChaN, 2013  */
 /*---------------------------------------------------------------*/
 
 
@@ -11,7 +11,6 @@
 #include "diskio.h"
 #include "ff.h"
 
-extern void disk_timerproc (void);
 
 _CONFIG1(JTAGEN_OFF & GCP_OFF & GWRP_OFF & BKBUG_OFF & COE_OFF & ICS_PGx1 & FWDTEN_OFF & WINDIS_OFF & FWPSA_PR32 & WDTPS_PS32768)
 _CONFIG2(IESO_OFF & FNOSC_PRIPLL & FCKSM_CSDCMD & OSCIOFNC_OFF & IOL1WAY_OFF & I2C1SEL_PRI & POSCMOD_HS)
@@ -21,18 +20,19 @@ DWORD AccSize;			/* Work register for fs command */
 WORD AccFiles, AccDirs;
 FILINFO Finfo;
 #if _USE_LFN
-char Lfname[512];
+TCHAR Lfname[256];
 #endif
 
-char Line[128];			/* Console input buffer */
+char Line[256];			/* Console input buffer */
 
-FATFS Fatfs;			/* File system object */
+FATFS Fatfs[_VOLUMES];	/* File system object */
+FIL File[2];			/* File objects */
 BYTE Buff[4096];		/* Working buffer */
 
 
 volatile UINT Timer;	/* 1kHz increment timer */
 
-volatile BYTE rtcYear = 110, rtcMon = 10, rtcMday = 15, rtcHour, rtcMin, rtcSec;
+volatile BYTE rtcYear = 2013-1980, rtcMon = 1, rtcMday = 23, rtcHour, rtcMin, rtcSec;
 
 
 
@@ -200,7 +200,7 @@ void IoInit ()
 
 	_EI();
 
-	uart_init();	/* Initialize UART driver */
+	uart_init(115200);	/* Initialize UART driver */
 
 	_LATA0 = 0;		/* LED ON */
 }
@@ -215,19 +215,19 @@ int main (void)
 {
 	char *ptr, *ptr2;
 	long p1, p2, p3;
-	BYTE res, b;
+	BYTE b, drv = 0;
 	const BYTE ft[] = {0,12,16,32};
 	UINT s1, s2, cnt;
 	DWORD ofs = 0, sect = 0;
+	FRESULT res;
 	FATFS *fs;				/* Pointer to file system object */
 	DIR dir;				/* Directory object */
-	FIL file1, file2;		/* File objects */
 
 
 	IoInit();
 
-	xdev_in(uart_get);	/* Join UART and console */
-	xdev_out(uart_put);
+	xdev_in(uart_getc);	/* Join UART and console */
+	xdev_out(uart_putc);
 
 	xputs("\nFatFs module test monitor for PIC24F\n");
 	xputs(_USE_LFN ? "LFN Enabled" : "LFN Disabled");
@@ -246,34 +246,40 @@ int main (void)
 		switch (*ptr++) {
 		case 'd' :
 			switch (*ptr++) {
-			case 'd' :	/* dd [<sector>] - Dump secrtor */
-				if (!xatoi(&ptr, &p2)) p2 = sect;
-				res = disk_read(0, Buff, p2, 1);
-				if (res) { xprintf("rc=%d\n", res); break; }
-				sect = p2 + 1;
-				xprintf("Sector:%lu\n", p2);
-				for (ptr=(char*)Buff, ofs = 0; ofs < 0x200; ptr+=16, ofs+=16)
+			case 'd' :	/* dd [<pd#> <sector>] - Dump secrtor */
+				if (xatoi(&ptr, &p1)) {
+					if (!xatoi(&ptr, &p2)) break;
+				} else {
+					p1 = drv; p2 = sect;
+				}
+				b = disk_read((BYTE)p1, Buff, p2, 1);
+				if (b) { xprintf("rc=%d\n", b); break; }
+				drv = (BYTE)p1; sect = p2 + 1;
+				xprintf("PD#:%u, Sector:%lu\n", (BYTE)p1, p2);
+				for (ptr=(char*)Buff, ofs = 0; ofs < 0x200; ptr += 16, ofs += 16)
 					put_dump((BYTE*)ptr, ofs, 16, DW_CHAR);
 				break;
 
-			case 'i' :	/* di - Initialize physical drive */
-				xprintf("rc=%d\n", disk_initialize(0));
+			case 'i' :	/* di <pd#> - Initialize physical drive */
+				if (!xatoi(&ptr, &p1)) break;
+				xprintf("rc=%d\n", disk_initialize((BYTE)p1));
 				break;
 
 			case 's' :	/* ds - Show disk status */
-				if (disk_ioctl(0, GET_SECTOR_COUNT, &p2) == RES_OK)
+				if (!xatoi(&ptr, &p1)) break;
+				if (disk_ioctl((BYTE)p1, GET_SECTOR_COUNT, &p2) == RES_OK)
 					{ xprintf("Drive size: %lu sectors\n", p2); }
-				if (disk_ioctl(0, GET_BLOCK_SIZE, &p2) == RES_OK)
+				if (disk_ioctl((BYTE)p1, GET_BLOCK_SIZE, &p2) == RES_OK)
 					{ xprintf("Erase block: %lu sectors\n", p2); }
-				if (disk_ioctl(0, MMC_GET_TYPE, &b) == RES_OK)
+				if (disk_ioctl((BYTE)p1, MMC_GET_TYPE, &b) == RES_OK)
 					{ xprintf("MMC/SDC type: %u\n", b); }
-				if (disk_ioctl(0, MMC_GET_CSD, Buff) == RES_OK)
+				if (disk_ioctl((BYTE)p1, MMC_GET_CSD, Buff) == RES_OK)
 					{ xputs("CSD:\n"); put_dump(Buff, 0, 16, DW_CHAR); }
-				if (disk_ioctl(0, MMC_GET_CID, Buff) == RES_OK)
+				if (disk_ioctl((BYTE)p1, MMC_GET_CID, Buff) == RES_OK)
 					{ xputs("CID:\n"); put_dump(Buff, 0, 16, DW_CHAR); }
-				if (disk_ioctl(0, MMC_GET_OCR, Buff) == RES_OK)
+				if (disk_ioctl((BYTE)p1, MMC_GET_OCR, Buff) == RES_OK)
 					{ xputs("OCR:\n"); put_dump(Buff, 0, 4, DW_CHAR); }
-				if (disk_ioctl(0, MMC_GET_SDSTAT, Buff) == RES_OK) {
+				if (disk_ioctl((BYTE)p1, MMC_GET_SDSTAT, Buff) == RES_OK) {
 					xputs("SD Status:\n");
 					for (s1 = 0; s1 < 64; s1 += 16) put_dump(Buff+s1, s1, 16, DW_CHAR);
 				}
@@ -283,13 +289,13 @@ int main (void)
 
 		case 'b' :
 			switch (*ptr++) {
-			case 'd' :	/* bd <addr> - Dump R/W buffer */
+			case 'd' :	/* bd <ofs> - Dump R/W buffer */
 				if (!xatoi(&ptr, &p1)) break;
-				for (ptr=(char*)&Buff[p1], ofs = p1, cnt = 32; cnt; cnt--, ptr+=16, ofs+=16)
+				for (ptr=(char*)&Buff[p1], ofs = p1, cnt = 32; cnt; cnt--, ptr += 16, ofs += 16)
 					put_dump((BYTE*)ptr, ofs, 16, DW_CHAR);
 				break;
 
-			case 'e' :	/* be <addr> [<data>] ... - Edit R/W buffer */
+			case 'e' :	/* be <ofs> [<data>] ... - Edit R/W buffer */
 				if (!xatoi(&ptr, &p1)) break;
 				if (xatoi(&ptr, &p2)) {
 					do {
@@ -310,16 +316,14 @@ int main (void)
 				}
 				break;
 
-			case 'r' :	/* br <sector> [<n>] - Read disk into R/W buffer */
-				if (!xatoi(&ptr, &p2)) break;
-				if (!xatoi(&ptr, &p3)) p3 = 1;
-				xprintf("rc=%u\n", disk_read(0, Buff, p2, p3));
+			case 'r' :	/* br <pd#> <sector> <count> - Read disk into R/W buffer */
+				if (!xatoi(&ptr, &p1) || !xatoi(&ptr, &p2) || !xatoi(&ptr, &p3)) break;
+				xprintf("rc=%u\n", disk_read((BYTE)p1, Buff, p2, (BYTE)p3));
 				break;
 
-			case 'w' :	/* bw <sector> [<n>] - Write R/W buffer into disk */
-				if (!xatoi(&ptr, &p2)) break;
-				if (!xatoi(&ptr, &p3)) p3 = 1;
-				xprintf("rc=%u\n", disk_write(0, Buff, p2, p3));
+			case 'w' :	/* bw <pd#> <sector> <count> - Write R/W buffer into disk */
+				if (!xatoi(&ptr, &p1) || !xatoi(&ptr, &p2) || !xatoi(&ptr, &p3)) break;
+				xprintf("rc=%u\n", disk_write((BYTE)p1, Buff, p2, (BYTE)p3));
 				break;
 
 			case 'f' :	/* bf <n> - Fill working buffer */
@@ -333,8 +337,9 @@ int main (void)
 		case 'f' :
 			switch (*ptr++) {
 
-			case 'i' :	/* fi - Force initialized the logical drive */
-				put_rc(f_mount(0, &Fatfs));
+			case 'i' :	/* fi <ld#> - Force initialized the logical drive */
+				if (!xatoi(&ptr, &p1)) break;
+				put_rc(f_mount((BYTE)p1, &Fatfs[p1]));
 				break;
 
 			case 's' :	/* fs [<path>] - Show logical drive status */
@@ -343,10 +348,10 @@ int main (void)
 				if (res) { put_rc(res); break; }
 				xprintf("FAT type = FAT%u\nBytes/Cluster = %lu\nNumber of FATs = %u\n"
 						"Root DIR entries = %u\nSectors/FAT = %lu\nNumber of clusters = %lu\n"
-						"FAT start (lba) = %lu\nDIR start (lba,clustor) = %lu\nData start (lba) = %lu\n\n...",
+						"Volume start (lba) = %lu\nFAT start (lba) = %lu\nDIR start (lba,clustor) = %lu\nData start (lba) = %lu\n\n...",
 						ft[fs->fs_type & 3], fs->csize * 512UL, fs->n_fats,
 						fs->n_rootdir, fs->fsize, fs->n_fatent - 2,
-						fs->fatbase, fs->dirbase, fs->database
+						fs->volbase, fs->fatbase, fs->dirbase, fs->database
 				);
 				AccSize = AccFiles = AccDirs = 0;
 				res = scan_files(ptr);
@@ -393,19 +398,19 @@ int main (void)
 			case 'o' :	/* fo <mode> <file> - Open a file */
 				if (!xatoi(&ptr, &p1)) break;
 				while (*ptr == ' ') ptr++;
-				put_rc(f_open(&file1, ptr, (BYTE)p1));
+				put_rc(f_open(&File[0], ptr, (BYTE)p1));
 				break;
 
 			case 'c' :	/* fc - Close a file */
-				put_rc(f_close(&file1));
+				put_rc(f_close(&File[0]));
 				break;
 
-			case 'e' :	/* fe - Seek file pointer */
+			case 'e' :	/* fe <ofs> - Seek file pointer */
 				if (!xatoi(&ptr, &p1)) break;
-				res = f_lseek(&file1, p1);
+				res = f_lseek(&File[0], p1);
 				put_rc(res);
 				if (res == FR_OK)
-					xprintf("fptr = %lu(0x%lX)\n", file1.fptr, file1.fptr);
+					xprintf("fptr = %lu(0x%lX)\n", f_tell(&File[0]), f_tell(&File[0]));
 				break;
 
 			case 'r' :	/* fr <len> - read file */
@@ -418,7 +423,7 @@ int main (void)
 					} else {
 						cnt = p1; p1 = 0;
 					}
-					res = f_read(&file1, Buff, cnt, &s2);
+					res = f_read(&File[0], Buff, cnt, &s2);
 					if (res != FR_OK) { put_rc(res); break; }
 					p2 += s2;
 					if (cnt != s2) break;
@@ -428,11 +433,11 @@ int main (void)
 
 			case 'd' :	/* fd <len> - read and dump file from current fp */
 				if (!xatoi(&ptr, &p1)) break;
-				ofs = file1.fptr;
+				ofs = f_tell(&File[0]);
 				while (p1) {
 					if ((UINT)p1 >= 16) { cnt = 16; p1 -= 16; }
 					else 				{ cnt = p1; p1 = 0; }
-					res = f_read(&file1, Buff, cnt, &cnt);
+					res = f_read(&File[0], Buff, cnt, &cnt);
 					if (res != FR_OK) { put_rc(res); break; }
 					if (!cnt) break;
 					put_dump(Buff, ofs, cnt, DW_CHAR);
@@ -451,7 +456,7 @@ int main (void)
 					} else {
 						cnt = p1; p1 = 0;
 					}
-					res = f_write(&file1, Buff, cnt, &s2);
+					res = f_write(&File[0], Buff, cnt, &s2);
 					if (res != FR_OK) { put_rc(res); break; }
 					p2 += s2;
 					if (cnt != s2) break;
@@ -468,16 +473,16 @@ int main (void)
 				put_rc(f_rename(ptr, ptr2));
 				break;
 
-			case 'u' :	/* fu <name> - Unlink a file or dir */
+			case 'u' :	/* fu <path> - Unlink a file or dir */
 				while (*ptr == ' ') ptr++;
 				put_rc(f_unlink(ptr));
 				break;
 
 			case 'v' :	/* fv - Truncate file */
-				put_rc(f_truncate(&file1));
+				put_rc(f_truncate(&File[0]));
 				break;
 
-			case 'k' :	/* fk <name> - Create a directory */
+			case 'k' :	/* fk <path> - Create a directory */
 				while (*ptr == ' ') ptr++;
 				put_rc(f_mkdir(ptr));
 				break;
@@ -503,32 +508,32 @@ int main (void)
 				*ptr2++ = 0;
 				while (*ptr2 == ' ') ptr2++;
 				xprintf("Opening \"%s\"", ptr);
-				res = f_open(&file1, ptr, FA_OPEN_EXISTING | FA_READ);
+				res = f_open(&File[0], ptr, FA_OPEN_EXISTING | FA_READ);
 				xputc('\n');
 				if (res) {
 					put_rc(res);
 					break;
 				}
 				xprintf("Creating \"%s\"", ptr2);
-				res = f_open(&file2, ptr2, FA_CREATE_ALWAYS | FA_WRITE);
+				res = f_open(&File[1], ptr2, FA_CREATE_ALWAYS | FA_WRITE);
 				xputc('\n');
 				if (res) {
 					put_rc(res);
-					f_close(&file1);
+					f_close(&File[0]);
 					break;
 				}
 				xprintf("Copying...");
 				p1 = 0;
 				for (;;) {
-					res = f_read(&file1, Buff, sizeof Buff, &s1);
+					res = f_read(&File[0], Buff, sizeof Buff, &s1);
 					if (res || s1 == 0) break;   /* error or eof */
-					res = f_write(&file2, Buff, s1, &s2);
+					res = f_write(&File[1], Buff, s1, &s2);
 					p1 += s2;
 					if (res || s2 < s1) break;   /* error or disk full */
 				}
 				xprintf("\n%lu bytes copied.\n", p1);
-				f_close(&file1);
-				f_close(&file2);
+				f_close(&File[0]);
+				f_close(&File[1]);
 				break;
 #if _FS_RPATH >= 1
 			case 'g' :	/* fg <path> - Change current directory */
@@ -536,7 +541,7 @@ int main (void)
 				put_rc(f_chdir(ptr));
 				break;
 
-			case 'j' :	/* fj <drive#> - Change current drive */
+			case 'j' :	/* fj <ld#> - Change current drive */
 				if (xatoi(&ptr, &p1)) {
 					put_rc(f_chdrive((BYTE)p1));
 				}

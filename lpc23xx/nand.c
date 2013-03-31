@@ -781,11 +781,11 @@ DRESULT NAND_write (
 /*-----------------------------------------------------------------------*/
 
 DRESULT NAND_ioctl (
-	BYTE ctl,
+	BYTE cmd,
 	void* buff
 )
 {
-	switch (ctl) {
+	switch (cmd) {
 	case CTRL_SYNC:			/* Flush dirty block */
 		if (!Init) return RES_NOTRDY;
 		return flush_block() ? RES_OK : RES_ERROR;

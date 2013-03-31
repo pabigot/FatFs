@@ -83,7 +83,7 @@ void main(void);
 
 void PowerON_Reset_PC(void)
 { 
-	set_intb((unsigned long)__sectop("C$VECT"));
+	set_intb((void*)(unsigned long)__sectop("C$VECT"));
 	set_fpsw(FPSW_init);
 
 	_INITSCT();

@@ -52,7 +52,6 @@ DRESULT disk_read (
 }
 
 
-#if _USE_WRITE
 DRESULT disk_write (
 	BYTE drv,
 	const BYTE* buff,
@@ -68,10 +67,8 @@ DRESULT disk_write (
 	}
 	return RES_PARERR;
 }
-#endif
 
 
-#if _USE_IOCTL
 DRESULT disk_ioctl (
 	BYTE drv,
 	BYTE cmd,
@@ -86,6 +83,5 @@ DRESULT disk_ioctl (
 	}
 	return RES_PARERR;
 }
-#endif
 
 

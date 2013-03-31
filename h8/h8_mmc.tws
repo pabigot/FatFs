@@ -8,9 +8,13 @@
 "EDITOR_WINDOWS_MAXIMISED" "0" 
 [BREAKPOINTS]
 [OPEN_WORKSPACE_FILES]
+"C:\user\Prj_Renesas\h8_mmc\h8_mmc\diskio.h" 
+"C:\user\Prj_Renesas\h8_mmc\h8_mmc\ffconf.h" 
 "C:\user\Prj_Renesas\h8_mmc\h8_mmc\main.c" 
 [WORKSPACE_FILE_STATES]
-"C:\user\Prj_Renesas\h8_mmc\h8_mmc\main.c" 0 0 844 678 0 0 
+"C:\user\Prj_Renesas\h8_mmc\h8_mmc\diskio.h" 66 66 1039 594 0 2 
+"C:\user\Prj_Renesas\h8_mmc\h8_mmc\ffconf.h" 22 22 1039 594 0 1 
+"C:\user\Prj_Renesas\h8_mmc\h8_mmc\main.c" -4 -23 1333 907 1 0 
 [LOADED_PROJECTS]
 "h8_mmc" 
 [END]

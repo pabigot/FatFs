@@ -1061,7 +1061,7 @@
 
 #define	_BV(bit) (1<<(bit))
 
-#define	IMPORT_BIN(sect, file, sym) asm (\
+#define	IMPORT_BIN(sect, file, sym) __asm__ (\
 		".section " #sect "\n"\
 		".balign 4\n"\
 		".global " #sym "\n"\
@@ -1072,7 +1072,7 @@
 		".balign 4\n"\
 		".section \".text\"\n")
 
-#define	IMPORT_BIN_PART(sect, file, ofs, siz, sym) asm (\
+#define	IMPORT_BIN_PART(sect, file, ofs, siz, sym) __asm__ (\
 		".section " #sect "\n"\
 		".balign 4\n"\
 		".global " #sym "\n"\

@@ -37,6 +37,9 @@
 #define	ACMD23	(0x80+23)	/* SET_WR_BLK_ERASE_COUNT (SDC) */
 #define CMD24	(24)		/* WRITE_BLOCK */
 #define CMD25	(25)		/* WRITE_MULTIPLE_BLOCK */
+#define CMD32	(32)		/* ERASE_ER_BLK_START */
+#define CMD33	(33)		/* ERASE_ER_BLK_END */
+#define CMD38	(38)		/* ERASE */
 #define CMD55	(55)		/* APP_CMD */
 #define CMD58	(58)		/* READ_OCR */
 
@@ -111,7 +114,7 @@ BYTE xchg_spi (		/* Returns received data */
 	return SPDR;
 }
 
-/* Send a data block */
+/* Send a data block fast */
 static
 void xmit_spi_multi (
 	const BYTE *p,	/* Data block to be sent */
@@ -124,7 +127,7 @@ void xmit_spi_multi (
 	} while (cnt -= 2);
 }
 
-/* Receive a data block */
+/* Receive a data block fast */
 static
 void rcvr_spi_multi (
 	BYTE *p,	/* Data buffer */
@@ -144,12 +147,14 @@ void rcvr_spi_multi (
 /*-----------------------------------------------------------------------*/
 
 static
-int wait_ready (void)	/* 1:OK, 0:Timeout */
+int wait_ready (	/* 1:Ready, 0:Timeout */
+	UINT wt			/* Timeout [ms] */
+)
 {
 	BYTE d;
 
 
-	Timer2 = 50;	/* Wait for ready in timeout of 500ms */
+	Timer2 = wt / 10;
 	do
 		d = xchg_spi(0xFF);
 	while (d != 0xFF && Timer2);
@@ -182,7 +187,7 @@ int select (void)	/* 1:Successful, 0:Timeout */
 	CS_LOW();
 	xchg_spi(0xFF);	/* Dummy clock (force DO enabled) */
 
-	if (wait_ready()) return 1;	/* OK */
+	if (wait_ready(500)) return 1;	/* OK */
 	deselect();
 	return 0;	/* Timeout */
 }
@@ -221,6 +226,7 @@ int rcvr_datablock (
 /* Send a data packet to MMC                                             */
 /*-----------------------------------------------------------------------*/
 
+#if	_USE_WRITE
 static
 int xmit_datablock (
 	const BYTE *buff,	/* 512 byte data block to be transmitted */
@@ -230,7 +236,7 @@ int xmit_datablock (
 	BYTE resp;
 
 
-	if (!wait_ready()) return 0;
+	if (!wait_ready(500)) return 0;
 
 	xchg_spi(token);					/* Xmit data token */
 	if (token != 0xFD) {	/* Is data token */
@@ -244,6 +250,7 @@ int xmit_datablock (
 
 	return 1;
 }
+#endif
 
 
 
@@ -305,13 +312,13 @@ BYTE send_cmd (		/* Returns R1 resp (bit7==1:Send failed) */
 /*-----------------------------------------------------------------------*/
 
 DSTATUS disk_initialize (
-	BYTE drv		/* Physical drive nmuber (0) */
+	BYTE pdrv		/* Physical drive nmuber (0) */
 )
 {
 	BYTE n, cmd, ty, ocr[4];
 
 
-	if (drv) return STA_NOINIT;			/* Supports only single drive */
+	if (pdrv) return STA_NOINIT;		/* Supports only single drive */
 	power_off();						/* Turn off the socket power to reset the card */
 	if (Stat & STA_NODISK) return Stat;	/* No card in the socket */
 	power_on();							/* Turn on the socket power */
@@ -361,10 +368,10 @@ DSTATUS disk_initialize (
 /*-----------------------------------------------------------------------*/
 
 DSTATUS disk_status (
-	BYTE drv		/* Physical drive nmuber (0) */
+	BYTE pdrv		/* Physical drive nmuber (0) */
 )
 {
-	if (drv) return STA_NOINIT;		/* Supports only single drive */
+	if (pdrv) return STA_NOINIT;	/* Supports only single drive */
 	return Stat;
 }
 
@@ -375,13 +382,13 @@ DSTATUS disk_status (
 /*-----------------------------------------------------------------------*/
 
 DRESULT disk_read (
-	BYTE drv,			/* Physical drive nmuber (0) */
+	BYTE pdrv,			/* Physical drive nmuber (0) */
 	BYTE *buff,			/* Pointer to the data buffer to store read data */
 	DWORD sector,		/* Start sector number (LBA) */
 	BYTE count			/* Sector count (1..255) */
 )
 {
-	if (drv || !count) return RES_PARERR;
+	if (pdrv || !count) return RES_PARERR;
 	if (Stat & STA_NOINIT) return RES_NOTRDY;
 
 	if (!(CardType & CT_BLOCK)) sector *= 512;	/* Convert to byte address if needed */
@@ -413,13 +420,13 @@ DRESULT disk_read (
 
 #if _USE_WRITE
 DRESULT disk_write (
-	BYTE drv,			/* Physical drive nmuber (0) */
+	BYTE pdrv,			/* Physical drive nmuber (0) */
 	const BYTE *buff,	/* Pointer to the data to be written */
 	DWORD sector,		/* Start sector number (LBA) */
 	BYTE count			/* Sector count (1..255) */
 )
 {
-	if (drv || !count) return RES_PARERR;
+	if (pdrv || !count) return RES_PARERR;
 	if (Stat & STA_NOINIT) return RES_NOTRDY;
 	if (Stat & STA_PROTECT) return RES_WRPRT;
 
@@ -454,21 +461,21 @@ DRESULT disk_write (
 
 #if _USE_IOCTL
 DRESULT disk_ioctl (
-	BYTE drv,		/* Physical drive nmuber (0) */
-	BYTE ctrl,		/* Control code */
+	BYTE pdrv,		/* Physical drive nmuber (0) */
+	BYTE cmd,		/* Control code */
 	void *buff		/* Buffer to send/receive control data */
 )
 {
 	DRESULT res;
 	BYTE n, csd[16], *ptr = buff;
-	DWORD csize;
+	DWORD *dp, st, ed, csize;
 
 
-	if (drv) return RES_PARERR;
+	if (pdrv) return RES_PARERR;
 
 	res = RES_ERROR;
 
-	if (ctrl == CTRL_POWER) {
+	if (cmd == CTRL_POWER) {
 		switch (ptr[0]) {
 		case 0:		/* Sub control code (POWER_OFF) */
 			power_off();		/* Power off */
@@ -485,12 +492,9 @@ DRESULT disk_ioctl (
 	else {
 		if (Stat & STA_NOINIT) return RES_NOTRDY;
 
-		switch (ctrl) {
+		switch (cmd) {
 		case CTRL_SYNC :		/* Make sure that no pending write process. Do not remove this or written sector might not left updated. */
-			if (select()) {
-				deselect();
-				res = RES_OK;
-			}
+			if (select()) res = RES_OK;
 			break;
 
 		case GET_SECTOR_COUNT :	/* Get number of sectors on the disk (DWORD) */
@@ -505,11 +509,6 @@ DRESULT disk_ioctl (
 				}
 				res = RES_OK;
 			}
-			break;
-
-		case GET_SECTOR_SIZE :	/* Get R/W sector size (WORD) */
-			*(WORD*)buff = 512;
-			res = RES_OK;
 			break;
 
 		case GET_BLOCK_SIZE :	/* Get erase block size in unit of sector (DWORD) */
@@ -533,6 +532,20 @@ DRESULT disk_ioctl (
 				}
 			}
 			break;
+
+		case CTRL_ERASE_SECTOR :	/* Erase a block of sectors (used when _USE_ERASE == 1) */
+			if (!(CardType & CT_SDC)) break;				/* Check if the card is SDC */
+			if (disk_ioctl(pdrv, MMC_GET_CSD, csd)) break;	/* Get CSD */
+			if (!(csd[0] >> 6) && !(csd[10] & 0x40)) break;	/* Check if sector erase can be applied to the card */
+			dp = buff; st = dp[0]; ed = dp[1];				/* Load sector block */
+			if (!(CardType & CT_BLOCK)) {
+				st *= 512; ed *= 512;
+			}
+			if (send_cmd(CMD32, st) == 0 && send_cmd(CMD33, ed) == 0 && send_cmd(CMD38, 0) == 0 && wait_ready(30000))	/* Erase sector block */
+				res = RES_OK;	/* FatFs does not check result of this command */
+			break;
+
+		/* Following commands are never used by FatFs module */
 
 		case MMC_GET_TYPE :		/* Get card type flags (1 byte) */
 			*ptr = CardType;

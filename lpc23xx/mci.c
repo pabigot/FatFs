@@ -680,7 +680,7 @@ DRESULT MCI_write (
 /*-----------------------------------------------------------------------*/
 
 DRESULT MCI_ioctl (
-	BYTE ctrl,		/* Control code */
+	BYTE cmd,		/* Control code */
 	void *buff		/* Buffer to send/receive data block */
 )
 {
@@ -694,7 +694,7 @@ DRESULT MCI_ioctl (
 
 	res = RES_ERROR;
 
-	switch (ctrl) {
+	switch (cmd) {
 		case CTRL_SYNC :	/* Make sure that all data has been written on the media */
 			if (wait_ready(500))	/* Wait for card enters tarn state */
 				res = RES_OK;

@@ -12,12 +12,11 @@
 /-------------------------------------------------------------------------*/
 
 #include <string.h>
-#include "LPC2300.h"
 #include "sound.h"
 #include "interrupt.h"
 #include "xprintf.h"
 #include "disp.h"
-#include "uart.h"
+#include "uart23xx.h"
 
 
 #define	F_CCLK		72000000	/* CCLK frequency */
@@ -251,8 +250,8 @@ int load_wav (
 			fcb.ct += br;
 			IrqEnable();
 		}
-		if (__kbhit()) {		/* Exit if a command arrived */
-			k = __getch();
+		if (uart0_test()) {		/* Exit if a command arrived */
+			k = uart0_getc();
 			break;
 		}
 		t = (f_tell(fp) - offw - fcb.ct) / fsmp / wsmp;	/* Refresh time display every 1 sec */

@@ -160,7 +160,7 @@ int scif_test (void)
 /* Get a byte from Rx buffer             */
 /*---------------------------------------*/
 
-uint8_t scif_get (void)
+uint8_t scif_getc (void)
 {
 	uint8_t d;
 	uint16_t i;
@@ -187,7 +187,7 @@ uint8_t scif_get (void)
 /* Put a byte into Tx buffer             */
 /*---------------------------------------*/
 
-void scif_put (
+void scif_putc (
 	uint8_t dat
 )
 {

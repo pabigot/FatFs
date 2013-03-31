@@ -1,6 +1,6 @@
 #ifndef SOUND_DEFINED
 #define SOUND_DEFINED
-#include <stdint.h>
+#include "LPC2300.h"
 
 #define USE_WAVPLAYER	1	/* Enable RIFF-WAV file player */
 

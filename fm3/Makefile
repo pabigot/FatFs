@@ -2,7 +2,7 @@
 PROJECT	= fm3_mmc
 
 ### Source files and search directories
-CSRC	= main.c uart.c xprintf.c mmc.c ff.c cc932.c sound.c iic.c startup_fm3_2.c
+CSRC	= main.c uart_mfs.c xprintf.c mmc_mfs.c ff.c cc932.c sound.c iic.c startup_fm3_2.c
 ASRC	=
 CSRCARM	=
 ASRCARM	=
@@ -158,7 +158,7 @@ size:
 %.elf:  $(AOBJARM) $(AOBJ) $(COBJARM) $(COBJ)
 	@echo
 	@echo Linking...
-	$(CC) $(THUMBFLAG) $(ALL_CFLAGS) $(AOBJARM) $(AOBJ) $(COBJARM) $(COBJ) --output $@ $(LDFLAGS)
+	$(CC) $(THUMBFLAG) $(ALL_CFLAGS) $(AOBJARM) $(AOBJ) $(COBJARM) $(COBJ) -o $@ $(LDFLAGS)
 
 # Compile: create object files from C source files. ARM or Thumb(-2)
 $(COBJ) : $(OBJDIR)/%.o : %.c

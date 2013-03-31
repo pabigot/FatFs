@@ -30,9 +30,9 @@ HXFLAGS	= -o tst850.hex -fS
 OBJS = main.o  \
 	mmc.o  \
 	ff.o  \
-	cc932.o  \
 	uart.o  \
-	xprintf.o 
+	xprintf.o  \
+	cc932.o 
 
 DEP_main_c = "C:\Program Files\NEC Electronics Tools\CA850\E3.11a\inc850\string.h" \
 	"C:\Program Files\NEC Electronics Tools\CA850\E3.11a\inc850\stddef.h" \
@@ -54,16 +54,16 @@ DEP_ff_c = C:\user\Prj_V850\tst850\ff.h \
 	C:\user\Prj_V850\tst850\diskio.h \
 	"C:\Program Files\NEC Electronics Tools\CA850\E3.11a\inc850\stdarg.h"
 
-DEP_unicode_cc932_c = C:\user\Prj_V850\tst850\ff.h \
-	C:\user\Prj_V850\tst850\integer.h \
-	C:\user\Prj_V850\tst850\ffconf.h
-
 DEP_uart_c = C:\user\Prj_V850\tst850\uart.h \
 	C:\user\Prj_V850\tst850\v850es.h \
 	C:\user\Prj_V850\tst850\integer.h
 
 DEP_xprintf_c = C:\user\Prj_V850\tst850\xprintf.h \
 	"C:\Program Files\NEC Electronics Tools\CA850\E3.11a\inc850\stdarg.h"
+
+DEP_cc932_c = C:\user\Prj_V850\tst850\ff.h \
+	C:\user\Prj_V850\tst850\integer.h \
+	C:\user\Prj_V850\tst850\ffconf.h
 
 GOAL : C:\user\Prj_V850\tst850\romp.out
 
@@ -90,14 +90,14 @@ mmc.o : mmc.c $(DEP_mmc_c)
 ff.o : ff.c $(DEP_ff_c)
 	$(CC) $(CFLAGS) -Os -c ff.c
 
-cc932.o : unicode\cc932.c $(DEP_unicode_cc932_c)
-	$(CC) $(CFLAGS) -Os -c unicode\cc932.c
-
 uart.o : uart.c $(DEP_uart_c)
 	$(CC) $(CFLAGS) -Os -c uart.c
 
 xprintf.o : xprintf.c $(DEP_xprintf_c)
 	$(CC) $(CFLAGS) -Os -c xprintf.c
+
+cc932.o : cc932.c $(DEP_cc932_c)
+	$(CC) $(CFLAGS) -Os -c cc932.c
 
 startup.o : startup.s $(DEP_STARTUP)
 	$(AS) $(ASFLAGS) startup.s

@@ -303,6 +303,32 @@ int wait_stat (	/* 0:Timeout or or ERR goes 1 */
 
 
 
+/*-----------------------------------------------------------------------*/
+/* Issue Read/Write command to the drive                                 */
+/*-----------------------------------------------------------------------*/
+
+static
+int issue_rwcmd (
+	BYTE cmd,
+	DWORD sector,
+	BYTE count
+)
+{
+
+	if (!wait_stat(1000, DRDY)) return 0;
+
+	write_ata(REG_DEV, ((BYTE)(sector >> 24) & 0x0F) | LBA);
+	write_ata(REG_CYLH, (BYTE)(sector >> 16));
+	write_ata(REG_CYLL, (BYTE)(sector >> 8));
+	write_ata(REG_SECTOR, (BYTE)sector);
+	write_ata(REG_COUNT, count);
+	write_ata(REG_COMMAND, cmd);
+
+	return 1;
+}
+
+
+
 /*--------------------------------------------------------------------------
 
    Public Functions
@@ -315,10 +341,10 @@ int wait_stat (	/* 0:Timeout or or ERR goes 1 */
 /*-----------------------------------------------------------------------*/
 
 DSTATUS disk_initialize (
-	BYTE drv		/* Physical drive nmuber (0) */
+	BYTE pdrv		/* Physical drive nmuber (0) */
 )
 {
-	if (drv) return STA_NOINIT;				/* Supports only single drive */
+	if (pdrv) return STA_NOINIT;			/* Supports only single drive */
 	power_off();							/* Power off */
 	Stat |= STA_NOINIT;
 	if (Stat & STA_NODISK) return Stat;		/* Exit if socket is empty */
@@ -355,10 +381,10 @@ DSTATUS disk_initialize (
 /*-----------------------------------------------------------------------*/
 
 DSTATUS disk_status (
-	BYTE drv		/* Physical drive nmuber (0) */
+	BYTE pdrv		/* Physical drive nmuber (0) */
 )
 {
-	if (drv) return STA_NOINIT;		/* Supports only single drive */
+	if (pdrv) return STA_NOINIT;	/* Supports only single drive */
 	return Stat;
 }
 
@@ -369,30 +395,24 @@ DSTATUS disk_status (
 /*-----------------------------------------------------------------------*/
 
 DRESULT disk_read (
-	BYTE drv,		/* Physical drive nmuber (0) */
+	BYTE pdrv,		/* Physical drive nmuber (0) */
 	BYTE *buff,		/* Data buffer to store read data */
 	DWORD sector,	/* Sector number (LBA) */
 	BYTE count		/* Sector count (1..255) */
 )
 {
-	if (drv || !count) return RES_PARERR;
+	if (pdrv || !count) return RES_PARERR;
 	if (Stat & STA_NOINIT) return RES_NOTRDY;
 
 	/* Issue Read Setor(s) command */
-	if (!wait_stat(1000, DRDY)) return RES_ERROR;
-	write_ata(REG_DEV, ((BYTE)(sector >> 24) & 0x0F) | LBA);
-	write_ata(REG_CYLH, (BYTE)(sector >> 16));
-	write_ata(REG_CYLL, (BYTE)(sector >> 8));
-	write_ata(REG_SECTOR, (BYTE)sector);
-	write_ata(REG_COUNT, count);
-	write_ata(REG_COMMAND, CMD_READ);
+	if (!issue_rwcmd(CMD_READ, sector, count)) return RES_ERROR;
 
+	/* Receive data blocks */
 	do {
 		if (!wait_stat(2000, DRQ)) return RES_ERROR;
 		read_block(buff);
 		buff += 512;
 	} while (--count);
-
 	read_ata(REG_ALTSTAT);
 	read_ata(REG_STATUS);
 
@@ -407,32 +427,27 @@ DRESULT disk_read (
 
 #if _USE_WRITE
 DRESULT disk_write (
-	BYTE drv,			/* Physical drive nmuber (0) */
+	BYTE pdrv,			/* Physical drive nmuber (0) */
 	const BYTE *buff,	/* Data to be written */
 	DWORD sector,		/* Sector number (LBA) */
 	BYTE count			/* Sector count (1..255) */
 )
 {
-	if (drv || !count) return RES_PARERR;
+	if (pdrv || !count) return RES_PARERR;
 	if (Stat & STA_NOINIT) return RES_NOTRDY;
 
 	/* Issue Write Setor(s) command */
-	if (!wait_stat(1000, DRDY)) return RES_ERROR;
-	write_ata(REG_DEV, ((BYTE)(sector >> 24) & 0x0F) | LBA);
-	write_ata(REG_CYLH, (BYTE)(sector >> 16));
-	write_ata(REG_CYLL, (BYTE)(sector >> 8));
-	write_ata(REG_SECTOR, (BYTE)sector);
-	write_ata(REG_COUNT, count);
-	write_ata(REG_COMMAND, CMD_WRITE);
+	if (!issue_rwcmd(CMD_WRITE, sector, count)) return RES_ERROR;
 
+	/* Send data blocks */
 	do {
 		if (!wait_stat(2000, DRQ)) return RES_ERROR;
 		write_block(buff);
 		buff += 512;
 	} while (--count);
 
+	/* Wait for end of write process */
 	if (!wait_stat(1000, 0)) return RES_ERROR;
-
 	read_ata(REG_ALTSTAT);
 	read_ata(REG_STATUS);
 
@@ -447,58 +462,65 @@ DRESULT disk_write (
 
 #if _USE_IOCTL
 DRESULT disk_ioctl (
-	BYTE drv,		/* Physical drive nmuber (0) */
-	BYTE ctrl,		/* Control code */
+	BYTE pdrv,		/* Physical drive nmuber (0) */
+	BYTE cmd,		/* Control code */
 	void *buff		/* Buffer to send/receive data block */
 )
 {
-	BYTE n, c, w, ofs, dl, dh, *ptr = (BYTE*)buff;
+	BYTE n, w, ofs, dl, dh, *ptr = (BYTE*)buff;
 
 
-	if (drv) return RES_PARERR;
+	if (pdrv) return RES_PARERR;
 	if (Stat & STA_NOINIT) return RES_NOTRDY;
 
-	switch (ctrl) {
-		case GET_SECTOR_COUNT :	/* Get number of sectors on the disk (DWORD) */
-			ofs = 60; w = 2; n = 0;
-			break;
+	switch (cmd) {
+	case GET_BLOCK_SIZE :	/* Get erase block size in sectors (DWORD) */
+		*(DWORD*)buff = 128;
+		return RES_OK;
+	case CTRL_SYNC :		/* Nothing to do */
+		return RES_OK;
+	}
 
-		case GET_SECTOR_SIZE :	/* Get sector size (WORD) */
-			*(WORD*)buff = 512;
-			return RES_OK;
+	if (cmd == CTRL_ERASE_SECTOR) {	/* Erase a block of sectors (used when _USE_ERASE == 1) */
+		UINT ct;
+		DWORD *dp = buff, st = dp[0], ed = dp[1] + 1;
 
-		case GET_BLOCK_SIZE :	/* Get erase block size in sectors (DWORD) */
-			*(DWORD*)buff = 128;
-			return RES_OK;
+		for ( ; st < ed; st += ct) {
+			ct = ed - st > 256 ? 256 : ed - st;
+			/* Issue Erase Setor(s) command */
+			if (!issue_rwcmd(CMD_ERASE, st, ct)) return RES_ERROR;
+			if (!wait_stat(1000, 0)) return RES_ERROR;
+			read_ata(REG_ALTSTAT);
+			read_ata(REG_STATUS);
+		}
+		return RES_OK;
+	}
 
-		case CTRL_SYNC :		/* Nothing to do */
-			return RES_OK;
-
-		case ATA_GET_REV :		/* Get firmware revision (8 chars) */
-			ofs = 23; w = 4; n = 4;
-			break;
-
-		case ATA_GET_MODEL :	/* Get model name (40 chars) */
-			ofs = 27; w = 20; n = 20;
-			break;
-
-		case ATA_GET_SN :		/* Get serial number (20 chars) */
-			ofs = 10; w = 10; n = 10;
-			break;
-
-		default:
-			return RES_PARERR;
+	switch (cmd) {
+	case GET_SECTOR_COUNT :
+		ofs = 60; w = 2; n = 0;
+		break;
+	case ATA_GET_REV :		/* Get firmware revision (8 chars) */
+		ofs = 23; w = 4; n = 4;
+		break;
+	case ATA_GET_MODEL :	/* Get model name (40 chars) */
+		ofs = 27; w = 20; n = 20;
+		break;
+	case ATA_GET_SN :		/* Get serial number (20 chars) */
+		ofs = 10; w = 10; n = 10;
+		break;
+	default:
+		return RES_PARERR;
 	}
 
 	if (!wait_stat(1000, DRDY)) return RES_ERROR;
 	write_ata(REG_COMMAND, CMD_IDENTIFY);	/* Get device ID data block */
 	if (!wait_stat(1000, DRQ)) return RES_ERROR;	/* Wait for data ready */
-	read_block_part(ptr, ofs, w);
+	read_block_part(ptr, ofs, w);					/* Get a part of data block */
 	while (n--) {				/* Swap byte order */
 		dl = *ptr++; dh = *ptr--;
 		*ptr++ = dh; *ptr++ = dl; 
 	}
-
 	read_ata(REG_ALTSTAT);
 	read_ata(REG_STATUS);
 

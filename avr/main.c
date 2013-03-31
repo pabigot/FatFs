@@ -1,5 +1,5 @@
 /*----------------------------------------------------------------------*/
-/* FAT file system sample project for FatFs            (C)ChaN, 2010    */
+/* FAT file system sample project for FatFs            (C)ChaN, 2013    */
 /*----------------------------------------------------------------------*/
 
 
@@ -22,6 +22,7 @@ cannot load the fuse bits from hex file. If it is the case, remove this line
 and use these values to program the fuse bits. */
 
 
+
 DWORD AccSize;				/* Work register for fs command */
 WORD AccFiles, AccDirs;
 FILINFO Finfo;
@@ -29,13 +30,15 @@ FILINFO Finfo;
 char Lfname[_MAX_LFN+1];
 #endif
 
-BYTE RtcOk;					/* RTC is available */
-char Line[100];				/* Console input buffer */
+char Line[80];				/* Console input buffer */
+BYTE Buff[2048];			/* Working buffer */
 
 FATFS Fatfs[_VOLUMES];		/* File system object for each logical drive */
 FIL File[2];				/* File object */
+DIR Dir;					/* Directory object */
 
-BYTE Buff[2048];			/* Working buffer */
+
+BYTE RtcOk;					/* RTC is available */
 
 volatile UINT Timer;		/* Performance timer (100Hz increment) */
 
@@ -93,7 +96,7 @@ void put_dump (const BYTE *buff, DWORD ofs, BYTE cnt)
 	BYTE i;
 
 
-	xprintf(PSTR("%08lX "), ofs);
+	xprintf(PSTR("%08lX:"), ofs);
 
 	for(i = 0; i < cnt; i++)
 		xprintf(PSTR(" %02X"), buff[i]);
@@ -114,11 +117,11 @@ void get_line (char *buff, int len)
 
 
 	for (;;) {
-		c = uart_get();
+		c = uart_getc();
 		if (c == '\r') break;
 		if ((c == '\b') && i) {
 			i--;
-			uart_put(c);
+			uart_putc(c);
 			continue;
 		}
 		if (c >= ' ' && i < len - 1) {	/* Visible chars */
@@ -127,7 +130,7 @@ void get_line (char *buff, int len)
 		}
 	}
 	buff[i] = 0;
-	uart_put('\n');
+	uart_putc('\n');
 }
 
 
@@ -153,9 +156,9 @@ FRESULT scan_files (
 #endif
 			if (Finfo.fattrib & AM_DIR) {
 				AccDirs++;
-				*(path+i) = '/'; strcpy(path+i+1, fn);
+				path[i] = '/'; strcpy(path+i+1, fn);
 				res = scan_files(path);
-				*(path+i) = '\0';
+				path[i] = '\0';
 				if (res != FR_OK) break;
 			} else {
 //				xprintf(PSTR("%s/%s\n"), path, fn);
@@ -222,34 +225,33 @@ int main (void)
 	long p1, p2, p3;
 	BYTE res, b1, *bp;
 	UINT s1, s2, cnt;
-	DWORD ofs, sect = 0;
+	DWORD ofs, sect = 0, blk[2];
 	FATFS *fs;
-	DIR dir;
 	RTC rtc;
 
 
 	ioinit();				/* Initialize port settings and start system timer process */
-	uart_init();			/* Initialize UART driver */
-	xdev_out(uart_put);		/* Register uart_put() to xitoa module as console output */
-	xputs(PSTR("\nFatFs module test monitor for AVR\n"));
+	uart_init(115200);		/* Initialize UART driver */
+	xdev_out(uart_putc);	/* Register uart_putc() to xitoa module as console output */
+	xputs(PSTR("\nFatFs module test monitor for " MEDIA "\n"));
 	xputs(_USE_LFN ? PSTR("LFN Enabled") : PSTR("LFN Disabled"));
 	xprintf(PSTR(", Code page: %u\n"), _CODE_PAGE);
-
-	if (rtc_init() && rtc_gettime(&rtc)) {		/* Initialize RTC */
-		RtcOk = 1;
-		xprintf(PSTR("Current time: %u/%u/%u %02u:%02u:%02u\n"), rtc.year, rtc.month, rtc.mday, rtc.hour, rtc.min, rtc.sec);
-	} else {
-		xputs(PSTR("RTC is not supported.\n"));
-	}
-
 #if _USE_LFN
 	Finfo.lfname = Lfname;
 	Finfo.lfsize = sizeof Lfname;
 #endif
 
+	if (rtc_init() && rtc_gettime(&rtc)) {		/* Initialize RTC */
+		RtcOk = 1;
+		xprintf(PSTR("Current time: %u/%u/%u %02u:%02u:%02u\n"), rtc.year, rtc.month, rtc.mday, rtc.hour, rtc.min, rtc.sec);
+	} else {
+		xputs(PSTR("RTC is not available.\n"));
+	}
+
+
 	for (;;) {
 		xputc('>');
-		ptr = (char*)Line;
+		ptr = Line;
 
 		get_line(ptr, sizeof Line);
 		switch (*ptr++) {
@@ -294,6 +296,19 @@ int main (void)
 					{ Line[40] = '\0'; xprintf(PSTR("Model: %s\n"), Line); }
 				if (disk_ioctl((BYTE)p1, ATA_GET_SN, Line) == RES_OK)
 					{ Line[20] = '\0'; xprintf(PSTR("S/N: %s\n"), Line); }
+				break;
+
+			case 'c' :	/* Disk ioctl */
+				switch (*ptr++) {
+				case 's' :	/* dcs <pd#> - CTRL_SYNC */
+					if (!xatoi(&ptr, &p1)) break;
+					xprintf(PSTR("rc=%d\n"), disk_ioctl((BYTE)p1, CTRL_SYNC, 0));
+					break;
+				case 'e' :	/* dce <pd#> <s.lba> <e.lba> - CTRL_ERASE_SECTOR */
+					if (!xatoi(&ptr, &p1) || !xatoi(&ptr, (long*)&blk[0]) || !xatoi(&ptr, (long*)&blk[1])) break;
+					xprintf(PSTR("rc=%d\n"), disk_ioctl((BYTE)p1, CTRL_ERASE_SECTOR, blk));
+					break;
+				}
 				break;
 			}
 			break;
@@ -359,15 +374,23 @@ int main (void)
 
 			case 's' :	/* fs [<path>] - Show logical drive status */
 				while (*ptr == ' ') ptr++;
+				ptr2 = ptr;
 				res = f_getfree(ptr, (DWORD*)&p2, &fs);
 				if (res) { put_rc(res); break; }
 				xprintf(PSTR("FAT type = %u\nBytes/Cluster = %lu\nNumber of FATs = %u\n"
 							 "Root DIR entries = %u\nSectors/FAT = %lu\nNumber of clusters = %lu\n"
-							 "FAT start (lba) = %lu\nDIR start (lba,clustor) = %lu\nData start (lba) = %lu\n\n..."),
+							 "FAT start (lba) = %lu\nDIR start (lba,clustor) = %lu\nData start (lba) = %lu\n\n"),
 						fs->fs_type, (DWORD)fs->csize * 512, fs->n_fats,
 						fs->n_rootdir, fs->fsize, fs->n_fatent - 2,
 						fs->fatbase, fs->dirbase, fs->database
 				);
+#if _USE_LABEL
+				res = f_getlabel(ptr2, (char*)Buff, (DWORD*)&p1);
+				if (res) { put_rc(res); break; }
+				xprintf(Buff[0] ? PSTR("Volume name is %s\n") : PSTR("No volume label\n"), Buff);
+				xprintf(PSTR("Volume S/N is %04X-%04X\n"), (WORD)((DWORD)p1 >> 16), (WORD)(p1 & 0xFFFF));
+#endif
+				xputs(PSTR("..."));
 				AccSize = AccFiles = AccDirs = 0;
 				strcpy((char*)Buff, ptr);
 				res = scan_files((char*)Buff);
@@ -381,11 +404,11 @@ int main (void)
 
 			case 'l' :	/* fl [<path>] - Directory listing */
 				while (*ptr == ' ') ptr++;
-				res = f_opendir(&dir, ptr);
+				res = f_opendir(&Dir, ptr);
 				if (res) { put_rc(res); break; }
 				p1 = s1 = s2 = 0;
 				for(;;) {
-					res = f_readdir(&dir, &Finfo);
+					res = f_readdir(&Dir, &Finfo);
 					if ((res != FR_OK) || !Finfo.fname[0]) break;
 					if (Finfo.fattrib & AM_DIR) {
 						s2++;
@@ -409,9 +432,12 @@ int main (void)
 					xputc('\n');
 #endif
 				}
-				xprintf(PSTR("%4u File(s),%10lu bytes total\n%4u Dir(s)"), s1, p1, s2);
-				if (f_getfree(ptr, (DWORD*)&p1, &fs) == FR_OK)
-					xprintf(PSTR(", %10luK bytes free\n"), p1 * fs->csize / 2);
+				if (res == FR_OK) {
+					xprintf(PSTR("%4u File(s),%10lu bytes total\n%4u Dir(s)"), s1, p1, s2);
+					if (f_getfree(ptr, (DWORD*)&p1, &fs) == FR_OK)
+						xprintf(PSTR(", %10luK bytes free\n"), p1 * fs->csize / 2);
+				}
+				if (res) put_rc(res);
 				break;
 
 			case 'o' :	/* fo <mode> <name> - Open a file */
@@ -573,6 +599,12 @@ int main (void)
 				break;
 #endif
 #endif
+#if _USE_LABEL
+			case 'b' :	/* fb <name> - Set volume label */
+				while (*ptr == ' ') ptr++;
+				put_rc(f_setlabel(ptr));
+				break;
+#endif
 #if _USE_MKFS
 			case 'm' :	/* fm <logi drv#> <part type> <bytes/clust> - Create file system */
 				if (!xatoi(&ptr, &p1) || !xatoi(&ptr, &p2) || !xatoi(&ptr, &p3)) break;
@@ -613,42 +645,41 @@ int main (void)
 
 		case '?' :	/* Show Command List */
 			xputs(PSTR(
-				"[Disk contorls]\n"
-				" di <pd#> - Initialize disk\n"
-				" dd [<pd#> <sect>] - Dump a secrtor\n"
-				" ds <pd#> - Show disk status\n"
-				"[Buffer controls]\n"
-				" bd <ofs> - Dump working buffer\n"
-				" be <ofs> [<data>] ... - Edit working buffer\n"
-				" br <pd#> <sect> [<num>] - Read disk into working buffer\n"
-				" bw <pd#> <sect> [<num>] - Write working buffer into disk\n"
-				" bf <val> - Fill working buffer\n"
-				"[File system controls]\n"
-				" fi <ld#> - Force initialized the volume\n"
-				" fs [<path>] - Show volume status\n"
-				" fl [<path>] - Show a directory\n"
-				" fo <mode> <file> - Open a file\n"
-				" fc - Close the file\n"
-				" fe <ofs> - Move fp in normal seek\n"
-				" fd <len> - Read and dump the file\n"
-				" fr <len> - Read the file\n"
-				" fw <len> <val> - Write to the file\n"
-				" fn <org name> <new name> - Rename an object\n"
-				" fu <obj name> - Unlink an object\n"
-				" fv - Truncate the file at current fp\n"
-				" fk <dir name> - Create a directory\n"
-				" fa <atrr> <mask> <object name> - Change object attribute\n"
-				" ft <year> <month> <day> <hour> <min> <sec> <object name> - Change timestamp of an object\n"
-				" fx <src file> <dst file> - Copy a file\n"
-				" fg <path> - Change current directory\n"
-				" fj <ld#> - Change current drive\n"
-				" fq - Show current directory\n"
-				" fm <ld#> <rule> <cluster size> - Create file system\n"
-				"[Misc commands]\n"
-				" p <wavfile> - Play RIFF-WAVE file\n"
-				" t [<year> <month> <mday> <hour> <min> <sec>] - Set/Show current time\n"
-				"\n")
-			);
+			"[Disk contorls]\n"
+			" di <pd#> - Initialize disk\n"
+			" dd [<pd#> <sect>] - Dump a secrtor\n"
+			" ds <pd#> - Show disk status\n"
+			"[Buffer controls]\n"
+			" bd <ofs> - Dump working buffer\n"
+			" be <ofs> [<data>] ... - Edit working buffer\n"
+			" br <pd#> <sect> [<num>] - Read disk into working buffer\n"
+			" bw <pd#> <sect> [<num>] - Write working buffer into disk\n"
+			" bf <val> - Fill working buffer\n"
+			"[File system controls]\n"
+			" fi <ld#> - Force initialized the volume\n"
+			" fs [<path>] - Show volume status\n"
+			" fl [<path>] - Show a directory\n"
+			" fo <mode> <file> - Open a file\n"
+			" fc - Close the file\n"
+			" fe <ofs> - Move fp in normal seek\n"
+			" fd <len> - Read and dump the file\n"
+			" fr <len> - Read the file\n"
+			" fw <len> <val> - Write to the file\n"
+			" fn <org name> <new name> - Rename an object\n"
+			" fu <obj name> - Unlink an object\n"
+			" fv - Truncate the file at current fp\n"
+			" fk <dir name> - Create a directory\n"
+			" fa <atrr> <mask> <object name> - Change object attribute\n"
+			" ft <year> <month> <day> <hour> <min> <sec> <object name> - Change timestamp of an object\n"
+			" fx <src file> <dst file> - Copy a file\n"
+			" fg <path> - Change current directory\n"
+			" fj <ld#> - Change current drive\n"
+			" fq - Show current directory\n"
+			" fm <ld#> <rule> <cluster size> - Create file system\n"
+			"[Misc commands]\n"
+			" p <wavfile> - Play RIFF-WAVE file\n"
+			" t [<year> <month> <mday> <hour> <min> <sec>] - Set/Show current time\n"
+			"\n"));
 			break;
 
 		}

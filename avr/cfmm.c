@@ -83,6 +83,9 @@
 #define	ACMD23	(0x80+23)	/* SET_WR_BLK_ERASE_COUNT (SDC) */
 #define CMD24	(24)		/* WRITE_BLOCK */
 #define CMD25	(25)		/* WRITE_MULTIPLE_BLOCK */
+#define CMD32	(32)		/* ERASE_ER_BLK_START */
+#define CMD33	(33)		/* ERASE_ER_BLK_END */
+#define CMD38	(38)		/* ERASE */
 #define CMD55	(55)		/* APP_CMD */
 #define CMD58	(58)		/* READ_OCR */
 
@@ -296,6 +299,7 @@ void write_ata (
 
 
 /* Write 512 byte block to ATA data register */
+#if _USE_WRITE
 static
 void write_block (
 	const BYTE *buff	/* Data to write (512 bytes) */
@@ -320,6 +324,7 @@ void write_block (
 	DAT_PORT = 0xFF;		/* Set D0..D7 as input (pull-up) */
 	DAT_DDR = 0;
 }
+#endif
 
 
 
@@ -343,6 +348,32 @@ int wait_stat (	/* 0:Timeout or or ERR goes 1 */
 	} while ((s & BSY) || (bit && !(bit & s)));		/* Wait for BSY goes 0 and the bit goes 1 */
 
 	read_ata(REG_ALTSTAT);
+	return 1;
+}
+
+
+
+/*-----------------------------------------------------------------------*/
+/* Issue Read/Write command to the drive                                 */
+/*-----------------------------------------------------------------------*/
+
+static
+int issue_rwcmd (
+	BYTE cmd,
+	DWORD sector,
+	BYTE count
+)
+{
+
+	if (!wait_stat(1000, DRDY)) return 0;
+
+	write_ata(REG_DEV, ((BYTE)(sector >> 24) & 0x0F) | LBA);
+	write_ata(REG_CYLH, (BYTE)(sector >> 16));
+	write_ata(REG_CYLL, (BYTE)(sector >> 8));
+	write_ata(REG_SECTOR, (BYTE)sector);
+	write_ata(REG_COUNT, count);
+	write_ata(REG_COMMAND, cmd);
+
 	return 1;
 }
 
@@ -510,6 +541,7 @@ int rcvr_datablock (
 /* Send a data packet to MMC                                             */
 /*-----------------------------------------------------------------------*/
 
+#if	_USE_WRITE
 static
 int xmit_datablock (
 	const BYTE *buff,	/* 512 byte data block to be transmitted */
@@ -533,6 +565,7 @@ int xmit_datablock (
 
 	return 1;
 }
+#endif
 
 
 
@@ -678,10 +711,10 @@ DSTATUS MM_disk_initialize (void)
 
 
 DSTATUS disk_initialize (
-	BYTE drv		/* Physical drive nmuber (0) */
+	BYTE pdrv		/* Physical drive nmuber (0) */
 )
 {
-	switch (drv) {
+	switch (pdrv) {
 	case CFC :
 		return CF_disk_initialize();
 	case MMC :
@@ -697,10 +730,10 @@ DSTATUS disk_initialize (
 /*-----------------------------------------------------------------------*/
 
 DSTATUS disk_status (
-	BYTE drv		/* Physical drive nmuber */
+	BYTE pdrv		/* Physical drive nmuber */
 )
 {
-	switch (drv) {
+	switch (pdrv) {
 	case CFC :
 		return Stat[CFC];
 	case MMC :
@@ -726,14 +759,9 @@ DRESULT CF_disk_read (
 	if (Stat[CFC] & STA_NOINIT) return RES_NOTRDY;
 
 	/* Issue Read Setor(s) command */
-	if (!wait_stat(1000, DRDY)) return RES_ERROR;
-	write_ata(REG_DEV, ((BYTE)(sector >> 24) & 0x0F) | LBA);
-	write_ata(REG_CYLH, (BYTE)(sector >> 16));
-	write_ata(REG_CYLL, (BYTE)(sector >> 8));
-	write_ata(REG_SECTOR, (BYTE)sector);
-	write_ata(REG_COUNT, count);
-	write_ata(REG_COMMAND, CMD_READ);
+	if (!issue_rwcmd(CMD_READ, sector, count)) return RES_ERROR;
 
+	/* Receive data blocks */
 	do {
 		if (!wait_stat(2000, DRQ)) return RES_ERROR;
 		read_block(buff);
@@ -782,13 +810,13 @@ DRESULT MM_disk_read (
 
 
 DRESULT disk_read (
-	BYTE drv,		/* Physical drive nmuber (0) */
+	BYTE pdrv,		/* Physical drive nmuber (0) */
 	BYTE *buff,		/* Data buffer to store read data */
 	DWORD sector,	/* Sector number (LBA) */
 	BYTE count		/* Sector count (1..255) */
 )
 {
-	switch (drv) {
+	switch (pdrv) {
 	case CFC :
 		return CF_disk_read(buff, sector, count);
 	case MMC :
@@ -815,14 +843,9 @@ DRESULT CF_disk_write (
 	if (Stat[0] & STA_NOINIT) return RES_NOTRDY;
 
 	/* Issue Write Setor(s) command */
-	if (!wait_stat(1000, DRDY)) return RES_ERROR;
-	write_ata(REG_DEV, ((BYTE)(sector >> 24) & 0x0F) | LBA);
-	write_ata(REG_CYLH, (BYTE)(sector >> 16));
-	write_ata(REG_CYLL, (BYTE)(sector >> 8));
-	write_ata(REG_SECTOR, (BYTE)sector);
-	write_ata(REG_COUNT, count);
-	write_ata(REG_COMMAND, CMD_WRITE);
+	if (!issue_rwcmd(CMD_WRITE, sector, count)) return RES_ERROR;
 
+	/* Send data blocks */
 	do {
 		if (!wait_stat(2000, DRQ)) return RES_ERROR;
 		write_block(buff);
@@ -830,7 +853,6 @@ DRESULT CF_disk_write (
 	} while (--count);
 
 	if (!wait_stat(1000, 0)) return RES_ERROR;
-
 	read_ata(REG_ALTSTAT);
 	read_ata(REG_STATUS);
 
@@ -876,13 +898,13 @@ DRESULT MM_disk_write (
 
 
 DRESULT disk_write (
-	BYTE drv,			/* Physical drive nmuber (0) */
+	BYTE pdrv,			/* Physical drive nmuber (0) */
 	const BYTE *buff,	/* Data to be written */
 	DWORD sector,		/* Sector number (LBA) */
 	BYTE count			/* Sector count (1..255) */
 )
 {
-	switch (drv) {
+	switch (pdrv) {
 	case CFC :
 		return CF_disk_write(buff, sector, count);
 	case MMC :
@@ -900,7 +922,7 @@ DRESULT disk_write (
 #if _USE_IOCTL
 static
 DRESULT CF_disk_ioctl (
-	BYTE ctrl,		/* Control code */
+	BYTE cmd,		/* Control code */
 	void *buff		/* Buffer to send/receive data block */
 )
 {
@@ -909,47 +931,54 @@ DRESULT CF_disk_ioctl (
 
 	if (Stat[CFC] & STA_NOINIT) return RES_NOTRDY;
 
-	switch (ctrl) {
-		case GET_SECTOR_COUNT :	/* Get number of sectors on the disk (DWORD) */
-			ofs = 60; w = 2; n = 0;
-			break;
+	switch (cmd) {
+	case GET_BLOCK_SIZE :	/* Get erase block size in sectors (DWORD) */
+		*(DWORD*)buff = 128;
+		return RES_OK;
+	case CTRL_SYNC :		/* Nothing to do */
+		return RES_OK;
+	}
 
-		case GET_SECTOR_SIZE :	/* Get sector size (WORD) */
-			*(WORD*)buff = 512;
-			return RES_OK;
+	if (cmd == CTRL_ERASE_SECTOR) {	/* Erase a block of sectors (used when _USE_ERASE == 1) */
+		UINT ct;
+		DWORD *dp = buff, st = dp[0], ed = dp[1] + 1;
 
-		case GET_BLOCK_SIZE :	/* Get erase block size in sectors (DWORD) */
-			*(DWORD*)buff = 128;
-			return RES_OK;
+		for ( ; st < ed; st += ct) {
+			ct = ed - st > 256 ? 256 : ed - st;
+			/* Issue Erase Setor(s) command */
+			if (!issue_rwcmd(CMD_ERASE, st, ct)) return RES_ERROR;
+			if (!wait_stat(1000, 0)) return RES_ERROR;
+			read_ata(REG_ALTSTAT);
+			read_ata(REG_STATUS);
+		}
+		return RES_OK;
+	}
 
-		case CTRL_SYNC :		/* Nothing to do */
-			return RES_OK;
-
-		case ATA_GET_REV :		/* Get firmware revision (8 chars) */
-			ofs = 23; w = 4; n = 4;
-			break;
-
-		case ATA_GET_MODEL :	/* Get model name (40 chars) */
-			ofs = 27; w = 20; n = 20;
-			break;
-
-		case ATA_GET_SN :	/* Get serial number (20 chars) */
-			ofs = 10; w = 10; n = 10;
-			break;
-
-		default:
-			return RES_PARERR;
+	switch (cmd) {
+	case GET_SECTOR_COUNT :
+		ofs = 60; w = 2; n = 0;
+		break;
+	case ATA_GET_REV :		/* Get firmware revision (8 chars) */
+		ofs = 23; w = 4; n = 4;
+		break;
+	case ATA_GET_MODEL :	/* Get model name (40 chars) */
+		ofs = 27; w = 20; n = 20;
+		break;
+	case ATA_GET_SN :		/* Get serial number (20 chars) */
+		ofs = 10; w = 10; n = 10;
+		break;
+	default:
+		return RES_PARERR;
 	}
 
 	if (!wait_stat(1000, DRDY)) return RES_ERROR;
 	write_ata(REG_COMMAND, CMD_IDENTIFY);	/* Get device ID data block */
 	if (!wait_stat(1000, DRQ)) return RES_ERROR;	/* Wait for data ready */
-	read_block_part(ptr, ofs, w);
+	read_block_part(ptr, ofs, w);					/* Get a part of data block */
 	while (n--) {				/* Swap byte order */
 		dl = *ptr++; dh = *ptr--;
 		*ptr++ = dh; *ptr++ = dl; 
 	}
-
 	read_ata(REG_ALTSTAT);
 	read_ata(REG_STATUS);
 
@@ -959,7 +988,7 @@ DRESULT CF_disk_ioctl (
 
 static
 DRESULT MM_disk_ioctl (
-	BYTE ctrl,		/* Control code */
+	BYTE cmd,		/* Control code */
 	void *buff		/* Buffer to send/receive data block */
 )
 {
@@ -971,12 +1000,9 @@ DRESULT MM_disk_ioctl (
 	if (Stat[MMC] & STA_NOINIT) return RES_NOTRDY;
 
 	res = RES_ERROR;
-	switch (ctrl) {
+	switch (cmd) {
 	case CTRL_SYNC :	/* Make sure that pending write process has been finished */
-		if (select()) {
-			res = RES_OK;
-			deselect();
-		}
+		if (select()) res = RES_OK;
 		break;
 
 	case GET_SECTOR_COUNT :	/* Get number of sectors on the disk (DWORD) */
@@ -991,11 +1017,6 @@ DRESULT MM_disk_ioctl (
 			}
 			res = RES_OK;
 		}
-		break;
-
-	case GET_SECTOR_SIZE :	/* Get sectors on the disk (WORD) */
-		*(WORD*)buff = 512;
-		res = RES_OK;
 		break;
 
 	case GET_BLOCK_SIZE :	/* Get erase block size in unit of sectors (DWORD) */
@@ -1059,16 +1080,16 @@ DRESULT MM_disk_ioctl (
 
 
 DRESULT disk_ioctl (
-	BYTE drv,		/* Physical drive nmuber */
-	BYTE ctrl,		/* Control code */
+	BYTE pdrv,		/* Physical drive nmuber */
+	BYTE cmd,		/* Control code */
 	void *buff		/* Buffer to send/receive data block */
 )
 {
-	switch (drv) {
+	switch (pdrv) {
 	case CFC :
-		return CF_disk_ioctl(ctrl, buff);
+		return CF_disk_ioctl(cmd, buff);
 	case MMC :
-		return MM_disk_ioctl(ctrl, buff);
+		return MM_disk_ioctl(cmd, buff);
 	}
 	return RES_PARERR;
 }

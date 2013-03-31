@@ -237,7 +237,7 @@ int load_wav (
 			sei();
 		}
 		if (uart_test()) {		/* Exit if a command arrived */
-			k = uart_get();
+			k = uart_getc();
 			break;
 		}
 		t = (f_tell(fp) - offw - fcb.ct) / fsmp / wsmp;	/* Refresh time display every 1 sec */

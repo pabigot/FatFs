@@ -18,7 +18,7 @@
 #include "disp.h"
 #include "ff.h"
 #include "sound.h"
-#include "uart.h"
+#include "uart23xx.h"
 #include "tjpgd.h"
 
 #define USE_DBCS	1	/* 0:ANK only, 1:Enable kanji chars */
@@ -687,7 +687,7 @@ void load_img (
 			}
 
 			k = 0;
-			while (__kbhit()) k = __getch();	/* Get button command */
+			while (uart0_test()) k = uart0_getc();	/* Get button command */
 			if (k == BTN_CAN || k == BTN_OK) break;	/* Exit */
 			if (k == BTN_UP) {	/* Pause/Resume */
 				run ^= 1;
@@ -721,7 +721,7 @@ void load_img (
 			}
 
 			k = 0;
-			while (__kbhit()) k = __getch();		/* Get button command */
+			while (uart0_test()) k = uart0_getc();		/* Get button command */
 			if (k == BTN_CAN || k == BTN_OK) break;	/* Exit */
 			if (k == BTN_UP) run ^= 1;
 			if (run) continue;
@@ -812,8 +812,8 @@ void load_bmp (
 			} while (lc);
 		} while (h);
 
-		k = __getch();	/* Get key command */
-		while (__kbhit()) __getch();	/* Flush command queue */
+		k = uart0_getc();	/* Get key command */
+		while (uart0_test()) uart0_getc();	/* Flush command queue */
 		switch (k) {
 		case BTN_RIGHT:	/* Move right */
 			if (bm_w > DISP_XS)
@@ -874,7 +874,7 @@ UINT tjd_output (
 {
 	jd = jd;	/* (suppress warning) */
 
-	if (!rect->left && __kbhit()) return 0;	/* Check user interrupt at left end */
+	if (!rect->left && uart0_test()) return 0;	/* Check user interrupt at left end */
 
 	disp_blt(rect->left, rect->right, rect->top, rect->bottom, (uint16_t*)bitmap);
 
@@ -911,7 +911,7 @@ void load_jpg (
 		disp_locate(0, 0);
 		xfprintf(disp_putc, "Error: %d", rc);
 	}
-	__getch();
+	uart0_getc();
 }
 
 
@@ -962,8 +962,11 @@ void load_txt (
 			f_lseek(fp, tv->ltbl[i]);
 			lw = tv->ltbl[i + 1] - tv->ltbl[i];
 			f_read(fp, tv->sbuf, lw > 512 ? 512 : lw, &br);
+			if (!br) return;
 			for (j = 0; j < col && tv->sbuf[j] != '\n'; j++) {
+#if DISP_USE_DBCS
 				if (FontD && ((tv->sbuf[j] >= 0x81 && tv->sbuf[j] <= 0x9F) || (tv->sbuf[j] >= 0xE0 && tv->sbuf[j] <= 0xFC))) j++;
+#endif
 			}
 			if (tv->sbuf[j] != '\n') {
 				if (j > col) disp_putc(' ');
@@ -981,8 +984,8 @@ void load_txt (
 			disp_putc('\n');
 		}
 
-		k = __getch();
-		if (k == BTN_CAN) break;
+		k = uart0_getc();
+		if (k == BTN_CAN || k== BTN_OK) break;
 		if (k == BTN_DOWN) {
 			if (line + TS_HEIGHT < lines) line++;
 		}

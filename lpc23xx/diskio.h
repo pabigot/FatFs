@@ -9,8 +9,6 @@
 extern "C" {
 #endif
 
-#define _USE_WRITE	1	/* 1: Enable disk_write function */
-#define _USE_IOCTL	1	/* 1: Enable disk_ioctl fucntion */
 
 #include "integer.h"
 
@@ -31,12 +29,11 @@ typedef enum {
 /*---------------------------------------*/
 /* Prototypes for disk control functions */
 
-DSTATUS disk_initialize (BYTE);
-DSTATUS disk_status (BYTE);
-DRESULT disk_read (BYTE, BYTE*, DWORD, BYTE);
-DRESULT disk_write (BYTE, const BYTE*, DWORD, BYTE);
-DRESULT disk_ioctl (BYTE, BYTE, void*);
-
+DSTATUS disk_initialize (BYTE pdrv);
+DSTATUS disk_status (BYTE pdrv);
+DRESULT disk_read (BYTE pdrv, BYTE* buff, DWORD sector, BYTE count);
+DRESULT disk_write (BYTE pdrv, const BYTE* buff, DWORD sector, BYTE count);
+DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff);
 
 
 /* Disk Status Bits (DSTATUS) */

@@ -1330,10 +1330,10 @@
 /*--------------------------------------------------------------*/
 
 /* These are for only privileged mode */
-#define __enable_irq() asm volatile ("CPSIE i\n")
-#define __disable_irq() asm volatile ("CPSID i\n")
-#define __enable_fault_irq() asm volatile ("CPSIE f\n")
-#define __disable_fault_irq() asm volatile ("CPSID f\n")
+#define __enable_irq() __asm__ volatile ("CPSIE i\n")
+#define __disable_irq() __asm__ volatile ("CPSID i\n")
+#define __enable_fault_irq() __asm__ volatile ("CPSIE f\n")
+#define __disable_fault_irq() __asm__ volatile ("CPSID f\n")
 #define __enable_irqn(n) ISER[(n) / 32] = 1 << ((n) % 32)
 #define __disable_irqn(n) ICER[(n) / 32] = 1 << ((n) % 32)
 #define __test_irqn_enabled(n) (ISER[(n) / 32] & (1 << ((n) % 32)))
@@ -1343,25 +1343,25 @@
 #define __test_irqn_active(n) (IABR[n / 32] & (1 << ((n) % 32)))
 #define __set_irqn_priority(n,v) IPR[n] = (v)
 #define __set_faultn_priority(n,v) SHPR[(n) + 16] = (v)
-#define __get_MSP()			({uint32_t __rv; asm ("MRS %0, MSP\n"		: "=r" (__rv); __rv;}))
-#define __get_PSP()			({uint32_t __rv; asm ("MRS %0, PSP\n"		: "=r" (__rv); __rv;}))
-#define __get_PRIMASK() 	({uint32_t __rv; asm ("MRS %0, PRIMASK\n"	: "=r" (__rv); __rv;}))
-#define __get_FAULTMASK()	({uint32_t __rv; asm ("MRS %0, FAULTMASK\n"	: "=r" (__rv); __rv;}))
-#define __get_BASEPRI() 	({uint32_t __rv; asm ("MRS %0, BASEPRI\n"	: "=r" (__rv); __rv;}))
-#define __get_CONTROL()		({uint32_t __rv; asm ("MRS %0, CONTROL\n"	: "=r" (__rv); __rv;}))
-#define __set_MSP(arg)		{uint32_t __v=arg; asm ("MSR MSP, %0\n" 		:: "r" (__v);}
-#define __set_PSP(arg)		{uint32_t __v=arg; asm ("MSR PSP, %0\n" 		:: "r" (__v);}
-#define __set_PRIMASK(arg)	{uint32_t __v=arg; asm ("MSR PRIMASK, %0\n" 	:: "r" (__v);}
-#define __set_FAULTMASK(arg) {uint32_t __v=arg; asm ("MSR FAULTMASK, %0\n" 	:: "r" (__v);}
-#define __set_BASEPRI(arg)	{uint32_t __v=arg; asm ("MSR BASEPRI, %0\n" 	:: "r" (__v);}
-#define __set_CONTORL(arg)	{uint32_t __v=arg; asm ("MSR CONTROL, %0\nISB\n" :: "r" (__v);}
+#define __get_MSP()			({uint32_t __rv; __asm__ ("MRS %0, MSP\n"		: "=r" (__rv); __rv;}))
+#define __get_PSP()			({uint32_t __rv; __asm__ ("MRS %0, PSP\n"		: "=r" (__rv); __rv;}))
+#define __get_PRIMASK() 	({uint32_t __rv; __asm__ ("MRS %0, PRIMASK\n"	: "=r" (__rv); __rv;}))
+#define __get_FAULTMASK()	({uint32_t __rv; __asm__ ("MRS %0, FAULTMASK\n"	: "=r" (__rv); __rv;}))
+#define __get_BASEPRI() 	({uint32_t __rv; __asm__ ("MRS %0, BASEPRI\n"	: "=r" (__rv); __rv;}))
+#define __get_CONTROL()		({uint32_t __rv; __asm__ ("MRS %0, CONTROL\n"	: "=r" (__rv); __rv;}))
+#define __set_MSP(arg)		{uint32_t __v=arg; __asm__ ("MSR MSP, %0\n" 		:: "r" (__v);}
+#define __set_PSP(arg)		{uint32_t __v=arg; __asm__ ("MSR PSP, %0\n" 		:: "r" (__v);}
+#define __set_PRIMASK(arg)	{uint32_t __v=arg; __asm__ ("MSR PRIMASK, %0\n" 	:: "r" (__v);}
+#define __set_FAULTMASK(arg) {uint32_t __v=arg; __asm__ ("MSR FAULTMASK, %0\n" 	:: "r" (__v);}
+#define __set_BASEPRI(arg)	{uint32_t __v=arg; __asm__ ("MSR BASEPRI, %0\n" 	:: "r" (__v);}
+#define __set_CONTORL(arg)	{uint32_t __v=arg; __asm__ ("MSR CONTROL, %0\nISB\n" :: "r" (__v);}
 
 /* These functions and macros are alternative of above for user mode */
 #if USE_SV_SERVICE
-#define __enable_irq_user()		asm volatile ("SVC #0\n")	/* CPSIE i */
-#define __disable_irq_user()	asm volatile ("SVC #1\n")	/* CPSID i */
-#define __enable_irq_user()		asm volatile ("SVC #2\n")	/* CPSIE f */
-#define __disable_irq_user()	asm volatile ("SVC #3\n")	/* CPSID f */
+#define __enable_irq_user()		__asm__ volatile ("SVC #0\n")	/* CPSIE i */
+#define __disable_irq_user()	__asm__ volatile ("SVC #1\n")	/* CPSID i */
+#define __enable_irq_user()		__asm__ volatile ("SVC #2\n")	/* CPSIE f */
+#define __disable_irq_user()	__asm__ volatile ("SVC #3\n")	/* CPSID f */
 uint32_t __get_scs_reg (volatile uint32_t* reg);			/* Read a register in SCS */
 void __set_scs_reg (volatile uint32_t* reg, uint32_t val);	/* Write a register in SCS */
 #define __enable_irqn_user(n) __set_scs_reg(&ISER[((n) / 32)], 1 << ((n) % 32))
@@ -1376,20 +1376,20 @@ void __set_scs_reg (volatile uint32_t* reg, uint32_t val);	/* Write a register i
 #endif
 
 /* These functions/macros can be used at user/privileged mode */
-#define __REV(arg)		({uint32_t __r, __v=arg; asm ("REV %0,%1\n"   : "=r" (__r) : "r" (__v) ); __r;})
-#define __REV16(arg)	({uint32_t __r, __v=arg; asm ("REV16 %0,%1\n" : "=r" (__r) : "r" (__v) ); __r;})
-#define __REVSH(arg)	({uint32_t __r, __v=arg; asm ("REVSH %0,%1\n" : "=r" (__r) : "r" (__v) ); __r;})
-#define __RBIT(arg)		({uint32_t __r, __v=arg; asm ("RBIT %0,%1\n"  : "=r" (__r) : "r" (__v) ); __r;})
-#define __LDREXB(p)		({uint8_t __r;	asm ("LDREXB %0,[%1]\n" : "=r" (__r) : "r" (p); __r;})
-#define __LDREXH(p)		({uint16_t __r;	asm ("LDREXH %0,[%1]\n" : "=r" (__r) : "r" (p); __r;})
-#define __LDREXW(p)		({uint32_t __r;	asm ("LDREX  %0,[%1]\n" : "=r" (__r) : "r" (p); __r;})
-#define __STREXB(d,p)	({register uint32_t __r asm("r2"); register uint8_t __d asm("r1") = d; register volatile uint8_t *__p asm("r0") = p; asm ("STREXB %0,%2,[%1]\n" : "=r" (__r) : "r" (__p), "r" (__d); __r;})
-#define __STREXH(d,p)	({register uint32_t __r asm("r2"); register uint16_t __d asm("r1") = d; register volatile uint16_t *__p asm("r0") = p; asm ("STREXH %0,%2,[%1]\n" : "=r" (__r) : "r" (p), "r" (__d); __r;})
-#define __STREXW(d,p)	({register uint32_t __r asm("r2"); register uint32_t __d asm("r1") = d; register volatile uint32_t *__p asm("r0") = p; asm ("STREX  %0,%2,[%1]\n" : "=r" (__r) : "r" (p), "r" (__d); __r;})
-#define __CLREX() asm volatile ("CLREX\n")
-#define __SEV() asm volatile ("SEV\n")
-#define __WFE() asm volatile ("WFE\n")
-#define __WFI() asm volatile ("WFI\n")
+#define __REV(arg)		({uint32_t __r, __v=arg; __asm__ ("REV %0,%1\n"   : "=r" (__r) : "r" (__v) ); __r;})
+#define __REV16(arg)	({uint32_t __r, __v=arg; __asm__ ("REV16 %0,%1\n" : "=r" (__r) : "r" (__v) ); __r;})
+#define __REVSH(arg)	({uint32_t __r, __v=arg; __asm__ ("REVSH %0,%1\n" : "=r" (__r) : "r" (__v) ); __r;})
+#define __RBIT(arg)		({uint32_t __r, __v=arg; __asm__ ("RBIT %0,%1\n"  : "=r" (__r) : "r" (__v) ); __r;})
+#define __LDREXB(p)		({uint8_t __r;	__asm__ ("LDREXB %0,[%1]\n" : "=r" (__r) : "r" (p); __r;})
+#define __LDREXH(p)		({uint16_t __r;	__asm__ ("LDREXH %0,[%1]\n" : "=r" (__r) : "r" (p); __r;})
+#define __LDREXW(p)		({uint32_t __r;	__asm__ ("LDREX  %0,[%1]\n" : "=r" (__r) : "r" (p); __r;})
+#define __STREXB(d,p)	({register uint32_t __r __asm__("r2"); register uint8_t __d __asm__("r1") = d; register volatile uint8_t *__p __asm__("r0") = p; __asm__ ("STREXB %0,%2,[%1]\n" : "=r" (__r) : "r" (__p), "r" (__d); __r;})
+#define __STREXH(d,p)	({register uint32_t __r __asm__("r2"); register uint16_t __d __asm__("r1") = d; register volatile uint16_t *__p __asm__("r0") = p; __asm__ ("STREXH %0,%2,[%1]\n" : "=r" (__r) : "r" (p), "r" (__d); __r;})
+#define __STREXW(d,p)	({register uint32_t __r __asm__("r2"); register uint32_t __d __asm__("r1") = d; register volatile uint32_t *__p __asm__("r0") = p; __asm__ ("STREX  %0,%2,[%1]\n" : "=r" (__r) : "r" (p), "r" (__d); __r;})
+#define __CLREX() __asm__ volatile ("CLREX\n")
+#define __SEV() __asm__ volatile ("SEV\n")
+#define __WFE() __asm__ volatile ("WFE\n")
+#define __WFI() __asm__ volatile ("WFI\n")
 
 /* MB9BF6xx IRQ number */
 #define	MemManage_IRQn	(-12)
@@ -1457,7 +1457,7 @@ void __set_scs_reg (volatile uint32_t* reg, uint32_t val);	/* Write a register i
 
 #define	_BV(bit) (1<<(bit))
 
-#define	IMPORT_BIN(sect, file, sym) asm (\
+#define	IMPORT_BIN(sect, file, sym) __asm__ (\
 		".section " #sect "\n"\
 		".balign 4\n"\
 		".global " #sym "\n"\
@@ -1468,7 +1468,7 @@ void __set_scs_reg (volatile uint32_t* reg, uint32_t val);	/* Write a register i
 		".balign 4\n"\
 		".section \".text\"\n")
 
-#define	IMPORT_BIN_PART(sect, file, ofs, siz, sym) asm (\
+#define	IMPORT_BIN_PART(sect, file, ofs, siz, sym) __asm__ (\
 		".section " #sect "\n"\
 		".balign 4\n"\
 		".global " #sym "\n"\

@@ -24,12 +24,11 @@ typedef enum {
 /*---------------------------------------*/
 /* Prototypes for disk control functions */
 
-int assign_drives (int, int);
-DSTATUS disk_initialize (BYTE);
-DSTATUS disk_status (BYTE);
-DRESULT disk_read (BYTE, BYTE*, DWORD, BYTE);
-DRESULT disk_write (BYTE, const BYTE*, DWORD, BYTE);
-DRESULT disk_ioctl (BYTE, BYTE, void*);
+DSTATUS disk_initialize (BYTE pdrv);
+DSTATUS disk_status (BYTE pdrv);
+DRESULT disk_read (BYTE pdrv, BYTE* buff, DWORD sector, BYTE count);
+DRESULT disk_write (BYTE pdrv, const BYTE* buff, DWORD sector, BYTE count);
+DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff);
 
 
 
@@ -45,7 +44,7 @@ DRESULT disk_ioctl (BYTE, BYTE, void*);
 /* Generic command (mandatory for FatFs) */
 #define CTRL_SYNC			0	/* Flush disk cache (for write functions) */
 #define GET_SECTOR_COUNT	1	/* Get media size (for only f_mkfs()) */
-#define GET_SECTOR_SIZE		2	/* Get sector size (for multiple sector size (_MAX_SS >= 1024)) */
+//#define GET_SECTOR_SIZE		2	/* Get sector size (for multiple sector size (_MAX_SS >= 1024)) */
 #define GET_BLOCK_SIZE		3	/* Get erase block size (for only f_mkfs()) */
 
 #endif

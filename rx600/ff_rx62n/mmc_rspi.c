@@ -18,8 +18,8 @@
 
 #define RSPI_CH	0	/* RSPI channel: 0:RSPIA-A, 1:RSPIB-A, 10:RSPIA-B, 11:RSPIB-B */
 
-#define	CS_LOW()	{PORTC.DR.BIT.B4 = 0;}	/* Set CS Low */
-#define	CS_HIGH()	{PORTC.DR.BIT.B4 = 1;}	/* Set CS High */
+#define	CS_LOW()	PORTC.DR.BIT.B4 = 0		/* Set CS Low */
+#define	CS_HIGH()	PORTC.DR.BIT.B4 = 1		/* Set CS High */
 #define	INS			(!PORT0.PORT.BIT.B7)	/* Card status switch (Exist:True, Empty:False) */
 #define	WP			0 						/* Write protect switch (Protected:True, Enabled:False) */
 #define CTRL_INIT()	{	/* Initialize CS,INS,WP control port */\
@@ -29,7 +29,7 @@
 }
 
 #define F_PCLK		96000000UL	/* PCLK frequency (configured by SCKCR.PCK) */
-#define SCLK_FAST	16000000UL	/* SCLK frequency (R/W) */
+#define SCLK_FAST	12000000UL	/* SCLK frequency (R/W) */
 #define	SCLK_SLOW	400000UL	/* SCLK frequency (Init) */
 
 
@@ -137,7 +137,7 @@ void power_on (void)
 	/* Initialize CS/INS/WP port */
 	CTRL_INIT();
 
-	/* Attach RSPI module to I/O pads, disable module standby */
+	/* Attach RSPI module to I/O pads, disable module stop */
 	RSPI_ATTACH();
 
 	/* Initialize RSPI module */
@@ -561,10 +561,7 @@ DRESULT disk_ioctl (
 
 	switch (ctrl) {
 	case CTRL_SYNC :		/* Wait for end of internal write process of the drive */
-		if (select()) {
-			deselect();
-			res = RES_OK;
-		}
+		if (select()) res = RES_OK;
 		break;
 
 	case GET_SECTOR_COUNT :	/* Get drive capacity in unit of sector (DWORD) */

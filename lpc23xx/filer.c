@@ -8,7 +8,7 @@
 #include "disp.h"
 #include "sound.h"
 #include "xprintf.h"
-#include "uart.h"
+#include "uart23xx.h"
 
 
 #define N_MAXDIR	200
@@ -167,6 +167,9 @@ void rfsh_base (		/* Draw title line */
 {
 	int i;
 
+#if _VOLUMES < 2
+	if (*path) path += 2;
+#endif
 	disp_font_color(C_TITLE);
 	i = (strlen(path) > TS_WIDTH) ? strlen(path) - TS_WIDTH : 0;
 	xfprintf(disp_putc, "\f%s", path + i);
@@ -304,7 +307,7 @@ int dlg_input (
 		if (j < 0) j = 0;
 		disp_locate(col, row + 1);
 		for (h = 0; h < width; h++) disp_putc(str[j++]);
-		c = __getch();
+		c = uart0_getc();
 		if (c == KEY_CAN) return 0;
 		if (c == KEY_OK) { str[i] = 0; return 1; }
 		if (c == KEY_BS) {
@@ -472,7 +475,7 @@ void filer (
 			xfprintf(disp_putc, "FS error #%u.\nPush OK to retry...", res);
 		}
 		for (;;) {
-			k = __getch();		/* Get a button/key command */
+			k = uart0_getc();		/* Get a button/key command */
 			if (k >= 'a' && k <= 'z') k -= 0x20;
 
 			if (k == KEY_CAN) {				/* [Esc] Exit filer */
@@ -545,7 +548,7 @@ void filer (
 					else
 						xsprintf(fw->str, "%d files coied", c);
 					dlg_str("Copy file", fw->str, 18);
-					k = __getch();
+					k = uart0_getc();
 					break;	/* Re-load dir */
 				}
 				k = 0;	/* Redraw list */

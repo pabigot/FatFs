@@ -3,10 +3,10 @@
 
 #include "integer.h"
 
-void scif2_init (void);
+void scif2_init (DWORD bps);
 int scif2_test (void);
-void scif2_put (BYTE);
-BYTE scif2_get (void);
+void scif2_putc (BYTE d);
+BYTE scif2_getc (void);
 
 #endif
 

@@ -148,7 +148,7 @@ void sound_stop (void)
 /*-----------------------------------------------------*/
 
 #include "xprintf.h"
-#include "uart.h"
+#include "uart_mfs.h"
 #define NBSIZE 64			/* Size of name buffer */
 #define FCC(c1,c2,c3,c4)	((c4<<24)+(c3<<16)+(c2<<8)+c1)	/* Create FourCC */
 
@@ -249,19 +249,19 @@ int load_wav (
 	if (!sound_start(&fcb, fsmp)) return -1;	/* Start sound streaming */
 
 	k = 0; wi = 0;
-	while (szwav || fcb.ct >= 4) {	/* Sount streaming loop */
+	while (szwav || fcb.ct >= 4) {	/* Sound streaming loop */
 		if (szwav && fcb.ct <= sz_work / 2) {	/* Refill FIFO when it gets half empty */
 			btr = (szwav >= sz_work / 2) ? sz_work / 2 : szwav;
 			f_read(fp, &buff[wi], btr, &br);
-			if (br != btr) break;	/* Exit if illigal file termination or FS error */
+			if (br != btr) break;	/* Exit if wrong file termination or FS error */
 			szwav -= br;
 			wi = (wi + br) & (sz_work - 1);
 			__disable_irq();
 			fcb.ct += br;
 			__enable_irq();
 		}
-		if (uart_test()) {		/* Exit if a user command arrived */
-			k = uart_getc();
+		if (uart3_test()) {		/* Exit if a user command arrived */
+			k = uart3_getc();
 			break;
 		}
 		t = (f_tell(fp) - offw - fcb.ct) / fsmp / wsmp;	/* Refresh time display every 1 sec */

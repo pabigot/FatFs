@@ -16,7 +16,6 @@
 #include "uart.h"
 
 #define BUFFER_SIZE 128
-#define BPS 		115200UL
 
 
 static volatile int TxRun;		/* Tx running flag */
@@ -82,7 +81,7 @@ int uart_test (void)
 
 /* Get a byte from Rx FIFO */
 
-BYTE uart_get (void)
+BYTE uart_getc (void)
 {
 	BYTE d;
 	int i;
@@ -104,7 +103,7 @@ BYTE uart_get (void)
 
 /* Put a byte into Tx FIFO */
 
-void uart_put (BYTE d)
+void uart_putc (BYTE d)
 {
 	int i;
 
@@ -127,14 +126,14 @@ void uart_put (BYTE d)
 
 /* Initialize UART module */
 
-void uart_init (void)
+void uart_init (DWORD bps)
 {
 	/* Disable UART1 Tx/Rx interrupts */
 	_U1RXIE = 0;
 	_U1TXIE = 0;
 
 	/* Initialize UART1 */
-	U1BRG = FCY / 16 / BPS - 1;
+	U1BRG = FCY / 16 / bps - 1;
 	_UARTEN = 1;
 	_UTXEN = 1;
 

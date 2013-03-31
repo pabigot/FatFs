@@ -1,8 +1,8 @@
 /*------------------------------------------------------------------------/
-/  The Main Development Bench of FatFs Module 
+/  The Main Development Bench of FatFs Module
 /-------------------------------------------------------------------------/
 /
-/  Copyright (C) 2011, ChaN, all right reserved.
+/  Copyright (C) 2013, ChaN, all right reserved.
 /
 / * This software is a free software and there is NO WARRANTY.
 / * No restriction on use. You can use, modify and redistribute it for
@@ -15,6 +15,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <locale.h>
 #include "diskio.h"
 #include "ff.h"
 
@@ -33,7 +34,7 @@ int assign_drives (void);
 
 
 
-#if _MULTI_PARTITION	/* Volume - Partition resolution table */
+#if _MULTI_PARTITION	/* Volume - partition resolution table (Example) */
 PARTITION VolToPart[] = {
 	{0, 0},	/* "0:" <== Disk# 0, auto detect */
 	{1, 0},	/* "1:" <== Disk# 1, auto detect */
@@ -63,7 +64,7 @@ TCHAR Line[300];			/* Console input/output buffer */
 HANDLE hCon, hKey;
 
 FATFS FatFs[_VOLUMES];		/* File system object for logical drive */
-BYTE Buff[32768];			/* Working buffer */
+BYTE Buff[262144];			/* Working buffer */
 
 #if _USE_FASTSEEK
 DWORD SeekTbl[16];			/* Link map table for fast seek feature */
@@ -179,7 +180,7 @@ void put_dump (
 	int i;
 
 
-	_tprintf(_T("%08lX "), addr);
+	_tprintf(_T("%08lX:"), addr);
 
 	for (i = 0; i < cnt; i++)
 		_tprintf(_T(" %02X"), buff[i]);
@@ -248,7 +249,47 @@ void put_rc (FRESULT rc)
 
 
 
-BOOL set_console_size (
+const char HelpStr[] = {
+		_T("[Disk contorls]\n")
+		_T(" di <pd#> - Initialize disk\n")
+		_T(" dd [<pd#> <sect>] - Dump a secrtor\n")
+		_T(" ds <pd#> - Show disk status\n")
+		_T("[Buffer contorls]\n")
+		_T(" bd <ofs> - Dump working buffer\n")
+		_T(" be <ofs> [<data>] ... - Edit working buffer\n")
+		_T(" br <pd#> <sect> <count> - Read disk into working buffer\n")
+		_T(" bw <pd#> <sect> <count> - Write working buffer into disk\n")
+		_T(" bf <val> - Fill working buffer\n")
+		_T("[File system contorls]\n")
+		_T(" fi <ld#> - Force initialized the volume\n")
+		_T(" fs [<path>] - Show volume status\n")
+		_T(" fl [<path>] - Show a directory\n")
+		_T(" fo <mode> <file> - Open a file\n")
+		_T(" fc - Close the file\n")
+		_T(" fe <ofs> - Move fp in normal seek\n")
+		_T(" fE <ofs> - Move fp in fast seek or Create link table\n")
+		_T(" fd <len> - Read and dump the file\n")
+		_T(" fr <len> - Read the file\n")
+		_T(" fw <len> <val> - Write to the file\n")
+		_T(" fn <object name> <new name> - Rename an object\n")
+		_T(" fu <object name> - Unlink an object\n")
+		_T(" fv - Truncate the file at current fp\n")
+		_T(" fk <dir name> - Create a directory\n")
+		_T(" fa <atrr> <mask> <object name> - Change object attribute\n")
+		_T(" ft <year> <month> <day> <hour> <min> <sec> <object name> - Change timestamp of an object\n")
+		_T(" fx <src file> <dst file> - Copy a file\n")
+		_T(" fg <path> - Change current directory\n")
+		_T(" fj <ld#> - Change current drive\n")
+		_T(" fq - Show current directory path\n")
+		_T(" fb <name> - Set volume label\n")
+		_T(" fm <ld#> <rule> <cluster size> - Create file system\n")
+		_T(" fp <pd#> <p1 size> <p2 size> <p3 size> <p4 size> - Divide physical drive\n")
+		_T("\n")
+	};
+
+
+
+int set_console_size (
 	HANDLE hcon,
 	int width,
 	int height,
@@ -260,36 +301,11 @@ BOOL set_console_size (
 
 
 	if (SetConsoleScreenBufferSize(hCon, dim) && 
-		SetConsoleWindowInfo(hCon, TRUE, &rect) ) return TRUE;
+		SetConsoleWindowInfo(hCon, TRUE, &rect) ) return 1;
 
-	return FALSE;
+	return 0;
 }
 
-
-
-void get_line (TCHAR *buff, int len)
-{
-#ifdef UNICODE
-	TCHAR c;
-	int idx = 0;
-	DWORD dw;
-
-
-	for (;;) {
-		ReadConsole(hKey, &c, 1, &dw, NULL);
-		if (c == '\r') break;
-		if ((c == '\b') && idx) {
-			idx--;
-		}
-		if ((c >= ' ') && (idx < len - 1)) {
-				buff[idx++] = c;
-		}
-	}
-	buff[idx] = 0;
-#else
-	_getts(buff);
-#endif
-}
 
 
 
@@ -299,7 +315,7 @@ void get_line (TCHAR *buff, int len)
 
 int _tmain (int argc, TCHAR *argv[])
 {
-	TCHAR *ptr, *ptr2, pool[300];
+	TCHAR *ptr, *ptr2, pool[50];
 	long p1, p2, p3;
 	BYTE *buf;
 	UINT s1, s2, cnt;
@@ -320,14 +336,16 @@ int _tmain (int argc, TCHAR *argv[])
 		if (!SetConsoleCP(_CODE_PAGE) || !SetConsoleOutputCP(_CODE_PAGE))
 			_tprintf(_T("Error: Failed to change the console code page.\n"));
 	}
+	_stprintf(pool, _T(".%u"), _CODE_PAGE);
+	_tsetlocale(LC_CTYPE, pool);
 
-	_tprintf(_T("FatFs module test monitor (LFN:%s, CP:%u/%s)\n\n"),
-			_USE_LFN ? _T("Enabled") : _T("Disabled"),
+	_tprintf(_T("FatFs module test monitor (%s, CP:%u/%s)\n\n"),
+			_USE_LFN ? _T("LFN") : _T("SFN"),
 			_CODE_PAGE,
 			_LFN_UNICODE ? _T("Unicode") : _T("ANSI"));
 
-	_stprintf(pool, _T("FatFs debug console (LFN:%s, CP:%u/%s)"),
-			_USE_LFN ? _T("Enabled") : _T("Disabled"),
+	_stprintf(pool, _T("FatFs debug console (%s, CP:%u/%s)"),
+			_USE_LFN ? _T("LFN") : _T("SFN"),
 			_CODE_PAGE,
 			_LFN_UNICODE ? _T("Unicode") : _T("ANSI"));
 	SetConsoleTitle(pool);
@@ -335,7 +353,7 @@ int _tmain (int argc, TCHAR *argv[])
 	assign_drives();	/* Find physical drives on the PC */
 
 #if _MULTI_PARTITION
-	_tprintf(_T("\nMultiple partition feature is enabled. Each logical drive is tied as follows:\n"));
+	_tprintf(_T("\nMultiple partition feature is enabled. Each logical drive is tied to the patition as follows:\n"));
 	for (cnt = 0; cnt < sizeof VolToPart / sizeof (PARTITION); cnt++) {
 		const TCHAR *pn[] = {_T("auto detect"), _T("1st partition"), _T("2nd partition"), _T("3rd partition"), _T("4th partition")};
 
@@ -353,13 +371,16 @@ int _tmain (int argc, TCHAR *argv[])
 
 	for (;;) {
 		_tprintf(_T(">"));
-		ptr = Line;
-		get_line(ptr, 256);	/* Get a line from console */
+		_getts(ptr = Line);	/* Get a line from console */
 
 		switch (*ptr++) {	/* Branch by primary command character */
 
 		case 'q' :	/* Exit program */
 			return 0;
+
+		case '?':		/* Show usage */
+			_tprintf(HelpStr);
+			break;
 
 		case 'T' :
 			while (*ptr == ' ') ptr++;
@@ -395,6 +416,24 @@ int _tmain (int argc, TCHAR *argv[])
 					_tprintf(_T("Number of sectors = %u\n"), dw);
 				break;
 			}
+
+			case 'x' :	/* dx <src pd#> <src start sector> <src sector count> <dst pd#> <dst start sector> - Initialize physical drive */
+				{
+					long sdrv, ssect, scount, ddrv, dsect, xc, xx;
+
+					if (!xatoi(&ptr, &sdrv) || !xatoi(&ptr, &ssect) || !xatoi(&ptr, &scount) || !xatoi(&ptr, &ddrv) || !xatoi(&ptr, &dsect)) break;
+
+					for (xc = 0; xc < scount; xc += xx, ssect += xx, dsect += xx) {
+						if ((xc % 2048) == 0 && scount >= 128)
+							_tprintf(_T("\r%lu/%lu, %lu%% "), xc, scount, xc / (scount / 100) );
+						xx = (scount - xc >= 128) ? 128 : scount - xc;
+						res = disk_read((BYTE)sdrv, Buff, ssect, (BYTE)xx);
+						if (res) break;
+						res = disk_write((BYTE)ddrv, Buff, dsect, (BYTE)xx);
+						if (res) break;
+					}
+					put_rc(res);
+				}
 			break;
 
 		case 'b' :	/* Buffer control command */
@@ -425,17 +464,13 @@ int _tmain (int argc, TCHAR *argv[])
 				}
 				break;
 
-			case 'r' :	/* br <pd#> <sector> [<n>] - Read disk into Buff[] */
-				if (!xatoi(&ptr, &p1)) break;
-				if (!xatoi(&ptr, &p2)) break;
-				if (!xatoi(&ptr, &p3)) p3 = 1;
+			case 'r' :	/* br <pd#> <sector> <count> - Read disk into Buff[] */
+				if (!xatoi(&ptr, &p1) || !xatoi(&ptr, &p2) || !xatoi(&ptr, &p3)) break;
 				_tprintf(_T("rc=%u\n"), disk_read((BYTE)p1, Buff, p2, (BYTE)p3));
 				break;
 
-			case 'w' :	/* bw <sect> [<n>] - Write Buff[] into disk */
-				if (!xatoi(&ptr, &p1)) break;
-				if (!xatoi(&ptr, &p2)) break;
-				if (!xatoi(&ptr, &p3)) p3 = 1;
+			case 'w' :	/* bw <sect> <count> - Write Buff[] into disk */
+				if (!xatoi(&ptr, &p1) || !xatoi(&ptr, &p2) || !xatoi(&ptr, &p3)) break;
 				_tprintf(_T("rc=%u\n"), disk_write((BYTE)p1, Buff, p2, (BYTE)p3));
 				break;
 
@@ -457,6 +492,7 @@ int _tmain (int argc, TCHAR *argv[])
 
 			case 's' :	/* fs [<path>] - Show logical drive status */
 				while (*ptr == ' ') ptr++;
+				ptr2 = ptr;
 #if _FS_READONLY
 				res = f_opendir(&dir, ptr);
 #else
@@ -471,8 +507,15 @@ int _tmain (int argc, TCHAR *argv[])
 					fs->csize, (DWORD)fs->csize * 512);
 #endif
 				if (fs->fs_type != FS_FAT32) _tprintf(_T("Root DIR entries = %u\n"), fs->n_rootdir);
-				_tprintf(_T("Sectors/FAT = %lu\nNumber of clusters = %lu\nFAT start sector = %lu\nRoot DIR start %s = %lu\nData start sector = %lu\n\n..."),
-					fs->fsize, fs->n_fatent - 2, fs->fatbase, fs->fs_type == FS_FAT32 ? "cluster" : "sector", fs->dirbase, fs->database);
+				_tprintf(_T("Sectors/FAT = %lu\nNumber of clusters = %lu\nVolume start sector = %lu\nFAT start sector = %lu\nRoot DIR start %s = %lu\nData start sector = %lu\n\n"),
+					fs->fsize, fs->n_fatent - 2, fs->volbase, fs->fatbase, fs->fs_type == FS_FAT32 ? _T("cluster") : _T("sector"), fs->dirbase, fs->database);
+#if _USE_LABEL
+				res = f_getlabel(ptr2, pool, &dw);
+				if (res) { put_rc(res); break; }
+				_tprintf(pool[0] ? _T("Volume name is %s\n") : _T("No volume label\n"), pool);
+				_tprintf(_T("Volume S/N is %04X-%04X\n"), dw >> 16, dw & 0xFFFF);
+#endif
+				_tprintf(_T("..."));
 				AccSize = AccFiles = AccDirs = 0;
 				res = scan_files(ptr);
 				if (res) { put_rc(res); break; }
@@ -504,22 +547,19 @@ int _tmain (int argc, TCHAR *argv[])
 					} else {
 						s1++; AccSize += Finfo.fsize;
 					}
-					_tprintf(_T("%c%c%c%c%c %u/%02u/%02u %02u:%02u %9lu  "),
+					_tprintf(_T("%c%c%c%c%c %u/%02u/%02u %02u:%02u %9lu  %s"),
 							(Finfo.fattrib & AM_DIR) ? 'D' : '-',
 							(Finfo.fattrib & AM_RDO) ? 'R' : '-',
 							(Finfo.fattrib & AM_HID) ? 'H' : '-',
 							(Finfo.fattrib & AM_SYS) ? 'S' : '-',
 							(Finfo.fattrib & AM_ARC) ? 'A' : '-',
 							(Finfo.fdate >> 9) + 1980, (Finfo.fdate >> 5) & 15, Finfo.fdate & 31,
-							(Finfo.ftime >> 11), (Finfo.ftime >> 5) & 63, Finfo.fsize);
-					_tcscpy(pool, Finfo.fname);
+							(Finfo.ftime >> 11), (Finfo.ftime >> 5) & 63, Finfo.fsize, Finfo.fname);
 #if _USE_LFN
-					for (p2 = _tcslen(Finfo.fname); p2 < 14; p2++)
-						_tcscat(pool, _T(" "));
-					_tcscat(pool, Lfname);
+					for (p2 = _tcslen(Finfo.fname); p2 < 12; p2++) _tprintf(_T(" "));
+					_tprintf(_T("  %s"), Lfname);
 #endif
-					_tcscat(pool, _T("\n"));
-					WriteConsole(hCon, pool, _tcslen(pool), &p1, NULL);
+					_tprintf(_T("\n"));
 				}
 				_tprintf(_T("%4u File(s),%11I64u bytes total\n%4u Dir(s)"), s1, AccSize, s2);
 				if (f_getfree(ptr, (DWORD*)&p1, &fs) == FR_OK)
@@ -590,7 +630,30 @@ int _tmain (int argc, TCHAR *argv[])
 					_tprintf(_T("%u items required to create the link map table.\n"), SeekTbl[0]);
 				}
 				break;
-#endif
+#endif	/* _USE_FASTSEEK */
+#if _FS_RPATH >= 1
+			case 'g' :	/* fg <path> - Change current directory */
+				while (*ptr == ' ') ptr++;
+				put_rc(f_chdir(ptr));
+				break;
+
+			case 'j' :	/* fj <ld#> - Change current drive */
+				if (xatoi(&ptr, &p1)) {
+					put_rc(f_chdrive((BYTE)p1));
+				}
+				break;
+#if _FS_RPATH >= 2
+			case 'q' :	/* fq - Show current dir path */
+				res = f_getcwd(Line, 256);
+				if (res) {
+					put_rc(res);
+				} else {
+					WriteConsole(hCon, Line, _tcslen(Line), &p1, NULL);
+					_tprintf(_T("\n"));
+				}
+				break;
+#endif	/* _FS_RPATH >= 2 */
+#endif	/* _FS_RPATH >= 1 */
 #if !_FS_READONLY
 			case 'w' :	/* fw <len> <val> - write file */
 				if (!xatoi(&ptr, &p1) || !xatoi(&ptr, &p2)) break;
@@ -682,6 +745,12 @@ int _tmain (int argc, TCHAR *argv[])
 				f_close(&file[1]);
 				_tprintf(_T("%lu bytes copied.\n"), p1);
 				break;
+#if _USE_LABEL
+			case 'b' :	/* fb <name> - Set volume label */
+				while (*ptr == ' ') ptr++;
+				put_rc(f_setlabel(ptr));
+				break;
+#endif	/* USE_LABEL */
 #if _USE_MKFS
 			case 'm' :	/* fm <ld#> <partition rule> <cluster size> - Create file system */
 				if (!xatoi(&ptr, &p1) || !xatoi(&ptr, &p2) || !xatoi(&ptr, &p3)) break;
@@ -690,8 +759,7 @@ int _tmain (int argc, TCHAR *argv[])
 				if (*ptr != 'Y') break;
 				put_rc(f_mkfs((BYTE)p1, (BYTE)p2, (UINT)p3));
 				break;
-#endif
-#if _MULTI_PARTITION == 2
+#if _MULTI_PARTITION
 			case 'p' :	/* fp <pd#> <size1> <size2> <size3> <size4> - Create partition table */
 				{
 					DWORD pts[4];
@@ -707,70 +775,11 @@ int _tmain (int argc, TCHAR *argv[])
 					put_rc(f_fdisk((BYTE)p1, pts, Buff));
 				}
 				break;
-#endif
+#endif	/* _MULTI_PARTITION */
+#endif	/* _USE_MKFS */
 #endif	/* !_FS_READONLY */
-#if _FS_RPATH >= 1
-			case 'g' :	/* fg <path> - Change current directory */
-				while (*ptr == ' ') ptr++;
-				put_rc(f_chdir(ptr));
-				break;
-
-			case 'j' :	/* fj <ld#> - Change current drive */
-				if (xatoi(&ptr, &p1)) {
-					put_rc(f_chdrive((BYTE)p1));
-				}
-				break;
-#if _FS_RPATH >= 2
-			case 'q' :	/* fq - Show current dir path */
-				res = f_getcwd(Line, 256);
-				if (res) {
-					put_rc(res);
-				} else {
-					WriteConsole(hCon, Line, _tcslen(Line), &p1, NULL);
-					_tprintf(_T("\n"));
-				}
-				break;
-#endif
-#endif
 			}
 			break;
-
-		case '?':		/* Show usage */
-			_tprintf(
-				_T("di <pd#> - Initialize disk\n")
-				_T("dd [<pd#> <sect>] - Dump a secrtor\n")
-				_T("ds <pd#> - Show disk status\n")
-				_T("\n")
-				_T("bd <ofs> - Dump working buffer\n")
-				_T("be <ofs> [<data>] ... - Edit working buffer\n")
-				_T("br <pd#> <sect> [<num>] - Read disk into working buffer\n")
-				_T("bw <pd#> <sect> [<num>] - Write working buffer into disk\n")
-				_T("bf <val> - Fill working buffer\n")
-				_T("\n")
-				_T("fi <ld#> - Force initialized the volume\n")
-				_T("fs [<path>] - Show volume status\n")
-				_T("fl [<path>] - Show a directory\n")
-				_T("fo <mode> <file> - Open a file\n")
-				_T("fc - Close the file\n")
-				_T("fe <ofs> - Move fp in normal seek\n")
-				_T("fE <ofs> - Move fp in fast seek or Create link table\n")
-				_T("fd <len> - Read and dump the file\n")
-				_T("fr <len> - Read the file\n")
-				_T("fw <len> <val> - Write to the file\n")
-				_T("fn <object name> <new name> - Rename an object\n")
-				_T("fu <object name> - Unlink an object\n")
-				_T("fv - Truncate the file at current fp\n")
-				_T("fk <dir name> - Create a directory\n")
-				_T("fa <atrr> <mask> <object name> - Change object attribute\n")
-				_T("ft <year> <month> <day> <hour> <min> <sec> <object name> - Change timestamp of an object\n")
-				_T("fx <src file> <dst file> - Copy a file\n")
-				_T("fg <path> - Change current directory\n")
-				_T("fj <ld#> - Change current drive\n")
-				_T("fq - Show current directory path\n")
-				_T("fm <ld#> <rule> <cluster size> - Create file system\n")
-				_T("fp <pd#> <p1 size> <p2 size> <p3 size> <p4 size> - Divide physical drive\n")
-				_T("\n")
-			);
 
 		}
 	}

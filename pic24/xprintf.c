@@ -235,7 +235,7 @@ void put_dump (
 	const unsigned long *lp;
 
 
-	xprintf("%08lX ", addr);		/* address */
+	xprintf("%08lX:", addr);		/* address */
 
 	switch (width) {
 	case DW_CHAR:

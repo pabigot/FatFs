@@ -337,14 +337,14 @@ BYTE send_cmd (		/* Returns command response (bit7==1:Send failed)*/
 /*-----------------------------------------------------------------------*/
 
 DSTATUS disk_status (
-	BYTE drv			/* Drive number (always 0) */
+	BYTE pdrv			/* Drive number (always 0) */
 )
 {
 	DSTATUS s;
 	BYTE d;
 
 
-	if (drv) return STA_NOINIT;
+	if (pdrv) return STA_NOINIT;
 
 	/* Check if the card is kept initialized */
 	s = Stat;
@@ -366,7 +366,7 @@ DSTATUS disk_status (
 /*-----------------------------------------------------------------------*/
 
 DSTATUS disk_initialize (
-	BYTE drv		/* Physical drive nmuber (0) */
+	BYTE pdrv		/* Physical drive nmuber (0) */
 )
 {
 	BYTE n, ty, cmd, buf[4];
@@ -374,7 +374,7 @@ DSTATUS disk_initialize (
 	DSTATUS s;
 
 
-	if (drv) return RES_NOTRDY;
+	if (pdrv) return RES_NOTRDY;
 
 	INIT_PORT();				/* Initialize control port */
 	for (n = 10; n; n--) rcvr_mmc(buf, 1);	/* 80 dummy clocks */
@@ -423,13 +423,13 @@ DSTATUS disk_initialize (
 /*-----------------------------------------------------------------------*/
 
 DRESULT disk_read (
-	BYTE drv,			/* Physical drive nmuber (0) */
+	BYTE pdrv,			/* Physical drive nmuber (0) */
 	BYTE *buff,			/* Pointer to the data buffer to store read data */
 	DWORD sector,		/* Start sector number (LBA) */
 	BYTE count			/* Sector count (1..128) */
 )
 {
-	if (disk_status(drv) & STA_NOINIT) return RES_NOTRDY;
+	if (disk_status(pdrv) & STA_NOINIT) return RES_NOTRDY;
 	if (!count) return RES_PARERR;
 	if (!(CardType & CT_BLOCK)) sector *= 512;	/* Convert LBA to byte address if needed */
 
@@ -459,13 +459,13 @@ DRESULT disk_read (
 /*-----------------------------------------------------------------------*/
 
 DRESULT disk_write (
-	BYTE drv,			/* Physical drive nmuber (0) */
+	BYTE pdrv,			/* Physical drive nmuber (0) */
 	const BYTE *buff,	/* Pointer to the data to be written */
 	DWORD sector,		/* Start sector number (LBA) */
 	BYTE count			/* Sector count (1..128) */
 )
 {
-	if (disk_status(drv) & STA_NOINIT) return RES_NOTRDY;
+	if (disk_status(pdrv) & STA_NOINIT) return RES_NOTRDY;
 	if (!count) return RES_PARERR;
 	if (!(CardType & CT_BLOCK)) sector *= 512;	/* Convert LBA to byte address if needed */
 
@@ -497,8 +497,8 @@ DRESULT disk_write (
 /*-----------------------------------------------------------------------*/
 
 DRESULT disk_ioctl (
-	BYTE drv,		/* Physical drive nmuber (0) */
-	BYTE ctrl,		/* Control code */
+	BYTE pdrv,		/* Physical drive nmuber (0) */
+	BYTE cmd,		/* Control code */
 	void *buff		/* Buffer to send/receive control data */
 )
 {
@@ -507,10 +507,10 @@ DRESULT disk_ioctl (
 	DWORD cs;
 
 
-	if (disk_status(drv) & STA_NOINIT) return RES_NOTRDY;	/* Check if card is in the socket */
+	if (disk_status(pdrv) & STA_NOINIT) return RES_NOTRDY;	/* Check if card is in the socket */
 
 	res = RES_ERROR;
-	switch (ctrl) {
+	switch (cmd) {
 		case CTRL_SYNC :		/* Make sure that no pending write process */
 			if (select()) {
 				deselect();

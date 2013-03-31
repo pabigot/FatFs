@@ -502,23 +502,23 @@ const prog_uint16_t Tbl[] = {	/*  CP1258(0x80-0xFF) to Unicode conversion table 
 
 
 WCHAR ff_convert (	/* Converted character, Returns zero on error */
-	WCHAR	src,	/* Character code to be converted */
+	WCHAR	chr,	/* Character code to be converted */
 	UINT	dir		/* 0: Unicode to OEMCP, 1: OEMCP to Unicode */
 )
 {
 	WCHAR c;
 
 
-	if (src < 0x80) {	/* ASCII */
-		c = src;
+	if (chr < 0x80) {	/* ASCII */
+		c = chr;
 
 	} else {
 		if (dir) {		/* OEMCP to Unicode */
-			c = (src >= 0x100) ? 0 : (WCHAR)pgm_read_word(&Tbl[src - 0x80]);
+			c = (chr >= 0x100) ? 0 : (WCHAR)pgm_read_word(&Tbl[chr - 0x80]);
 
 		} else {		/* Unicode to OEMCP */
 			for (c = 0; c < 0x80; c++) {
-				if (src == (WCHAR)pgm_read_word(&Tbl[c])) break;
+				if (chr == (WCHAR)pgm_read_word(&Tbl[c])) break;
 			}
 			c = (c + 0x80) & 0xFF;
 		}

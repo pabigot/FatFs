@@ -19,7 +19,7 @@ CSTD = gnu89
 LIBS	=
 LIBDIRS	=
 INCDIRS	=
-DEFS	= F_CPU=11059200
+DEFS	= F_CPU=11059200 MEDIA=\"CFC+MMC\"
 ADEFS	=
 
 ### Warning contorls
@@ -129,7 +129,7 @@ size:
 %.elf:  $(AOBJ) $(COBJ)
 	@echo
 	@echo Linking...
-	$(CC) $(CFLAGS) $(AOBJ) $(COBJ) --output $@
+	$(CC) $(CFLAGS) $(AOBJ) $(COBJ) -o $@
 
 # Compile: create object files from C source files. ARM or Thumb(-2)
 $(COBJ) : $(OBJDIR)/%.o : %.c

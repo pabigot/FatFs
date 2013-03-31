@@ -2,7 +2,7 @@
 PROJECT	= fftest
 
 ### Source files and search directories
-CSRC	= main.c interrupt.c uart.c rtc.c filer.c sound.c xprintf.c diskio.c mci.c ff.c cc932.c
+CSRC	= main.c interrupt.c uart23xx.c rtc23xx.c filer.c sound.c xprintf.c diskio.c mci.c ff.c cc932.c
 ASRC	=
 CSRCARM	= disp.c tjpgd.c nand.c
 ASRCARM	= asmfunc.S
@@ -158,7 +158,7 @@ size:
 %.elf:  $(AOBJARM) $(AOBJ) $(COBJARM) $(COBJ)
 	@echo
 	@echo Linking...
-	$(CC) $(THUMBFLAG) $(ALL_CFLAGS) $(AOBJARM) $(AOBJ) $(COBJARM) $(COBJ) --output $@ $(LDFLAGS)
+	$(CC) $(THUMBFLAG) $(ALL_CFLAGS) $(AOBJARM) $(AOBJ) $(COBJARM) $(COBJ) -o $@ $(LDFLAGS)
 
 # Compile: create object files from C source files. ARM or Thumb(-2)
 $(COBJ) : $(OBJDIR)/%.o : %.c

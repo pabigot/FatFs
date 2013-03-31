@@ -8,6 +8,7 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include "diskio.h"
+#include "xitoa.h"
 
 
 /* Contorl Ports */
@@ -171,8 +172,8 @@ void read_block (
 	iord_h = REG_DATA;
 	iord_l = REG_DATA & ~IORD;
 	c = 128;
+	cli();
 	do {	/* Receive 4 bytes/loop */
-		cli();
 		CTRL_PORT = iord_l;		/* IORD# = L */
 		CTRL_PORT; CTRL_PORT;	/* Delay */
 		dl = DATL_PIN; dh = DATH_PIN;	/* Read data on the D15..D0 */
@@ -182,8 +183,8 @@ void read_block (
 		dl = DATL_PIN; dh = DATH_PIN;	/* Read data on the D15..D0 */
 		CTRL_PORT = iord_h;		/* IORD = H */
 		*buf++ = dl; *buf++ = dh;	/* Store data */
-		sei();
 	} while (--c);
+	sei();
 }
 
 
@@ -200,19 +201,19 @@ void read_block_part (
 
 	CTRL_PORT = REG_DATA;		/* Select Data register */
 	c = 0;
+	cli();
 	do {
-		cli();
 		CTRL_PORT &= ~IORD;		/* IORD# = L */
 		CTRL_PORT; CTRL_PORT;	/* Delay */
 		dl = DATL_PIN;			/* Read even byte */
 		dh = DATH_PIN;			/* Read odd byte */
 		CTRL_PORT |= IORD;		/* IORD# = H */
-		sei();
 		if (nw && (c >= ofs)) {	/* Pick up a part of block */
 			*buf++ = dl; *buf++ = dh;
 			nw--;
 		}
 	} while (++c);
+	sei();
 }
 
 
@@ -241,6 +242,7 @@ void write_ata (
 }
 
 
+#if _USE_WRITE
 static
 /* Write 512 byte block to ATA data register */
 void write_block (
@@ -255,17 +257,18 @@ void write_block (
 	iowr_l = REG_DATA & ~IOWR;
 	DATL_DDR = 0xFF; DATH_DDR = 0xFF;	/* Set D15..D0 as output */
 	c = 128;
+	cli();
 	do {	/* Send 4 bytes/loop */
-		cli();
 		DATL_PORT = *buf++; DATH_PORT = *buf++;	/* Set a word on the D15..D0 */
 		CTRL_PORT = iowr_l; CTRL_PORT = iowr_h;	/* Make low pulse on IOWR# */
 		DATL_PORT = *buf++; DATH_PORT = *buf++;	/* Set a word on the D15..D0 */
 		CTRL_PORT = iowr_l; CTRL_PORT = iowr_h;	/* Make low pulse on IOWR# */
-		sei();
 	} while (--c);
+	sei();
 	DATL_PORT = 0x7F; DATH_PORT = 0xFF;		/* Set D0..D15 as input (pull-up wo/D7) */
 	DATL_DDR = 0; DATH_DDR = 0;
 }
+#endif
 
 
 
@@ -294,6 +297,33 @@ int wait_stat (	/* 0:Timeout or or ERR goes 1 */
 
 
 
+/*-----------------------------------------------------------------------*/
+/* Issue Read/Write command to the drive                                 */
+/*-----------------------------------------------------------------------*/
+
+static
+int issue_rwcmd (
+	BYTE pdrv,
+	BYTE cmd,
+	DWORD sector,
+	BYTE count
+)
+{
+
+	if (!wait_stat(1000, DRDY)) return 0;
+	write_ata(REG_DEV, ((BYTE)(sector >> 24) & 0x0F) | LBA | (pdrv ? DEV : 0));
+	if (!wait_stat(1000, DRDY)) return 0;
+	write_ata(REG_CYLH, (BYTE)(sector >> 16));
+	write_ata(REG_CYLL, (BYTE)(sector >> 8));
+	write_ata(REG_SECTOR, (BYTE)sector);
+	write_ata(REG_COUNT, count);
+	write_ata(REG_COMMAND, cmd);
+
+	return 1;
+}
+
+
+
 /*--------------------------------------------------------------------------
 
    Public Functions
@@ -306,14 +336,14 @@ int wait_stat (	/* 0:Timeout or or ERR goes 1 */
 /*-----------------------------------------------------------------------*/
 
 DSTATUS disk_initialize (
-	BYTE drv		/* Physical drive nmuber (0/1) */
+	BYTE pdrv		/* Physical drive nmuber (0/1) */
 )
 {
 	BYTE n, ex;
 
 
-	if (drv >= N_DRIVES) return STA_NOINIT;	/* Supports master/slave */
-	if (Init) return Stat[drv];	/* Returns current status if initialization has been done */
+	if (pdrv >= N_DRIVES) return STA_NOINIT;/* Supports master/slave */
+	if (Init) return Stat[pdrv];	/* Returns current status if initialization has been done */
 
 	init_port();	/* Initialize the ATA control port and reset drives */
 
@@ -338,7 +368,7 @@ DSTATUS disk_initialize (
 	}
 
 	Init = ex;
-	return Stat[drv];
+	return Stat[pdrv];
 }
 
 
@@ -348,11 +378,11 @@ DSTATUS disk_initialize (
 /*-----------------------------------------------------------------------*/
 
 DSTATUS disk_status (
-	BYTE drv		/* Physical drive nmuber (0/1) */
+	BYTE pdrv		/* Physical drive nmuber (0/1) */
 )
 {
-	if (drv >= N_DRIVES) return STA_NOINIT;		/* Supports only single drive */
-	return Stat[drv];
+	if (pdrv >= N_DRIVES) return STA_NOINIT;	/* Supports only single drive */
+	return Stat[pdrv];
 }
 
 
@@ -362,25 +392,19 @@ DSTATUS disk_status (
 /*-----------------------------------------------------------------------*/
 
 DRESULT disk_read (
-	BYTE drv,		/* Physical drive nmuber (0/1) */
+	BYTE pdrv,		/* Physical drive nmuber (0/1) */
 	BYTE *buff,		/* Data buffer to store read data */
 	DWORD sector,	/* Sector number (LBA) */
 	BYTE count		/* Sector count (1..255) */
 )
 {
-	if (drv >= N_DRIVES || !count || sector > 0xFFFFFFF) return RES_PARERR;
-	if (Stat[drv] & STA_NOINIT) return RES_NOTRDY;
+	if (pdrv >= N_DRIVES || !count || sector > 0xFFFFFFF) return RES_PARERR;
+	if (Stat[pdrv] & STA_NOINIT) return RES_NOTRDY;
 
 	/* Issue Read Setor(s) command */
-	if (!wait_stat(1000, 0)) return RES_ERROR;	/* Select device */
-	write_ata(REG_DEV, ((BYTE)(sector >> 24) & 0x0F) | LBA | (drv ? DEV : 0));
-	if (!wait_stat(1000, DRDY)) return RES_ERROR;
-	write_ata(REG_CYLH, (BYTE)(sector >> 16));
-	write_ata(REG_CYLL, (BYTE)(sector >> 8));
-	write_ata(REG_SECTOR, (BYTE)sector);
-	write_ata(REG_COUNT, count);
-	write_ata(REG_COMMAND, CMD_READ);
+	if (!issue_rwcmd(pdrv, CMD_READ, sector, count)) return RES_ERROR;
 
+	/* Receive data blocks */
 	do {
 		if (!wait_stat(2000, DRQ)) return RES_ERROR; 	/* Wait for a sector prepared */
 		read_block(buff);	/* Read a sector */
@@ -401,33 +425,27 @@ DRESULT disk_read (
 
 #if _USE_WRITE
 DRESULT disk_write (
-	BYTE drv,			/* Physical drive nmuber (0/1) */
+	BYTE pdrv,			/* Physical drive nmuber (0/1) */
 	const BYTE *buff,	/* Data to be written */
 	DWORD sector,		/* Sector number (LBA) */
 	BYTE count			/* Sector count (1..255) */
 )
 {
-	if (drv >= N_DRIVES || !count || sector > 0xFFFFFFF) return RES_PARERR;
-	if (Stat[drv] & STA_NOINIT) return RES_NOTRDY;
+	if (pdrv >= N_DRIVES || !count || sector > 0xFFFFFFF) return RES_PARERR;
+	if (Stat[pdrv] & STA_NOINIT) return RES_NOTRDY;
 
 	/* Issue Write Setor(s) command */
-	if (!wait_stat(1000, 0)) return RES_ERROR;	/* Select device */
-	write_ata(REG_DEV, ((BYTE)(sector >> 24) & 0x0F) | LBA | (drv ? DEV : 0));
-	if (!wait_stat(1000, DRDY)) return RES_ERROR;
-	write_ata(REG_CYLH, (BYTE)(sector >> 16));
-	write_ata(REG_CYLL, (BYTE)(sector >> 8));
-	write_ata(REG_SECTOR, (BYTE)sector);
-	write_ata(REG_COUNT, count);
-	write_ata(REG_COMMAND, CMD_WRITE);
+	if (!issue_rwcmd(pdrv, CMD_WRITE, sector, count)) return RES_ERROR;
 
+	/* Send data blocks */
 	do {
 		if (!wait_stat(2000, DRQ)) return RES_ERROR;	/* Wait for request to send data */
 		write_block(buff);	/* Send a sector */
 		buff += 512;
 	} while (--count);		/* Repeat until all sector sent */
 
+	/* Wait for end of write process */
 	if (!wait_stat(1000, 0)) return RES_ERROR;
-
 	read_ata(REG_ALTSTAT);
 	read_ata(REG_STATUS);
 
@@ -442,18 +460,18 @@ DRESULT disk_write (
 
 #if _USE_IOCTL
 DRESULT disk_ioctl (
-	BYTE drv,		/* Physical drive nmuber (0/1) */
-	BYTE ctrl,		/* Control code */
+	BYTE pdrv,		/* Physical drive nmuber (0/1) */
+	BYTE cmd,		/* Control code */
 	void *buff		/* Buffer to send/receive data block */
 )
 {
 	BYTE n, w, ofs, dl, dh, *ptr = (BYTE*)buff;
 
 
-	if (drv >= N_DRIVES) return RES_PARERR;
-	if (Stat[drv] & STA_NOINIT) return RES_NOTRDY;
+	if (pdrv >= N_DRIVES) return RES_PARERR;
+	if (Stat[pdrv] & STA_NOINIT) return RES_NOTRDY;
 
-	switch (ctrl) {
+	switch (cmd) {
 		case CTRL_SYNC :		/* Nothing to do */
 			return RES_OK;
 
@@ -482,7 +500,7 @@ DRESULT disk_ioctl (
 	}
 
 	if (!wait_stat(1000, 0)) return RES_ERROR;	/* Select device */
-	write_ata(REG_DEV, drv ? DEV : 0);
+	write_ata(REG_DEV, pdrv ? DEV : 0);
 	if (!wait_stat(1000, DRDY)) return RES_ERROR;
 	write_ata(REG_COMMAND, CMD_IDENTIFY);	/* Get device ID data block */
 	if (!wait_stat(1000, DRQ)) return RES_ERROR;	/* Wait for data ready */

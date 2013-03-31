@@ -71,9 +71,9 @@ DebugInfo=0
 Source1=main.c
 Source2=mmc.c
 Source3=ff.c
-Source4=unicode\cc932.c
-Source5=uart.c
-Source6=xprintf.c
+Source4=uart.c
+Source5=xprintf.c
+Source6=cc932.c
 [IncFile]
 Include1=v850es.h
 Include2=integer.h

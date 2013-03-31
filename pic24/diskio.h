@@ -32,13 +32,16 @@ typedef enum {
 /* Prototypes for disk control functions */
 
 
-DSTATUS disk_initialize (BYTE);
-DSTATUS disk_status (BYTE);
-DRESULT disk_read (BYTE, BYTE*, DWORD, BYTE);
-#if	_READONLY == 0
-DRESULT disk_write (BYTE, const BYTE*, DWORD, BYTE);
+DSTATUS disk_initialize (BYTE pdrv);
+DSTATUS disk_status (BYTE pdrv);
+DRESULT disk_read (BYTE pdrv, BYTE* buff, DWORD sector, BYTE count);
+#if	_USE_WRITE
+DRESULT disk_write (BYTE pdrv, const BYTE* buff, DWORD sector, BYTE count);
 #endif
-DRESULT disk_ioctl (BYTE, BYTE, void*);
+#if	_USE_IOCTL
+DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff);
+#endif
+void disk_timerproc (void);
 
 
 /* Disk Status Bits (DSTATUS) */
@@ -52,15 +55,15 @@ DRESULT disk_ioctl (BYTE, BYTE, void*);
 /* Generic command (used by FatFs) */
 #define CTRL_SYNC			0	/* Flush disk cache (for write functions) */
 #define GET_SECTOR_COUNT	1	/* Get media size (for only f_mkfs()) */
-#define GET_SECTOR_SIZE		2	/* Get sector size (for multiple sector size (_MAX_SS >= 1024)) */
+//#define GET_SECTOR_SIZE		2	/* Get sector size (for multiple sector size (_MAX_SS >= 1024)) */
 #define GET_BLOCK_SIZE		3	/* Get erase block size (for only f_mkfs()) */
 #define CTRL_ERASE_SECTOR	4	/* Force erased a block of sectors (for only _USE_ERASE) */
 
 /* Generic command (not used by FatFs) */
-#define CTRL_POWER			5	/* Get/Set power status */
-#define CTRL_LOCK			6	/* Lock/Unlock media removal */
-#define CTRL_EJECT			7	/* Eject media */
-#define CTRL_FORMAT			8	/* Create physical format on the media */
+//#define CTRL_POWER			5	/* Get/Set power status */
+//#define CTRL_LOCK			6	/* Lock/Unlock media removal */
+//#define CTRL_EJECT			7	/* Eject media */
+//#define CTRL_FORMAT			8	/* Create physical format on the media */
 
 /* MMC/SDC specific ioctl command */
 #define MMC_GET_TYPE		10	/* Get card type */
@@ -70,9 +73,9 @@ DRESULT disk_ioctl (BYTE, BYTE, void*);
 #define MMC_GET_SDSTAT		14	/* Get SD status */
 
 /* ATA/CF specific ioctl command */
-#define ATA_GET_REV			20	/* Get F/W revision */
-#define ATA_GET_MODEL		21	/* Get model name */
-#define ATA_GET_SN			22	/* Get serial number */
+//#define ATA_GET_REV			20	/* Get F/W revision */
+//#define ATA_GET_MODEL		21	/* Get model name */
+//#define ATA_GET_SN			22	/* Get serial number */
 
 
 /* MMC card type flags (MMC_GET_TYPE) */

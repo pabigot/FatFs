@@ -9,8 +9,8 @@
 
 #define BUFFER_SIZE 128
 
-#define PCLK		24000000UL
-#define BPS 		38400
+#define F_PCLK		24000000UL
+#define BPS 		115200
 
 
 /* Tx/Rx buffer  */
@@ -25,16 +25,16 @@ static volatile struct {
 /* Initialize SCIF ch2                   */
 /*---------------------------------------*/
 
-void scif2_init (void)
+void scif2_init (DWORD bps)
 {
-	SCIF2.SCSCR.WORD = 0x0000;	/* Stop SCIF2 */
+	SCIF2.SCSCR.WORD = 0x0000;	/* Stop SCIF */
 
 	/* Attach SCIF2 unit (TxD2/RxD2) to I/O pad */
 	PORT.PFCR0.WORD = (PORT.PFCR0.WORD & 0xF00F) | 0x0440;
 
 	/* Initialize SCIF2 */
 	SCIF2.SCEMR.WORD = 0x0000;						/* Bit rate */
-	SCIF2.SCBRR.BYTE = PCLK / 1 / BPS / 32 - 1;
+	SCIF2.SCBRR.BYTE = F_PCLK / 1 / bps / 32 - 1;
 	SCIF2.SCSMR.WORD = 0x0000;						/* Data format (N81) */
 	SCIF2.SCFCR.WORD = 0x00B6; SCIF2.SCFCR.WORD = 0x00B0;	/* Clear Tx/Rx FIFO */
 
@@ -65,7 +65,7 @@ int scif2_test (void)
 /* Get a byte from Rx buffer             */
 /*---------------------------------------*/
 
-BYTE scif2_get (void)
+BYTE scif2_getc (void)
 {
 	BYTE d;
 	int i;
@@ -91,7 +91,7 @@ BYTE scif2_get (void)
 /* Put a byte into Tx buffer             */
 /*---------------------------------------*/
 
-void scif2_put (BYTE d)
+void scif2_putc (BYTE d)
 {
 	int i;
 

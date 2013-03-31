@@ -3,19 +3,20 @@
 [DATABASE_VERSION]
 "11.0" 
 [WORKSPACE_DETAILS]
-"fftest" "C:\user\Prj_Renesas\cq_sh7262_hew" "C:\user\Prj_Renesas\cq_sh7262_hew\fftest.hws" "SuperH RISC engine" "Renesas SuperH Standard" 
+"fftest" "C:\user\Prj_Renesas\ff_sh7262" "C:\user\Prj_Renesas\ff_sh7262\fftest.hws" "SuperH RISC engine" "Renesas SuperH Standard" 
 [SHARED_WORKSPACE_CONTROL_STATUS]
 "" "" "" 
 "" "" "" 
 [PROJECTS]
-"fftest" "C:\user\Prj_Renesas\cq_sh7262_hew\fftest" "C:\user\Prj_Renesas\cq_sh7262_hew\fftest\fftest.hwp" 0 
+"fftest" "C:\user\Prj_Renesas\ff_sh7262\fftest" "C:\user\Prj_Renesas\ff_sh7262\fftest\fftest.hwp" 0 
 [INFORMATION]
 "ワークスペース情報がありません" 
 [SCRAP]
 [PROJECT_DEPENDENCY]
 [WORKSPACE_PROPERTIES]
 [HELP_FILES]
-"c:\program files\renesas\hew\tools\renesas\sh\9_3_2\hew\stdlib.chm" "C/C++ Standard Library Help" 1 
+"c:\program files\renesas\hew\tools\renesas\sh\9_3_2\hew\stdlib.chm" "C/C++ Standard Library Help" 0 
+"c:\program files\renesas\hew\tools\renesas\sh\9_4_1\hew\stdlib.chm" "C/C++ Standard Library Help" 1 
 [GENERAL_DATA_PROJECT]
 [USERMENUTOOLS]
 [CUSTOMPLACEHOLDERS]

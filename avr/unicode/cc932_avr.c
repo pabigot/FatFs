@@ -1687,7 +1687,7 @@ const prog_uint16_t uni2sjis[] = {
 
 
 WCHAR ff_convert (	/* Converted code, 0 means conversion error */
-	WCHAR	src,	/* Character code to be converted */
+	WCHAR	chr,	/* Character code to be converted */
 	UINT	dir		/* 0: Unicode to OEMCP, 1: OEMCP to Unicode */
 )
 {
@@ -1696,23 +1696,23 @@ WCHAR ff_convert (	/* Converted code, 0 means conversion error */
 	int i, n, li, hi;
 
 
-	if (src <= 0x80) {	/* ASCII */
-		c = src;
+	if (chr <= 0x80) {	/* ASCII */
+		c = chr;
 	} else {
 		if (dir) {		/* OEMCP to unicode (Incremental search)*/
 			p = &uni2sjis[1];
 			do {
 				c = pgm_read_word(p);
 				p += 2;
-			} while (c && c != src);
+			} while (c && c != chr);
 			c = pgm_read_word(p - 3);
 		} else {		/* Unicode to OEMCP */
-			li = 0; hi = sizeof(uni2sjis) / 4 - 1;
+			li = 0; hi = sizeof uni2sjis / 4 - 1;
 			for (n = 16; n; n--) {
 				i = li + (hi - li) / 2;
 				d = pgm_read_word(&uni2sjis[i * 2]);
-				if (src == d) break;
-				if (src > d)
+				if (chr == d) break;
+				if (chr > d)
 					li = i;
 				else
 					hi = i;

@@ -85,7 +85,9 @@ static void init_port (void)
 #define	ACMD23	(0x80+23)	/* SET_WR_BLK_ERASE_COUNT (SDC) */
 #define CMD24	(24)		/* WRITE_BLOCK */
 #define CMD25	(25)		/* WRITE_MULTIPLE_BLOCK */
-#define CMD41	(41)		/* SEND_OP_COND (ACMD) */
+#define CMD32	(32)		/* ERASE_ER_BLK_START */
+#define CMD33	(33)		/* ERASE_ER_BLK_END */
+#define CMD38	(38)		/* ERASE */
 #define CMD55	(55)		/* APP_CMD */
 #define CMD58	(58)		/* READ_OCR */
 
@@ -523,10 +525,7 @@ DRESULT disk_ioctl (
 	res = RES_ERROR;
 	switch (ctrl) {
 		case CTRL_SYNC :		/* Make sure that no pending write process */
-			if (select()) {
-				deselect();
-				res = RES_OK;
-			}
+			if (select()) res = RES_OK;
 			break;
 
 		case GET_SECTOR_COUNT :	/* Get number of sectors on the disk (DWORD) */

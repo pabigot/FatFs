@@ -240,7 +240,7 @@ int load_wav (
 			IEN(CMT3, CMI3) = 1;	/* Enable CMT3 compare match irq */
 		}
 		if (scif_test()) {		/* Exit if a user command arrived */
-			k = scif_get();
+			k = scif_getc();
 			break;
 		}
 		t = (f_tell(fp) - offw - fcb.ct) / fsmp / wsmp;	/* Refresh time display every 1 sec */
