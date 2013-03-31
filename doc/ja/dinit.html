@@ -16,7 +16,7 @@
 <p>ディスク・ドライブを初期化します。</p>
 <pre>
 DSTATUS disk_initialize (
-  BYTE <em>Drive</em>      <span class="c">/* 物理ドライブ番号 */</span>
+  BYTE <span class="arg">pdrv</span>      <span class="c">/* [IN] 物理ドライブ番号 */</span>
 );
 </pre>
 </div>
@@ -24,8 +24,8 @@ DSTATUS disk_initialize (
 <div class="para arg">
 <h4>引数</h4>
 <dl class="par">
-<dt>Drive</dt>
-<dd>初期化する物理ドライブ番号(0-9)を指定します。</dd>
+<dt>pdrv</dt>
+<dd>初期化する物理ドライブ番号(0-9)が指定されます。</dd>
 </dl>
 </div>
 
