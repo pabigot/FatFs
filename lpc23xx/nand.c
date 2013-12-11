@@ -1,9 +1,9 @@
 /*--------------------------------------------------------------------------*/
-/* NAND-FTL driver (via GPIO)                                 (C)ChaN, 2012 */
+/* NAND-FTL driver (via GPIO)                                 (C)ChaN, 2013 */
 /*--------------------------------------------------------------------------*/
 /* This program is opened under license policy of following trems.
 /
-/  Copyright (C) 2012, ChaN, all right reserved.
+/  Copyright (C) 2013, ChaN, all right reserved.
 /
 / * This program is a free software and there is NO WARRANTY.
 / * No restriction on use. You can use, modify and redistribute it for
@@ -689,7 +689,7 @@ DSTATUS NAND_status (void)
 DRESULT NAND_read (
 	BYTE* buff,		/* Data read buffer */
 	DWORD lba,		/* Start sector number (LBA) */
-	BYTE sc			/* Number of sectors to read */
+	UINT sc			/* Number of sectors to read */
 )
 {
 	WORD lb;
@@ -742,7 +742,7 @@ DRESULT NAND_read (
 DRESULT NAND_write (
 	const BYTE* buff,	/* Data to be written */
 	DWORD lba,			/* Start sector number (LBA) */
-	BYTE sc				/* Number of sectors to write */
+	UINT sc				/* Number of sectors to write */
 )
 {
 	WORD lb;

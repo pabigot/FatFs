@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------
-/  Low level disk interface modlue include file         (C)ChaN, 2010
+/  Low level disk interface modlue include file         (C)ChaN, 2013
 /-----------------------------------------------------------------------*/
 
 #ifndef DEF_DISKIO
@@ -29,9 +29,9 @@ typedef enum {
 
 DSTATUS disk_initialize (BYTE pdrv);
 DSTATUS disk_status (BYTE pdrv);
-DRESULT disk_read (BYTE pdrv, BYTE* buff, DWORD sector, BYTE count);
+DRESULT disk_read (BYTE pdrv, BYTE* buff, DWORD sector, UINT count);
 #if	_USE_WRITE
-DRESULT disk_write (BYTE pdrv, const BYTE* buff, DWORD sector, BYTE count);
+DRESULT disk_write (BYTE pdrv, const BYTE* buff, DWORD sector, UINT count);
 #endif
 #if	_USE_IOCTL
 DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff);
@@ -51,7 +51,7 @@ void disk_timerproc (void);
 /* Generic ioctl command (defined for FatFs) */
 #define CTRL_SYNC			0	/* Flush disk cache (for write functions) */
 #define GET_SECTOR_COUNT	1	/* Get media size (for only f_mkfs()) */
-#define GET_SECTOR_SIZE		2	/* Get sector size (for multiple sector size (_MAX_SS >= 1024)) */
+//#define GET_SECTOR_SIZE		2	/* Get sector size (for multiple sector size (_MAX_SS >= 1024)) */
 #define GET_BLOCK_SIZE		3	/* Get erase block size (for only f_mkfs()) */
 #define CTRL_ERASE_SECTOR	4	/* Force erased a sector group (for only _USE_ERASE) */
 
@@ -68,12 +68,12 @@ void disk_timerproc (void);
 #define MMC_GET_SDSTAT		14	/* Get SD status */
 
 /* ATA/CF specific ioctl command */
-#define ATA_GET_REV			20	/* Get F/W revision */
-#define ATA_GET_MODEL		21	/* Get model name */
-#define ATA_GET_SN			22	/* Get serial number */
+//#define ATA_GET_REV			20	/* Get F/W revision */
+//#define ATA_GET_MODEL		21	/* Get model name */
+//#define ATA_GET_SN			22	/* Get serial number */
 
 /* NAND specific ioctl command */
-#define NAND_FORMAT			30	/* Create physical format */
+//#define NAND_FORMAT			30	/* Create physical format */
 
 
 

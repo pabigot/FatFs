@@ -57,7 +57,7 @@ LONGLONG AccSize;			/* Work register for scan_files() */
 WORD AccFiles, AccDirs;
 FILINFO Finfo;
 #if _USE_LFN
-TCHAR Lfname[256];
+TCHAR LFName[256];
 #endif
 
 TCHAR Line[300];			/* Console input/output buffer */
@@ -198,15 +198,15 @@ FRESULT scan_files (
 	TCHAR* path		/* Pointer to the path name working buffer */
 )
 {
-	DIR dirs;
+	DIR dir;
 	FRESULT res;
 	int i;
 	TCHAR *fn;
 
 
-	if ((res = f_opendir(&dirs, path)) == FR_OK) {
+	if ((res = f_opendir(&dir, path)) == FR_OK) {
 		i = _tcslen(path);
-		while (((res = f_readdir(&dirs, &Finfo)) == FR_OK) && Finfo.fname[0]) {
+		while (((res = f_readdir(&dir, &Finfo)) == FR_OK) && Finfo.fname[0]) {
 			if (_FS_RPATH && Finfo.fname[0] == '.') continue;
 #if _USE_LFN
 			fn = *Finfo.lfname ? Finfo.lfname : Finfo.fname;
@@ -225,6 +225,7 @@ FRESULT scan_files (
 				AccSize += Finfo.fsize;
 			}
 		}
+		f_closedir(&dir);
 	}
 
 	return res;
@@ -249,7 +250,7 @@ void put_rc (FRESULT rc)
 
 
 
-const char HelpStr[] = {
+const TCHAR HelpStr[] = {
 		_T("[Disk contorls]\n")
 		_T(" di <pd#> - Initialize disk\n")
 		_T(" dd [<pd#> <sect>] - Dump a secrtor\n")
@@ -261,7 +262,7 @@ const char HelpStr[] = {
 		_T(" bw <pd#> <sect> <count> - Write working buffer into disk\n")
 		_T(" bf <val> - Fill working buffer\n")
 		_T("[File system contorls]\n")
-		_T(" fi <ld#> - Force initialized the volume\n")
+		_T(" fi <ld#> [<mount>] - Force initialized the volume\n")
 		_T(" fs [<path>] - Show volume status\n")
 		_T(" fl [<path>] - Show a directory\n")
 		_T(" fo <mode> <file> - Open a file\n")
@@ -365,8 +366,8 @@ int _tmain (int argc, TCHAR *argv[])
 #endif
 
 #if _USE_LFN
-	Finfo.lfname = Lfname;
-	Finfo.lfsize = sizeof Lfname;
+	Finfo.lfname = LFName;
+	Finfo.lfsize = sizeof LFName;
 #endif
 
 	for (;;) {
@@ -469,7 +470,7 @@ int _tmain (int argc, TCHAR *argv[])
 				_tprintf(_T("rc=%u\n"), disk_read((BYTE)p1, Buff, p2, (BYTE)p3));
 				break;
 
-			case 'w' :	/* bw <sect> <count> - Write Buff[] into disk */
+			case 'w' :	/* bw <pd#> <sect> <count> - Write Buff[] into disk */
 				if (!xatoi(&ptr, &p1) || !xatoi(&ptr, &p2) || !xatoi(&ptr, &p3)) break;
 				_tprintf(_T("rc=%u\n"), disk_write((BYTE)p1, Buff, p2, (BYTE)p3));
 				break;
@@ -485,9 +486,11 @@ int _tmain (int argc, TCHAR *argv[])
 		case 'f' :	/* FatFs test command */
 			switch (*ptr++) {	/* Branch by secondary command character */
 
-			case 'i' :	/* fi <ld#> - Force initialized the logical drive */
-				if (!xatoi(&ptr, &p1)) break;
-				put_rc(f_mount((BYTE)p1, &FatFs[p1]));
+			case 'i' :	/* fi <ld#> [<mount>] - Force initialized the logical drive */
+				if (!xatoi(&ptr, &p1) || (BYTE)p1 > 9) break;
+				if (!xatoi(&ptr, &p2)) p2 = 0;
+				_stprintf(ptr, "%d:", p1);
+				put_rc(f_mount(&FatFs[p1], ptr, (BYTE)p2));
 				break;
 
 			case 's' :	/* fs [<path>] - Show logical drive status */
@@ -495,6 +498,10 @@ int _tmain (int argc, TCHAR *argv[])
 				ptr2 = ptr;
 #if _FS_READONLY
 				res = f_opendir(&dir, ptr);
+				if (res) {
+					fs = dir.fs;
+					f_closedir(&dir);
+				}
 #else
 				res = f_getfree(ptr, (DWORD*)&p1, &fs);
 #endif
@@ -527,10 +534,10 @@ int _tmain (int argc, TCHAR *argv[])
 #endif
 				p2 /= 2;
 				p3 /= 2;
-				_tprintf(_T("\r%u files, %I64u bytes.\n%u folders.\n%lu KB total disk space.\n"),
+				_tprintf(_T("\r%u files, %I64u bytes.\n%u folders.\n%lu KiB total disk space.\n"),
 						AccFiles, AccSize, AccDirs, p2);
 #if !FS_READONLY
-				_tprintf(_T("%lu KB available.\n"), p3);
+				_tprintf(_T("%lu KiB available.\n"), p3);
 #endif
 				break;
 
@@ -557,10 +564,11 @@ int _tmain (int argc, TCHAR *argv[])
 							(Finfo.ftime >> 11), (Finfo.ftime >> 5) & 63, Finfo.fsize, Finfo.fname);
 #if _USE_LFN
 					for (p2 = _tcslen(Finfo.fname); p2 < 12; p2++) _tprintf(_T(" "));
-					_tprintf(_T("  %s"), Lfname);
+					_tprintf(_T("  %s"), LFName);
 #endif
 					_tprintf(_T("\n"));
 				}
+				f_closedir(&dir);
 				_tprintf(_T("%4u File(s),%11I64u bytes total\n%4u Dir(s)"), s1, AccSize, s2);
 				if (f_getfree(ptr, (DWORD*)&p1, &fs) == FR_OK)
 					_tprintf(_T(",%12I64u bytes free\n"), (LONGLONG)p1 * fs->csize * 512);
@@ -636,12 +644,13 @@ int _tmain (int argc, TCHAR *argv[])
 				while (*ptr == ' ') ptr++;
 				put_rc(f_chdir(ptr));
 				break;
-
+#if _VOLUMES >= 2
 			case 'j' :	/* fj <ld#> - Change current drive */
-				if (xatoi(&ptr, &p1)) {
-					put_rc(f_chdrive((BYTE)p1));
-				}
+				if (!xatoi(&ptr, &p1) || (UINT)p1 > 9) break;
+				_stprintf(ptr, "%d:", (UINT)p1);
+				put_rc(f_chdrive(ptr));
 				break;
+#endif
 #if _FS_RPATH >= 2
 			case 'q' :	/* fq - Show current dir path */
 				res = f_getcwd(Line, 256);
@@ -652,8 +661,8 @@ int _tmain (int argc, TCHAR *argv[])
 					_tprintf(_T("\n"));
 				}
 				break;
-#endif	/* _FS_RPATH >= 2 */
-#endif	/* _FS_RPATH >= 1 */
+#endif
+#endif
 #if !_FS_READONLY
 			case 'w' :	/* fw <len> <val> - write file */
 				if (!xatoi(&ptr, &p1) || !xatoi(&ptr, &p2)) break;
@@ -753,11 +762,12 @@ int _tmain (int argc, TCHAR *argv[])
 #endif	/* USE_LABEL */
 #if _USE_MKFS
 			case 'm' :	/* fm <ld#> <partition rule> <cluster size> - Create file system */
-				if (!xatoi(&ptr, &p1) || !xatoi(&ptr, &p2) || !xatoi(&ptr, &p3)) break;
+				if (!xatoi(&ptr, &p1) || (UINT)p1 > 9 || !xatoi(&ptr, &p2) || !xatoi(&ptr, &p3)) break;
 				_tprintf(_T("The volume will be formatted. Are you sure? (Y/n)="));
 				_fgetts(ptr, 256, stdin);
 				if (*ptr != 'Y') break;
-				put_rc(f_mkfs((BYTE)p1, (BYTE)p2, (UINT)p3));
+				_stprintf(ptr, _T("%u:"), (UINT)p1);
+				put_rc(f_mkfs(ptr, (BYTE)p2, (UINT)p3));
 				break;
 #if _MULTI_PARTITION
 			case 'p' :	/* fp <pd#> <size1> <size2> <size3> <size4> - Create partition table */

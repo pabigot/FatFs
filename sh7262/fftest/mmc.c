@@ -2,7 +2,7 @@
 /* MMCv3/SDv1/SDv2 (SPI mode) control module                              */
 /*------------------------------------------------------------------------*/
 /*
-/  Copyright (C) 2010, ChaN, all right reserved.
+/  Copyright (C) 2013, ChaN, all right reserved.
 /
 / * This software is a free software and there is NO WARRANTY.
 / * No restriction on use. You can use, modify and redistribute it for
@@ -299,9 +299,11 @@ BYTE send_cmd (		/* Return value: R1 resp (bit7==1:Failed to send) */
 		if (res > 1) return res;
 	}
 
-	/* Select card */
-	deselect();
-	if (!select()) return 0xFF;
+	/* Select the card and wait for ready except to stop multiple block read */
+	if (cmd != CMD12) {
+		deselect();
+		if (!select()) return 0xFF;
+	}
 
 	/* Send command packet */
 	xchg_spi(0x40 | cmd);				/* Start + command index */
@@ -413,7 +415,7 @@ DRESULT disk_read (
 	BYTE pdrv,		/* Physical drive number (0) */
 	BYTE *buff,		/* Pointer to the data buffer to store read data */
 	DWORD sector,	/* Start sector number (LBA) */
-	BYTE count		/* Number of sectors to read (1..128) */
+	UINT count		/* Number of sectors to read (1..128) */
 )
 {
 	if (pdrv || !count) return RES_PARERR;		/* Check parameter */
@@ -451,7 +453,7 @@ DRESULT disk_write (
 	BYTE pdrv,			/* Physical drive number (0) */
 	const BYTE *buff,	/* Ponter to the data to write */
 	DWORD sector,		/* Start sector number (LBA) */
-	BYTE count			/* Number of sectors to write (1..128) */
+	UINT count			/* Number of sectors to write (1..128) */
 )
 {
 	if (pdrv || !count) return RES_PARERR;		/* Check parameter */
@@ -523,11 +525,6 @@ DRESULT disk_ioctl (
 			}
 			res = RES_OK;
 		}
-		break;
-
-	case GET_SECTOR_SIZE :	/* Get sector size in unit of byte (WORD) */
-		*(WORD*)buff = 512;
-		res = RES_OK;
 		break;
 
 	case GET_BLOCK_SIZE :	/* Get erase block size in unit of sector (DWORD) */

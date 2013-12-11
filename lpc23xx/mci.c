@@ -1,9 +1,9 @@
 /*-----------------------------------------------------------------------*/
-/* MMCv3/SDv1/SDv2 (in native mode via MCI) control module (C)ChaN, 2010 */
+/* MMCv3/SDv1/SDv2 (in native mode via MCI) control module (C)ChaN, 2013 */
 /*-----------------------------------------------------------------------*/
 /* This program is opened under license policy of following trems.
 /
-/  Copyright (C) 2010, ChaN, all right reserved.
+/  Copyright (C) 2013, ChaN, all right reserved.
 /
 / * This program is a free software and there is NO WARRANTY.
 / * No restriction on use. You can use, modify and redistribute it for
@@ -565,7 +565,7 @@ DSTATUS MCI_status (void)
 DRESULT MCI_read (
 	BYTE *buff,			/* Pointer to the data buffer to store read data */
 	DWORD sector,		/* Start sector number (LBA) */
-	BYTE count			/* Sector count (1..127) */
+	UINT count			/* Sector count (1..127) */
 )
 {
 	DWORD resp;
@@ -612,7 +612,7 @@ DRESULT MCI_read (
 DRESULT MCI_write (
 	const BYTE *buff,	/* Pointer to the data to be written */
 	DWORD sector,		/* Start sector number (LBA) */
-	BYTE count			/* Sector count (1..127) */
+	UINT count			/* Sector count (1..127) */
 )
 {
 	DWORD resp;

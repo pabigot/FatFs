@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------
-/  Low level disk interface modlue include file   (C)ChaN, 2012
+/  Low level disk interface modlue include file   (C)ChaN, 2013
 /-----------------------------------------------------------------------*/
 
 #ifndef _DISKIO_DEFINED
@@ -34,9 +34,9 @@ typedef enum {
 
 DSTATUS disk_initialize (BYTE pdrv);
 DSTATUS disk_status (BYTE pdrv);
-DRESULT disk_read (BYTE pdrv, BYTE* buff, DWORD sector, BYTE count);
+DRESULT disk_read (BYTE pdrv, BYTE* buff, DWORD sector, UINT count);
 #if	_USE_WRITE
-DRESULT disk_write (BYTE pdrv, const BYTE* buff, DWORD sector, BYTE count);
+DRESULT disk_write (BYTE pdrv, const BYTE* buff, DWORD sector, UINT count);
 #endif
 #if	_USE_IOCTL
 DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff);
@@ -54,15 +54,15 @@ DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff);
 /* Generic command (used by FatFs) */
 #define CTRL_SYNC			0	/* Flush disk cache (for write functions) */
 #define GET_SECTOR_COUNT	1	/* Get media size (for only f_mkfs()) */
-#define GET_SECTOR_SIZE		2	/* Get sector size (for multiple sector size (_MAX_SS >= 1024)) */
+//#define GET_SECTOR_SIZE		2	/* Get sector size (for multiple sector size (_MAX_SS >= 1024)) */
 #define GET_BLOCK_SIZE		3	/* Get erase block size (for only f_mkfs()) */
 #define CTRL_ERASE_SECTOR	4	/* Force erased a block of sectors (for only _USE_ERASE) */
 
 /* Generic command (not used by FatFs) */
-#define CTRL_POWER			5	/* Get/Set power status */
-#define CTRL_LOCK			6	/* Lock/Unlock media removal */
-#define CTRL_EJECT			7	/* Eject media */
-#define CTRL_FORMAT			8	/* Create physical format on the media */
+//#define CTRL_POWER			5	/* Get/Set power status */
+//#define CTRL_LOCK			6	/* Lock/Unlock media removal */
+//#define CTRL_EJECT			7	/* Eject media */
+//#define CTRL_FORMAT			8	/* Create physical format on the media */
 
 /* MMC/SDC specific ioctl command */
 #define MMC_GET_TYPE		10	/* Get card type */
@@ -72,10 +72,12 @@ DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff);
 #define MMC_GET_SDSTAT		14	/* Get SD status */
 
 /* ATA/CF specific ioctl command */
-#define ATA_GET_REV			20	/* Get F/W revision */
-#define ATA_GET_MODEL		21	/* Get model name */
-#define ATA_GET_SN			22	/* Get serial number */
+//#define ATA_GET_REV			20	/* Get F/W revision */
+//#define ATA_GET_MODEL		21	/* Get model name */
+//#define ATA_GET_SN			22	/* Get serial number */
 
+/* NAND specific ioctl command */
+//#define NAND_FORMAT			30	/* Create physical format */
 
 /* MMC card type flags (MMC_GET_TYPE) */
 #define CT_MMC		0x01		/* MMC ver 3 */

@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------*/
-/* MMC3/SD1/SD2 (in SPI mode) control module  (C)ChaN, 2009              */
+/* MMC3/SD1/SD2 (in SPI mode) control module  (C)ChaN, 2013              */
 /*-----------------------------------------------------------------------*/
 
 
@@ -293,9 +293,11 @@ BYTE send_cmd (
 		if (res > 1) return res;
 	}
 
-	/* Select the card and wait for ready */
-	deselect();
-	if (!select()) return 0xFF;
+	/* Select the card and wait for ready except to stop multiple block read */
+	if (cmd != CMD12) {
+		deselect();
+		if (!select()) return 0xFF;
+	}
 
 	/* Send command packet */
 	xmit_spi(0x40 | cmd);				/* Start + Command */
@@ -405,7 +407,7 @@ DRESULT disk_read (
 	BYTE pdrv,			/* Physical drive nmuber (0) */
 	BYTE *buff,			/* Pointer to the data buffer to store read data */
 	DWORD sector,		/* Start sector number (LBA) */
-	BYTE count			/* Sector count (1..255) */
+	UINT count			/* Sector count (1..128) */
 )
 {
 	if (pdrv || !count) return RES_PARERR;
@@ -443,7 +445,7 @@ DRESULT disk_write (
 	BYTE pdrv,			/* Physical drive nmuber (0) */
 	const BYTE *buff,	/* Pointer to the data to be written */
 	DWORD sector,		/* Start sector number (LBA) */
-	BYTE count			/* Sector count (1..255) */
+	UINT count			/* Sector count (1..128) */
 )
 {
 	if (pdrv || !count) return RES_PARERR;
@@ -513,11 +515,6 @@ DRESULT disk_ioctl (
 			}
 			res = RES_OK;
 		}
-		break;
-
-	case GET_SECTOR_SIZE :	/* Get sectors on the disk (WORD) */
-		*(WORD*)buff = 512;
-		res = RES_OK;
 		break;
 
 	case GET_BLOCK_SIZE :	/* Get erase block size in unit of sectors (DWORD) */

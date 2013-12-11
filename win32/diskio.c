@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------*/
-/* Low level disk control module for Win32              (C)ChaN, 2012    */
+/* Low level disk control module for Win32              (C)ChaN, 2013    */
 /*-----------------------------------------------------------------------*/
 
 #include <windows.h>
@@ -227,7 +227,7 @@ DRESULT disk_read (
 	BYTE pdrv,			/* Physical drive nmuber (0) */
 	BYTE *buff,			/* Pointer to the data buffer to store read data */
 	DWORD sector,		/* Start sector number (LBA) */
-	BYTE count			/* Sector count (1..255) */
+	UINT count			/* Number of sectors to read */
 )
 {
 	DWORD nc, rnc;
@@ -274,7 +274,7 @@ DRESULT disk_write (
 	BYTE pdrv,			/* Physical drive nmuber (0) */
 	const BYTE *buff,	/* Pointer to the data to be written */
 	DWORD sector,		/* Start sector number (LBA) */
-	BYTE count			/* Sector count (1..255) */
+	UINT count			/* Number of sectors to write */
 )
 {
 	DWORD nc, rnc;

@@ -2,10 +2,10 @@
 
 MEMORY
 {
-  ROM (rx) : ORIGIN = 0x00000000, LENGTH = (1024k)	/* Flash: 1M */
-  RAM (w) : ORIGIN = 0x1FFF0000, LENGTH = (128k)	/* Both SRAM banks: 128k */
-  RAM0 (w) : ORIGIN = 0x1FFF0000, LENGTH = (64k)	/* SRAM bank 0: 64k */
-  RAM1 (w) : ORIGIN = 0x20000000, LENGTH = (64k)	/* SRAM bank 1: 64k */
+  ROM  : org = 0x00000000, len = (1024K)  /* Flash: 1M */
+  RAM  : org = 0x1FFF0000, len = (128K)   /* Both SRAM banks: 128k */
+  RAM0 : org = 0x1FFF0000, len = (64K)    /* SRAM bank 0: 64k */
+  RAM1 : org = 0x20000000, len = (64K)    /* SRAM bank 1: 64k */
 }
 
 

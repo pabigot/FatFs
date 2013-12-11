@@ -1,11 +1,11 @@
 /* LPC2388 Memory Definitions */
 MEMORY
 {
-  ROM (rx) : ORIGIN = 0x00000000, LENGTH = (512k-8k)	/* Flash: 512k - boot code */
-  RAM (w) : ORIGIN = 0x40000000, LENGTH = (64k-32)	/* SRAM: 64k - IAP work */
-  URAM (w) : ORIGIN = 0x7FD00000, LENGTH = (16k)	/* USB RAM: 16k */
-  ERAM (w) : ORIGIN = 0x7FE00000, LENGTH = (16k)	/* Ethernet RAM: 16k */
-  BRAM (w) : ORIGIN = 0xE0084000, LENGTH = (2k)		/* Battery RAM: 2k */
+  ROM  : org = 0x00000000, len = (512K-8K)  /* Flash: 512k - boot code */
+  RAM  : org = 0x40000000, len = (64K-32)   /* SRAM: 64k - IAP work */
+  URAM : org = 0x7FD00000, len = (16K)      /* USB RAM: 16k */
+  ERAM : org = 0x7FE00000, len = (16K)      /* Ethernet RAM: 16k */
+  BRAM : org = 0xE0084000, len = (2K)       /* Battery RAM: 2k */
 }
 
 

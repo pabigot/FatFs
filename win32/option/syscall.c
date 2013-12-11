@@ -3,7 +3,7 @@
 /* (C)ChaN, 2012                                                          */
 /*------------------------------------------------------------------------*/
 
-#include <stdlib.h>		/* ANSI memory controls */
+#include <stdlib.h>		/* ANSI process controls */
 #include <malloc.h>		/* ANSI memory controls */
 
 #include "../ff.h"
@@ -13,9 +13,9 @@
 /*------------------------------------------------------------------------*/
 /* Create a Synchronization Object
 /*------------------------------------------------------------------------*/
-/* This function is called in f_mount function to create a new
-/  synchronization object, such as semaphore and mutex. When a FALSE is
-/  returned, the f_mount function fails with FR_INT_ERR.
+/* This function is called in f_mount() function to create a new
+/  synchronization object, such as semaphore and mutex. When a 0 is returned,
+/  the f_mount() function fails with FR_INT_ERR.
 */
 
 int ff_cre_syncobj (	/* 1:Function succeeded, 0:Could not create due to any error */
@@ -49,9 +49,9 @@ int ff_cre_syncobj (	/* 1:Function succeeded, 0:Could not create due to any erro
 /*------------------------------------------------------------------------*/
 /* Delete a Synchronization Object                                        */
 /*------------------------------------------------------------------------*/
-/* This function is called in f_mount function to delete a synchronization
-/  object that created with ff_cre_syncobj function. When a FALSE is
-/  returned, the f_mount function fails with FR_INT_ERR.
+/* This function is called in f_mount() function to delete a synchronization
+/  object that created with ff_cre_syncobj function. When a 0 is returned,
+/  the f_mount() function fails with FR_INT_ERR.
 */
 
 int ff_del_syncobj (	/* 1:Function succeeded, 0:Could not delete due to any error */
@@ -79,10 +79,10 @@ int ff_del_syncobj (	/* 1:Function succeeded, 0:Could not delete due to any erro
 /* Request Grant to Access the Volume                                     */
 /*------------------------------------------------------------------------*/
 /* This function is called on entering file functions to lock the volume.
-/  When a FALSE is returned, the file function fails with FR_TIMEOUT.
+/  When a 0 is returned, the file function fails with FR_TIMEOUT.
 */
 
-int ff_req_grant (	/* TRUE:Got a grant to access the volume, FALSE:Could not get a grant */
+int ff_req_grant (	/* 1:Got a grant to access the volume, 0:Could not get a grant */
 	_SYNC_t sobj	/* Sync object to wait */
 )
 {
@@ -134,10 +134,10 @@ void ff_rel_grant (
 */
 
 void* ff_memalloc (	/* Returns pointer to the allocated memory block */
-	UINT size		/* Number of bytes to allocate */
+	UINT msize		/* Number of bytes to allocate */
 )
 {
-	return malloc(size);
+	return malloc(msize);	/* Allocate a memory block with POSIX API */
 }
 
 

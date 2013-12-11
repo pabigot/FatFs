@@ -105,7 +105,7 @@ BYTE xchg_spi (BYTE dat)
 }
 
 /* Alternative macro to transfer data fast */
-#define XMIT_SPI_MULTI(src,cnt)	{UINT c=cnt/2; const BYTE *p=src; do {SPI1BUF=*p++; while(!_SPIRBF); SPI1BUF=*p++; while(!_SPIRBF);} while(--c);}
+#define XMIT_SPI_MULTI(src,cnt) {UINT c=cnt/2; const BYTE *p=src; do {SPI1BUF=*p++; while(!_SPIRBF); SPI1BUF; SPI1BUF=*p++; while(!_SPIRBF); SPI1BUF; } while(--c);}
 #define RCVR_SPI_MULTI(dst,cnt)	{UINT c=cnt/2; BYTE *p=dst; do {SPI1BUF=0xFF; while(!_SPIRBF); *p++=SPI1BUF; SPI1BUF=0xFF; while(!_SPIRBF); *p++=SPI1BUF; } while(--c);}
 
 
@@ -239,9 +239,11 @@ BYTE send_cmd (
 		if (res > 1) return res;
 	}
 
-	/* Select the card and wait for ready */
-	deselect();
-	if (!select()) return 0xFF;
+	/* Select the card and wait for ready except to stop multiple block read */
+	if (cmd != CMD12) {
+		deselect();
+		if (!select()) return 0xFF;
+	}
 
 	/* Send command packet */
 	xchg_spi(0x40 | cmd);			/* Start + Command index */
@@ -351,7 +353,7 @@ DRESULT disk_read (
 	BYTE pdrv,		/* Physical drive nmuber (0) */
 	BYTE *buff,		/* Pointer to the data buffer to store read data */
 	DWORD sector,	/* Start sector number (LBA) */
-	BYTE count		/* Sector count (1..255) */
+	UINT count		/* Sector count (1..128) */
 )
 {
 	if (pdrv || !count) return RES_PARERR;
@@ -389,7 +391,7 @@ DRESULT disk_write (
 	BYTE pdrv,				/* Physical drive nmuber (0) */
 	const BYTE *buff,		/* Pointer to the data to be written */
 	DWORD sector,			/* Start sector number (LBA) */
-	BYTE count				/* Sector count (1..255) */
+	UINT count				/* Sector count (1..128) */
 )
 {
 	if (pdrv || !count) return RES_PARERR;

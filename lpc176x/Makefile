@@ -12,7 +12,7 @@ VPATH   =
 OPTIMIZE = s
 
 ### C Standard level (c89, gnu89, c99 or gnu99)
-CSTD = c89
+CSTD = gnu89
 
 ### Processor type and Thumb(-2) mode for CSRC/ASRC files (YES or NO)
 CPU   = cortex-m3

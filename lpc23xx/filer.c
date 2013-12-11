@@ -1,5 +1,5 @@
 /*----------------------------------------------------------------------*/
-/* Text Filer                                          (C)ChaN, 2011    */
+/* Text Filer                                          (C)ChaN, 2013    */
 /*----------------------------------------------------------------------*/
 
 #include <stdarg.h>
@@ -498,7 +498,8 @@ void filer (
 					rfsh_list(fw->diritems, item, items, ofs);
 					continue;
 				}
-				f_chdrive(fw->str[0] - '0');
+				fw->str[1] = ':';
+				f_chdrive(fw->str);
 				break;	/* Re-load dir */
 			}
 			if (k == KEY_LEFT || k == KEY_BS) {	/* ^[S] [BS] Go to parent dir */

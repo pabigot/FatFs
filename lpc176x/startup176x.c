@@ -116,7 +116,6 @@ void (*const vector[])(void) __attribute__ ((section(".VECTOR"))) =
 {
 	(void(*)(void))(int)&mstk[STACK_SIZE],	/* Initial value of MSP */
 	Reset_Handler,
-	Reset_Handler,
 	NMI_Handler,
 	HardFault_Hander,
 	MemManage_Handler,

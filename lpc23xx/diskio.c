@@ -39,7 +39,7 @@ DRESULT disk_read (
 	BYTE drv,
 	BYTE* buff,
 	DWORD lba,
-	BYTE count
+	UINT count
 )
 {
 	switch (drv) {
@@ -56,7 +56,7 @@ DRESULT disk_write (
 	BYTE drv,
 	const BYTE* buff,
 	DWORD lba,
-	BYTE count
+	UINT count
 )
 {
 	switch (drv) {

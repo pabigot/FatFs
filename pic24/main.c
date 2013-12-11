@@ -25,14 +25,14 @@ TCHAR Lfname[256];
 
 char Line[256];			/* Console input buffer */
 
-FATFS Fatfs[_VOLUMES];	/* File system object */
+FATFS FatFs;			/* File system object */
 FIL File[2];			/* File objects */
 BYTE Buff[4096];		/* Working buffer */
 
 
 volatile UINT Timer;	/* 1kHz increment timer */
 
-volatile BYTE rtcYear = 2013-1980, rtcMon = 1, rtcMday = 23, rtcHour, rtcMin, rtcSec;
+volatile BYTE rtcYear = 2013-1980, rtcMon = 7, rtcMday = 6, rtcHour, rtcMin, rtcSec;
 
 
 
@@ -172,7 +172,7 @@ FRESULT scan_files (
 
 
 static
-void IoInit ()
+void IoInit (void)
 {
 	/* Initialize GPIO ports */
 	AD1PCFG = 0x1FFF;
@@ -184,13 +184,13 @@ void IoInit ()
 	_CN16PUE = 1;
 
 	/* Attach UART1 module to I/O pads */
-	RPOR1 = 0x0003;		/* U1TX -- RP2 */
-	RPINR18 = 0x1F03;	/* U1RX -- RP3 */
+	RPOR1 = 0x0003;		/* U1TX --> RP2 */
+	RPINR18 = 0x1F03;	/* U1RX <-- RP3 */
 
 	/* Attach SPI1 module to I/O pads */
-	RPINR20 = 0x1F0C;	/* SDI1 -- RP12 */
-	RPOR6 = 0x0800;		/* SCK1OUT -- RP13 */
-	RPOR7 = 0x0007;		/* SDO1 -- RP14 */
+	RPINR20 = 0x1F0C;	/* SDI1 <-- RP12 */
+	RPOR6 = 0x0800;		/* SCK1OUT --> RP13 */
+	RPOR7 = 0x0007;		/* SDO1 --> RP14 */
 
 	/* Start Timer1 in interval time of 1ms */
 	PR1 = FCY / 8 / 1000;
@@ -226,9 +226,8 @@ int main (void)
 
 	IoInit();
 
-	xdev_in(uart_getc);	/* Join UART and console */
+	xdev_in(uart_getc);		/* Join UART and console */
 	xdev_out(uart_putc);
-
 	xputs("\nFatFs module test monitor for PIC24F\n");
 	xputs(_USE_LFN ? "LFN Enabled" : "LFN Disabled");
 	xprintf(", Code page: %u\n", _CODE_PAGE);
@@ -265,7 +264,7 @@ int main (void)
 				xprintf("rc=%d\n", disk_initialize((BYTE)p1));
 				break;
 
-			case 's' :	/* ds - Show disk status */
+			case 's' :	/* ds <pd#> - Show disk status */
 				if (!xatoi(&ptr, &p1)) break;
 				if (disk_ioctl((BYTE)p1, GET_SECTOR_COUNT, &p2) == RES_OK)
 					{ xprintf("Drive size: %lu sectors\n", p2); }
@@ -337,9 +336,9 @@ int main (void)
 		case 'f' :
 			switch (*ptr++) {
 
-			case 'i' :	/* fi <ld#> - Force initialized the logical drive */
-				if (!xatoi(&ptr, &p1)) break;
-				put_rc(f_mount((BYTE)p1, &Fatfs[p1]));
+			case 'i' :	/* fi [<mount>] - Force initialized the logical drive */
+				if (!xatoi(&ptr, &p2)) p2 = 0;
+				put_rc(f_mount(&FatFs, "", (BYTE)p2));
 				break;
 
 			case 's' :	/* fs [<path>] - Show logical drive status */
@@ -357,7 +356,7 @@ int main (void)
 				res = scan_files(ptr);
 				if (res) { put_rc(res); break; }
 				xprintf("\r%u files, %lu bytes.\n%u folders.\n"
-						"%lu KB total disk space.\n%lu KB available.\n",
+						"%lu KiB total disk space.\n%lu KiB available.\n",
 						AccFiles, AccSize, AccDirs,
 						(fs->n_fatent - 2) * (fs->csize / 2), p2 * (fs->csize / 2)
 				);
@@ -540,12 +539,6 @@ int main (void)
 				while (*ptr == ' ') ptr++;
 				put_rc(f_chdir(ptr));
 				break;
-
-			case 'j' :	/* fj <ld#> - Change current drive */
-				if (xatoi(&ptr, &p1)) {
-					put_rc(f_chdrive((BYTE)p1));
-				}
-				break;
 #if _FS_RPATH >= 2
 			case 'q' :	/* fq - Show current dir path */
 				res = f_getcwd(Line, sizeof Line);
@@ -560,9 +553,9 @@ int main (void)
 			case 'm' :	/* fm <partition rule> <sect/clust> - Create file system */
 				if (!xatoi(&ptr, &p2) || !xatoi(&ptr, &p3)) break;
 				xprintf("The memory card will be formatted. Are you sure? (Y/n)=", p1);
-				xgets(ptr, sizeof Line);
-				if (*ptr == 'Y')
-					put_rc(f_mkfs(0, (BYTE)p2, (WORD)p3));
+				xgets(Line, sizeof Line);
+				if (Line[0] == 'Y')
+					put_rc(f_mkfs("", (BYTE)p2, (WORD)p3));
 				break;
 #endif
 			}

@@ -2,7 +2,7 @@
 /  MMCv3/SDv1/SDv2 (in SPI mode) control module
 /-------------------------------------------------------------------------/
 /
-/  Copyright (C) 2010, ChaN, all right reserved.
+/  Copyright (C) 2013, ChaN, all right reserved.
 /
 / * This software is a free software and there is NO WARRANTY.
 / * No restriction on use. You can use, modify and redistribute it for
@@ -309,9 +309,11 @@ BYTE send_cmd (		/* Returns command response (bit7==1:Send failed)*/
 		if (res > 1) return res;
 	}
 
-	/* Select the card and wait for ready */
-	deselect();
-	if (!select()) return 0xFF;
+	/* Select the card and wait for ready except to stop multiple block read */
+	if (cmd != CMD12) {
+		deselect();
+		if (!select()) return 0xFF;
+	}
 
 	/* Send command packet */
 	xmit_spi(0x40 | cmd);				/* Start + Command index */
@@ -418,7 +420,7 @@ DRESULT disk_read (
 	BYTE drv,			/* Physical drive nmuber (0) */
 	BYTE *buff,			/* Pointer to the data buffer to store read data */
 	DWORD sector,		/* Start sector number (LBA) */
-	BYTE count			/* Sector count (1..255) */
+	UINT count			/* Sector count (1..128) */
 )
 {
 	if (drv || !count) return RES_PARERR;
@@ -456,7 +458,7 @@ DRESULT disk_write (
 	BYTE drv,			/* Physical drive nmuber (0) */
 	const BYTE *buff,	/* Pointer to the data to be written */
 	DWORD sector,		/* Start sector number (LBA) */
-	BYTE count			/* Sector count (1..255) */
+	UINT count			/* Sector count (1..128) */
 )
 {
 	if (drv || !count) return RES_PARERR;
@@ -510,88 +512,80 @@ DRESULT disk_ioctl (
 
 	res = RES_ERROR;
 	switch (ctrl) {
-		case CTRL_SYNC :		/* Make sure that no pending write process */
-			if (select()) {
-				deselect();
-				res = RES_OK;
-			}
-			break;
+	case CTRL_SYNC :		/* Make sure that no pending write process */
+		if (select()) res = RES_OK;
+		break;
 
-		case GET_SECTOR_COUNT :	/* Get number of sectors on the disk (DWORD) */
-			if ((send_cmd(CMD9, 0) == 0) && rcvr_datablock(csd, 16)) {
-				if ((csd[0] >> 6) == 1) {	/* SDC ver 2.00 */
-					cs = csd[9] + ((WORD)csd[8] << 8) + ((DWORD)(csd[7] & 63) << 16) + 1;
-					*(DWORD*)buff = cs << 10;
-				} else {					/* SDC ver 1.XX or MMC */
-					n = (csd[5] & 15) + ((csd[10] & 128) >> 7) + ((csd[9] & 3) << 1) + 2;
-					cs = (csd[8] >> 6) + ((WORD)csd[7] << 2) + ((WORD)(csd[6] & 3) << 10) + 1;
-					*(DWORD*)buff = cs << (n - 9);
-				}
-				res = RES_OK;
+	case GET_SECTOR_COUNT :	/* Get number of sectors on the disk (DWORD) */
+		if ((send_cmd(CMD9, 0) == 0) && rcvr_datablock(csd, 16)) {
+			if ((csd[0] >> 6) == 1) {	/* SDC ver 2.00 */
+				cs = csd[9] + ((WORD)csd[8] << 8) + ((DWORD)(csd[7] & 63) << 16) + 1;
+				*(DWORD*)buff = cs << 10;
+			} else {					/* SDC ver 1.XX or MMC */
+				n = (csd[5] & 15) + ((csd[10] & 128) >> 7) + ((csd[9] & 3) << 1) + 2;
+				cs = (csd[8] >> 6) + ((WORD)csd[7] << 2) + ((WORD)(csd[6] & 3) << 10) + 1;
+				*(DWORD*)buff = cs << (n - 9);
 			}
-			break;
-
-		case GET_SECTOR_SIZE :	/* Get R/W sector size (WORD) */
-			*(WORD*)buff = 512;
 			res = RES_OK;
-			break;
+		}
+		break;
 
-		case GET_BLOCK_SIZE :	/* Get erase block size in unit of sector (DWORD) */
-			if (CardType & CT_SD2) {			/* SDv2 */
-				if (send_cmd(ACMD13, 0) == 0) {		/* Read SD status */
-					rcvr_spi();
-					if (rcvr_datablock(csd, 16)) {				/* Read partial block */
-						for (n = 64 - 16; n; n--) rcvr_spi();	/* Purge trailing data */
-						*(DWORD*)buff = 16UL << (csd[10] >> 4);
-						res = RES_OK;
-					}
-				}
-			} else {					/* SDv1 or MMCv3 */
-				if ((send_cmd(CMD9, 0) == 0) && rcvr_datablock(csd, 16)) {	/* Read CSD */
-					if (CardType & CT_SD1) {	/* SDv1 */
-						*(DWORD*)buff = (((csd[10] & 63) << 1) + ((WORD)(csd[11] & 128) >> 7) + 1) << ((csd[13] >> 6) - 1);
-					} else {					/* MMC */
-						*(DWORD*)buff = ((WORD)((csd[10] & 124) >> 2) + 1) * (((csd[11] & 3) << 3) + ((csd[11] & 224) >> 5) + 1);
-					}
-					res = RES_OK;
-				}
-			}
-			break;
-
-		case MMC_GET_TYPE :		/* Get card type flags (1 byte) */
-			*ptr = CardType;
-			res = RES_OK;
-			break;
-
-		case MMC_GET_CSD :		/* Receive CSD as a data block (16 bytes) */
-			if (send_cmd(CMD9, 0) == 0		/* READ_CSD */
-				&& rcvr_datablock(ptr, 16))
-				res = RES_OK;
-			break;
-
-		case MMC_GET_CID :		/* Receive CID as a data block (16 bytes) */
-			if (send_cmd(CMD10, 0) == 0		/* READ_CID */
-				&& rcvr_datablock(ptr, 16))
-				res = RES_OK;
-			break;
-
-		case MMC_GET_OCR :		/* Receive OCR as an R3 resp (4 bytes) */
-			if (send_cmd(CMD58, 0) == 0) {	/* READ_OCR */
-				for (n = 4; n; n--) *ptr++ = rcvr_spi();
-				res = RES_OK;
-			}
-			break;
-
-		case MMC_GET_SDSTAT :	/* Receive SD statsu as a data block (64 bytes) */
-			if (send_cmd(ACMD13, 0) == 0) {	/* SD_STATUS */
+	case GET_BLOCK_SIZE :	/* Get erase block size in unit of sector (DWORD) */
+		if (CardType & CT_SD2) {			/* SDv2 */
+			if (send_cmd(ACMD13, 0) == 0) {		/* Read SD status */
 				rcvr_spi();
-				if (rcvr_datablock(ptr, 64))
+				if (rcvr_datablock(csd, 16)) {				/* Read partial block */
+					for (n = 64 - 16; n; n--) rcvr_spi();	/* Purge trailing data */
+					*(DWORD*)buff = 16UL << (csd[10] >> 4);
 					res = RES_OK;
+				}
 			}
-			break;
+		} else {					/* SDv1 or MMCv3 */
+			if ((send_cmd(CMD9, 0) == 0) && rcvr_datablock(csd, 16)) {	/* Read CSD */
+				if (CardType & CT_SD1) {	/* SDv1 */
+					*(DWORD*)buff = (((csd[10] & 63) << 1) + ((WORD)(csd[11] & 128) >> 7) + 1) << ((csd[13] >> 6) - 1);
+				} else {					/* MMC */
+					*(DWORD*)buff = ((WORD)((csd[10] & 124) >> 2) + 1) * (((csd[11] & 3) << 3) + ((csd[11] & 224) >> 5) + 1);
+				}
+				res = RES_OK;
+			}
+		}
+		break;
 
-		default:
-			res = RES_PARERR;
+	case MMC_GET_TYPE :		/* Get card type flags (1 byte) */
+		*ptr = CardType;
+		res = RES_OK;
+		break;
+
+	case MMC_GET_CSD :		/* Receive CSD as a data block (16 bytes) */
+		if (send_cmd(CMD9, 0) == 0		/* READ_CSD */
+			&& rcvr_datablock(ptr, 16))
+			res = RES_OK;
+		break;
+
+	case MMC_GET_CID :		/* Receive CID as a data block (16 bytes) */
+		if (send_cmd(CMD10, 0) == 0		/* READ_CID */
+			&& rcvr_datablock(ptr, 16))
+			res = RES_OK;
+		break;
+
+	case MMC_GET_OCR :		/* Receive OCR as an R3 resp (4 bytes) */
+		if (send_cmd(CMD58, 0) == 0) {	/* READ_OCR */
+			for (n = 4; n; n--) *ptr++ = rcvr_spi();
+			res = RES_OK;
+		}
+		break;
+
+	case MMC_GET_SDSTAT :	/* Receive SD statsu as a data block (64 bytes) */
+		if (send_cmd(ACMD13, 0) == 0) {	/* SD_STATUS */
+			rcvr_spi();
+			if (rcvr_datablock(ptr, 64))
+				res = RES_OK;
+		}
+		break;
+
+	default:
+		res = RES_PARERR;
 	}
 
 	deselect();

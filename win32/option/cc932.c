@@ -3724,7 +3724,7 @@ const WCHAR sjis2uni[] = {
 
 
 WCHAR ff_convert (	/* Converted code, 0 means conversion error */
-	WCHAR	src,	/* Character code to be converted */
+	WCHAR	chr,	/* Character code to be converted */
 	UINT	dir		/* 0: Unicode to OEMCP, 1: OEMCP to Unicode */
 )
 {
@@ -3733,22 +3733,22 @@ WCHAR ff_convert (	/* Converted code, 0 means conversion error */
 	int i, n, li, hi;
 
 
-	if (src <= 0x80) {	/* ASCII */
-		c = src;
+	if (chr <= 0x80) {	/* ASCII */
+		c = chr;
 	} else {
 #if !_TINY_TABLE
 		if (dir) {		/* OEMCP to unicode */
 			p = sjis2uni;
-			hi = sizeof(sjis2uni) / 4 - 1;
+			hi = sizeof sjis2uni / 4 - 1;
 		} else {		/* Unicode to OEMCP */
 			p = uni2sjis;
-			hi = sizeof(uni2sjis) / 4 - 1;
+			hi = sizeof uni2sjis / 4 - 1;
 		}
 		li = 0;
 		for (n = 16; n; n--) {
 			i = li + (hi - li) / 2;
-			if (src == p[i * 2]) break;
-			if (src > p[i * 2])
+			if (chr == p[i * 2]) break;
+			if (chr > p[i * 2])
 				li = i;
 			else
 				hi = i;
@@ -3760,15 +3760,15 @@ WCHAR ff_convert (	/* Converted code, 0 means conversion error */
 			do {
 				c = *p;
 				p += 2;
-			} while (c && c != src);
+			} while (c && c != chr);
 			p -= 3;
 			c = *p;
 		} else {		/* Unicode to OEMCP */
-			li = 0; hi = sizeof(uni2sjis) / 4 - 1;
+			li = 0; hi = sizeof uni2sjis / 4 - 1;
 			for (n = 16; n; n--) {
 				i = li + (hi - li) / 2;
-				if (src == uni2sjis[i * 2]) break;
-				if (src > uni2sjis[i * 2])
+				if (chr == uni2sjis[i * 2]) break;
+				if (chr > uni2sjis[i * 2])
 					li = i;
 				else
 					hi = i;

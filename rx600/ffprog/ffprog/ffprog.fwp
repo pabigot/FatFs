@@ -1,0 +1,107 @@
+[HIMDBVersion]
+2.0
+[DATABASE_VERSION]
+"2.5" 
+[PROJECT_DETAILS]
+"ffprog" "C:\user\Prj_Renesas\ff_rx62n\ffprog\ffprog" "C:\user\Prj_Renesas\ff_rx62n\ffprog\ffprog\ffprog.fwp" "All Flash Devices" "" "FDT Project Generator" 
+[INFORMATION]
+"No project information available" 
+[TOOL_CHAIN]
+"" "" 
+[CONFIGURATIONS]
+"Default" "C:\user\Prj_Renesas\ff_rx62n\ffprog\ffprog\default" 
+[BUILD_PHASES]
+[DEFINITION_PARSERS]
+[TOOL_ENVIRONMENT]
+[EXTENSIONS]
+"FDT DDI Files" "DDI" 
+"S-Record Files" "MOT" 
+"S2 Files" "S2" 
+"FDT Binary Files" "CDE" 
+"Binary Files" "BIN" 
+"IAR A20 Files" "A20" 
+"IAR A37 Files" "A37" 
+"REC Files" "REC" 
+[FILE_GROUPS]
+"FDT DDI Files" "BIN" "EDITOR" "" 
+"S-Record Files" "BIN" "HEX_EDITOR" "" 
+"S2 Files" "BIN" "HEX_EDITOR" "" 
+"FDT Binary Files" "BIN" "HEX_EDITOR" "" 
+"Binary Files" "BIN" "HEX_EDITOR" "" 
+"IAR A20 Files" "BIN" "HEX_EDITOR" "" 
+"IAR A37 Files" "BIN" "HEX_EDITOR" "" 
+"REC Files" "BIN" "HEX_EDITOR" "" 
+[ASSOCIATED_APPLICATIONS]
+[TOOLCHAIN_PHASE]
+[UTILITY_PHASE]
+[CUSTOM_PHASES]
+[CUSTOM_PHASE_INPUT_GROUP]
+[BUILD_ORDER]
+[BUILD_PHASE_DETAILS]
+[SCRAP]
+"Project Generator Setup File" "" 
+[MAPPINGS]
+[PROJECT_FILES]
+[FOLDER]
+[GENERAL_DATA_PROJECT]
+"FDT_BlockProtectConnect" "1" 
+"FDT_DoSecurityProtection" "Prompt" 
+"FDT_Comments" "" 
+"FDT_BaseDevice" "Generic BOOT Device" 
+"FDT_DoSecurityProtectionLevel" "00" 
+"FDT_ResetPinLowOnDisconnect" "FALSE" 
+"FDT_UseDefaultBaudRate" "TRUE" 
+"FDT_Interface" "Direct Connection" 
+"FDT_McuId" "ffff" 
+"FDT_ResetOnDisconnect" "No" 
+"FDT_ConnectionResetSuppression" "FFFFFFFF" 
+"FDT_ResetPinOutputs" "FFFFFFFF" 
+"FDT_ResetPinSettings" "FFFFFFFF" 
+"FDT_UPMPinSettings" "FFFFFFFF" 
+"FDT_KernelResident" "FALSE" 
+"FDT_KernelPath" "C:\user\Prj_Renesas\ff_rx62n\ffprog\ffprog\" 
+"FDT_UserPinSettings" "FFFFFFFF" 
+"FDT_UserPinOutputs" "FFFFFFFF" 
+"FDT_ClockMode" "0" 
+"FDT_CKM" "4" 
+"FDT_InternalClock" "FALSE" 
+"FDT_SerNumConfigString" "" 
+"FDT_BlockProtectDisconnect" "1" 
+"FDT_UseInternalKernel" "TRUE" 
+"FDT_BlockLockDisconnect" "1" 
+"FDT_BlockLockConnect" "1" 
+"FDT_Port" "COM4" 
+"FDT_CKP" "4" 
+"FDT_MessageLevel" "0" 
+"FDT_BootMode" "TRUE" 
+"FDT_BaudRate" "38400" 
+"FDT_IDWriteSecurityLevel" "1" 
+"FDT_IDWriteEnable" "TRUE" 
+"FDT_PinOutputs" "FFFFFFFF" 
+"FDT_PinSettings" "FFFFFFFF" 
+"FDT_Protocol" "C" 
+"FDT_Protection" "0" 
+"FDT_ClockSync" "00000000" 
+"FDT_ReinterrogateGenericDevice" "No" 
+"FDT_IDWriteDisconnect" "1" 
+"FDT_SerNumDllPath" "ucp.dll" 
+"FDT_DoReadbackVerification" "No" 
+"FDT_Frequency" "1200.0000" 
+"FDT_AutoConnect" "0" 
+"FDT_Device" "RX600 Series" 
+[ON_DEMAND_COMPONENTS_LOADED]
+[SYNC_SESSION_NAMES]
+[SESSIONS]
+"Default" "C:\user\Prj_Renesas\ff_rx62n\ffprog\ffprog\default.hsf" 0 
+[GENERAL_DATA_SESSION_Default]
+[OPTIONS_Default]
+"" 0 
+[SESSION_DATA_CONFIGURATION_SESSION_Default_Default]
+"MEMORY_MAPPING_OPTIONS" "" 
+[EXT_DEBUGGER_INFO]
+0 "" "" "" "" 
+[EXCLUDED_FILES_Default]
+[LINKAGE_ORDER_Default]
+[GENERAL_DATA_CONFIGURATION_Default]
+[GENERAL_DATA_CONFIGURATION_SESSION_Default_Default]
+[END]

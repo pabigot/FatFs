@@ -1,5 +1,5 @@
 /*----------------------------------------------------------------------*/
-/* FAT file system sample project for FatFs            (C)ChaN, 2012    */
+/* FAT file system sample project for FatFs            (C)ChaN, 2013    */
 /*----------------------------------------------------------------------*/
 
 
@@ -24,7 +24,7 @@ char Lfname[512];
 char Line[256];				/* Console input buffer */
 BYTE Buff[16384] __attribute__ ((aligned (4))) ;	/* Working buffer */
 
-FATFS Fatfs[_VOLUMES];		/* File system object for each logical drive */
+FATFS FatFs;				/* File system object for each logical drive */
 FIL File[2];				/* File objects */
 DIR Dir;					/* Directory object */
 
@@ -109,7 +109,7 @@ FRESULT scan_files (
 				*(path+i) = '\0';
 				if (res != FR_OK) break;
 			} else {
-			//	xprintf("%s/%s\n", path, fn);
+			/*	xprintf("%s/%s\n", path, fn); */
 				AccFiles++;
 				AccSize += Finfo.fsize;
 			}
@@ -152,7 +152,7 @@ const char HelpMsg[] =
 	" bw <pd#> <lba> [<count>] - Write working buffer into disk\n"
 	" bf <val> - Fill working buffer\n"
 	"[File system controls]\n"
-	" fi <ld#> - Force initialized the volume\n"
+	" fi <ld#> [<mount>]- Force initialized the volume\n"
 	" fs [<path>] - Show volume status\n"
 	" fl [<path>] - Show a directory\n"
 	" fo <mode> <file> - Open a file\n"
@@ -169,7 +169,6 @@ const char HelpMsg[] =
 	" ft <year> <month> <day> <hour> <min> <sec> <name> - Change timestamp of an object\n"
 	" fx <src.file> <dst.file> - Copy a file\n"
 	" fg <path> - Change current directory\n"
-	" fj <ld#> - Change current drive\n"
 	" fq - Show current directory\n"
 	" fb <name> - Set volume label\n"
 	" fm <ld#> <rule> <csize> - Create file system\n"
@@ -394,9 +393,9 @@ int main (void)
 		case 'f' :	/* FatFS API controls */
 			switch (*ptr++) {
 
-			case 'i' :	/* fi <ld#> - Force initialized the logical drive */
-				if (!xatoi(&ptr, &p1)) break;
-				put_rc(f_mount((BYTE)p1, &Fatfs[p1]));
+			case 'i' :	/* fi [<opt>]- Initialize logical drive */
+				if (!xatoi(&ptr, &p2)) p2 = 0;
+				put_rc(f_mount(&FatFs, "", (BYTE)p2));
 				break;
 
 			case 's' :	/* fs [<path>] - Show volume status */
@@ -420,7 +419,7 @@ int main (void)
 				res = scan_files(ptr);
 				if (res) { put_rc(res); break; }
 				xprintf("\r%u files, %lu bytes.\n%u folders.\n"
-						"%lu KB total disk space.\n%lu KB available.\n",
+						"%lu KiB total disk space.\n%lu KiB available.\n",
 						AccFiles, AccSize, AccDirs,
 						(fs->n_fatent - 2) * (fs->csize / 2), (DWORD)p1 * (fs->csize / 2)
 				);
@@ -608,11 +607,6 @@ int main (void)
 				while (*ptr == ' ') ptr++;
 				put_rc(f_chdir(ptr));
 				break;
-
-			case 'j' :	/* fj <ld#> - Change current drive */
-				if (!xatoi(&ptr, &p1)) break;
-				put_rc(f_chdrive((BYTE)p1));
-				break;
 #if _FS_RPATH >= 2
 			case 'q' :	/* fq - Show current dir path */
 				res = f_getcwd(Line, sizeof Line);
@@ -630,12 +624,12 @@ int main (void)
 				break;
 #endif	/* _USE_LABEL */
 #if _USE_MKFS
-			case 'm' :	/* fm <ld#> <rule> <csize> - Create file system */
-				if (!xatoi(&ptr, &p1) || !xatoi(&ptr, &p2) || !xatoi(&ptr, &p3)) break;
+			case 'm' :	/* fm <rule> <csize> - Create file system */
+				if (!xatoi(&ptr, &p2) || !xatoi(&ptr, &p3)) break;
 				xprintf("The volume will be formatted. Are you sure? (Y/n)=");
-				xgets(ptr, sizeof Line);
-				if (*ptr == 'Y')
-					put_rc(f_mkfs((BYTE)p1, (BYTE)p2, (WORD)p3));
+				xgets(Line, sizeof Line);
+				if (Line[0] == 'Y')
+					put_rc(f_mkfs("", (BYTE)p2, (WORD)p3));
 				break;
 #endif	/* _USE_MKFS */
 			case 'z' :	/* fz [<size>] - Change/Show R/W length for fr/fw/fx command */

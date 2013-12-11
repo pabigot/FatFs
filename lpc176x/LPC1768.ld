@@ -2,11 +2,11 @@
 
 MEMORY
 {
-  ROM (rx) : ORIGIN = 0x00000000, LENGTH = (512k)	/* Flash: 512k */
-  RAM (w) : ORIGIN = 0x10000000, LENGTH = (32k-32)	/* SRAM: 32k - IAP work */
-  AHBRAM0 (w) : ORIGIN = 0x2007C000, LENGTH = (16k)	/* AHB SRAM bank 0: 16k */
-  AHBRAM1 (w) : ORIGIN = 0x20080000, LENGTH = (16k)	/* AHB SRAM bank 1: 16k */
-  AHBRAM (w) : ORIGIN = 0x2007C000, LENGTH = (32k)	/* Merged AHB SRAM banks: 32k */
+  ROM     : org = 0x00000000, len = (512K)    /* Flash: 512k */
+  RAM     : org = 0x10000000, len = (32K-32)  /* SRAM: 32k - IAP work */
+  AHBRAM0 : org = 0x2007C000, len = (16K)     /* AHB SRAM bank 0: 16k */
+  AHBRAM1 : org = 0x20080000, len = (16K)     /* AHB SRAM bank 1: 16k */
+  AHBRAM  : org = 0x2007C000, len = (32K)     /* Merged AHB SRAM banks: 32k */
 }
 
 
