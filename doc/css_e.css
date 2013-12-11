@@ -15,9 +15,9 @@ pre span.k {color: blue;}
 pre span.arg {font-style: italic;}
 tt {margin: 0 0.2em; font-size: 0.85em; font-family: "Consolas", "Courier New", monospace; }
 tt.arg {font-style: italic;}
-ol {margin: 0 2.5em;}
-ul {margin: 0 2em;}
-dl {margin: 0 1em;}
+ol {margin: 0.5em 2.5em;}
+ul {margin: 0.5em 2em;}
+dl {margin: 0.5em 1em;}
 dd {margin: 0 2em;}
 dt {font-size: 0.85em; font-family: "Consolas", "Courier New", monospace;}
 dl.par dt {margin: 0.5em 0 0 0 ; font-style: italic; }

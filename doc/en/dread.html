@@ -19,7 +19,7 @@ DRESULT disk_read (
   BYTE <span class="arg">pdrv</span>,     <span class="c">/* [IN] Physical drive number */</span>
   BYTE* <span class="arg">buff</span>,    <span class="c">/* [OUT] Pointer to the read data buffer */</span>
   DWORD <span class="arg">sector</span>,  <span class="c">/* [IN] Start sector number */</span>
-  BYTE <span class="arg">count</span>     <span class="c">/* [IN] Number of sectros to read */</span>
+  UINT <span class="arg">count</span>     <span class="c">/* [IN] Number of sectros to read */</span>
 );
 </pre>
 </div>
@@ -34,7 +34,7 @@ DRESULT disk_read (
 <dt>sector</dt>
 <dd>Specifies the start sector number in logical block address (LBA).</dd>
 <dt>count</dt>
-<dd>Specifies number of sectors to read. The value can be 1 to 128. Generally, a multiple sector transfer request must not be split into single sector transactions to the device, or you may not get good read performance.</dd>
+<dd>Specifies number of sectors to read. FatFs specifis with 1 to 128. Generally, a multiple sector transfer request must not be split into single sector transactions to the device, or you may not get good read performance.</dd>
 </dl>
 </div>
 
@@ -56,11 +56,11 @@ DRESULT disk_read (
 
 <div class="para desc">
 <h4>Description</h4>
-<p>The specified memory address is not that always aligned to word boundary because the type of pointer is defined as <tt>BYTE</tt>. The misaligned read/write request can occure at <a href="appnote.html#fs1">direct transfer</a>. If the bus architecture, especially DMA controller, does not allow misaligned memory access, it should be solved in this function. There are some workarounds described below to avoid this problem.</p>
+<p>The memory address specified by <tt class="arg">buff</tt> is not that always aligned to word boundary because the type of argument is defined as <tt>BYTE*</tt>. The misaligned read/write request can occure at <a href="appnote.html#fs1">direct transfer</a>. If the bus architecture, especially DMA controller, does not allow misaligned memory access, it should be solved in this function. There are some workarounds described below to avoid this issue.</p>
 <ul>
 <li>Convert word transfer to byte transfer in this function. - Recommended.</li>
-<li>On <tt>f_read()</tt>, avoid long read request that includes a whole of sector. - Direct transfer will never occure.</li>
-<li>On <tt>f_read(fp, buff, btr, &amp;br)</tt>, make sure that <tt>(((UINT)buff &amp; 3) == (f_tell(fp) &amp; 3))</tt> is true. - Word aligned direct transfer is guaranteed.</li>
+<li>For <tt>f_read()</tt>, avoid long read request that includes a whole of sector. - Direct transfer will never occure.</li>
+<li>For <tt>f_read(fp, buff, btr, &amp;br)</tt>, make sure that <tt>(((UINT)buff &amp; 3) == (f_tell(fp) &amp; 3))</tt> is true. - Word aligned direct transfer is guaranteed.</li>
 </ul>
 </div>
 

@@ -19,7 +19,7 @@ DRESULT disk_write (
   BYTE <span class="arg">drv</span>,         <span class="c">/* [IN] Physical drive number */</span>
   const BYTE* <span class="arg">buff</span>, <span class="c">/* [IN] Write data (may be non aligned) */</span>
   DWORD <span class="arg">sector</span>,     <span class="c">/* [IN] Sector number to write */</span>
-  BYTE <span class="arg">count</span>        <span class="c">/* [IN] Number of sectors to write */</span>
+  UINT <span class="arg">count</span>        <span class="c">/* [IN] Number of sectors to write */</span>
 );
 </pre>
 </div>
@@ -34,7 +34,7 @@ DRESULT disk_write (
 <dt>sector</dt>
 <dd>Specifies the start sector number in logical block address (LBA).</dd>
 <dt>count</dt>
-<dd>Specifies the number of sectors to write. The value can be 1 to 128. Generally, a multiple sector transfer request must not be split into single sector transactions to the device, or you will never get good write performance.</dd>
+<dd>Specifies the number of sectors to write. FatFs specifis 1 to 128. Generally, a multiple sector transfer request must not be split into single sector transactions to the device, or you will never get good write performance.</dd>
 </dl>
 </div>
 
@@ -59,6 +59,7 @@ DRESULT disk_write (
 <div class="para desc">
 <h4>Description</h4>
 <p>This function is not required in read only configuration. The specified memory address is not that always aligned to word boundary because the type of pointer is defined as <tt>BYTE</tt>. For more information, read <a href="dread.html">description in disk_read function</a>.</p>
+<p><em>Application program MUST NOT call this function while FatFs is in use, or FAT structure on the volume can be corrapted.</em></p>
 </div>
 
 
