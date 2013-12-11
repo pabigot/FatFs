@@ -2763,34 +2763,27 @@ FRESULT f_close (
 	FRESULT res;
 
 
-#if _FS_READONLY
-	res = validate(fp);
+#if !_FS_READONLY
+	res = f_sync(fp);				   /* Flush cached data */
+	if (res == FR_OK)
+#endif
 	{
-#if _FS_REENTRANT
-		FATFS *fs = 0;
-		if (res == FR_OK) fs = fp->fs;	/* Get corresponding file system object */
-#endif
-		if (res == FR_OK) fp->fs = 0;	/* Invalidate file object */
-		LEAVE_FF(fs, res);
-	}
-#else
-	res = f_sync(fp);					/* Flush cached data */
-#if _FS_LOCK
-	if (res == FR_OK) {					/* Decrement open counter */
-#if _FS_REENTRANT
-		res = validate(fp);
+		res = validate(fp);			 /* Lock volume */
 		if (res == FR_OK) {
-			res = dec_lock(fp->lockid);
-			unlock_fs(fp->fs, FR_OK);
-		}
-#else
-		res = dec_lock(fp->lockid);
+#if _FS_REENTRANT
+			FATFS *fs = fp->fs;
+#endif
+#if _FS_LOCK
+			res = dec_lock(fp->lockid); /* Decrement file open counter */
+			if (res == FR_OK)
+#endif
+				fp->fs = 0;			 /* Invalidate file object */
+#if _FS_REENTRANT
+			unlock_fs(fs, FR_OK);	   /* Unlock volume */
 #endif
 	}
-#endif
-	if (res == FR_OK) fp->fs = 0;		/* Invalidate file object */
+	}
 	return res;
-#endif
 }
 
 
@@ -3157,16 +3150,20 @@ FRESULT f_closedir (
 
 
 	res = validate(dp);
-#if _FS_LOCK
-	if (res == FR_OK) {				/* Decrement open counter */
-		if (dp->lockid)
-			res = dec_lock(dp->lockid);
+	if (res == FR_OK) {
 #if _FS_REENTRANT
-		unlock_fs(dp->fs, FR_OK);
+		FATFS *fs = dp->fs;
+#endif
+#if _FS_LOCK
+		if (dp->lockid)			 /* Decrement sub-directory open counter */
+			res = dec_lock(dp->lockid);
+		if (res == FR_OK)
+#endif
+			dp->fs = 0;			 /* Invalidate directory object */
+#if _FS_REENTRANT
+		unlock_fs(fs, FR_OK);	   /* Unlock volume */
 #endif
 	}
-#endif
-	if (res == FR_OK) dp->fs = 0;	/* Invalidate directory object */
 	return res;
 }
 
