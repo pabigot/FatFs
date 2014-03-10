@@ -13,7 +13,7 @@
 
 <div class="para func">
 <h2>disk_write</h2>
-<p>The disk_write writes sector(s) to the disk.</p>
+<p>The disk_write writes data to the storage device.</p>
 <pre>
 DRESULT disk_write (
   BYTE <span class="arg">drv</span>,         <span class="c">/* [IN] Physical drive number */</span>
@@ -30,11 +30,11 @@ DRESULT disk_write (
 <dt>pdrv</dt>
 <dd>Specifies the physical drive number.</dd>
 <dt>buff</dt>
-<dd>Pointer to the <em>byte array</em> to be written.</dd>
+<dd>Pointer to the <em>byte array</em> to be written. The size of data to be written is sector size * <tt class="arg">count</tt> bytes.</dd>
 <dt>sector</dt>
 <dd>Specifies the start sector number in logical block address (LBA).</dd>
 <dt>count</dt>
-<dd>Specifies the number of sectors to write. FatFs specifis 1 to 128. Generally, a multiple sector transfer request must not be split into single sector transactions to the device, or you will never get good write performance.</dd>
+<dd>Specifies the number of sectors to write. FatFs specifis 1 to 128.</dd>
 </dl>
 </div>
 
@@ -58,8 +58,16 @@ DRESULT disk_write (
 
 <div class="para desc">
 <h4>Description</h4>
-<p>This function is not required in read only configuration. The specified memory address is not that always aligned to word boundary because the type of pointer is defined as <tt>BYTE</tt>. For more information, read <a href="dread.html">description in disk_read function</a>.</p>
-<p><em>Application program MUST NOT call this function while FatFs is in use, or FAT structure on the volume can be corrapted.</em></p>
+<p>The specified memory address is not that always aligned to word boundary because the type of pointer is defined as <tt>BYTE</tt>. For more information, refer the description of <a href="dread.html"><tt>disk_read()</tt></a> function.</p>
+<p>Generally, a multiple sector transfer request must not be split into single sector transactions to the storage device, or you will never get good write throughput.</p>
+<p>FatFs expects delayed write feature of the disk functions. The write operation to the media need not to be completed due to write operation is in progress or stored it into the cache buffer when return from this function. But data on the <tt class="arg">buff</tt> is invalid after return from this function. The write completion request is done by <tt>CTRL_SYNC</tt> command of <tt><a href="dioctl.html">disk_ioctl()</a></tt> function. Therefore, if delayed write feature is implemented, the write throughput may be improved.</p>
+<p><em>Application program MUST NOT call this function, or FAT structure on the volume can be collapsed.</em></p>
+</div>
+
+
+<div class="para comp">
+<h4>QuickInfo</h4>
+<p>This function is not needed when <tt>_FS_READONLY == 1</tt>.</p>
 </div>
 
 

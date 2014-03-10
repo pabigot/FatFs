@@ -42,7 +42,13 @@ DWORD get_fattime (void);
 
 <div class="para desc">
 <h4>Description</h4>
-<p>The <tt>get_fattime()</tt> function must return any valid time even if the system does not support a real time clock. If a zero is returned, the file will not have a valid time. This fucntion is not required in read only configuration.</p>
+<p>The <tt>get_fattime()</tt> function shall return any valid time even if the system does not support a real time clock. If a zero is returned, the file will not have a valid timestamp.</p>
+</div>
+
+
+<div class="para comp">
+<h4>QuickInfo</h4>
+<p>This function is not needed when <tt>_FS_READONLY == 1</tt>.</p>
 </div>
 
 
