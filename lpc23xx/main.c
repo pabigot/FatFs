@@ -172,7 +172,7 @@ const char HelpMsg[] =
 	" ft <yyyy> <mm> <dd> <hh> <mm> <ss> <name> - Change timestamp of an object\n"
 	" fx <src.file> <dst.file> - Copy a file\n"
 	" fg <path> - Change current directory\n"
-	" fj <ld#> - Change current drive\n"
+	" fj <path> - Change current drive\n"
 	" fq - Show current directory\n"
 	" fb <name> - Set volume label\n"
 	" fm <rule> <csize> - Create file system\n"
@@ -782,9 +782,8 @@ int main (void)
 				break;
 
 			case 'j' :	/* fj <ld#> - Change current drive */
-				if (!xatoi(&ptr, &p1) && (UINT)p1 > 9) break;
-				xsprintf(Line, "%u:", (UINT)p1);
-				put_rc(f_chdrive(Line));
+				while (*ptr == ' ') ptr++;
+				put_rc(f_chdrive(ptr));
 				break;
 #if _FS_RPATH >= 2
 			case 'q' :	/* fq - Show current dir path */

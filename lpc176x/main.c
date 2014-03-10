@@ -4,12 +4,12 @@
 
 
 #include <string.h>
-#include "xprintf.h"
-#include "rtc.h"
-#include "ff.h"
-#include "diskio.h"
-#include "sound.h"
+#include "rtc176x.h"
 #include "uart176x.h"
+#include "xprintf.h"
+#include "diskio.h"
+#include "ff.h"
+#include "sound.h"
 
 extern void disk_timerproc (void);
 
@@ -18,7 +18,7 @@ DWORD AccSize;				/* Work register for fs command */
 WORD AccFiles, AccDirs;
 FILINFO Finfo;
 #if _USE_LFN
-char Lfname[512];
+char Lfname[256];
 #endif
 
 char Line[256];				/* Console input buffer */
@@ -61,7 +61,7 @@ void SysTick_Handler (void)
 /* This function is not required in read-only cfg.         */
 
 
-DWORD get_fattime ()
+DWORD get_fattime (void)
 {
 	RTC rtc;
 
@@ -203,10 +203,14 @@ int main (void)
 	SYST_RVR = 100000000 / 1000 - 1;
 	SYST_CSR = 0x07;
 
-	/* Initiazlize RTC */
-	rtc_initialize();
+	rtc_initialize();	/* Initiazlize RTC */
 
-	/* Enable UART0 and attach it to xprintf module for console */
+#if _USE_LFN	/* Initialize file info structure if in LFN cfg */
+	Finfo.lfname = Lfname;
+	Finfo.lfsize = sizeof Lfname;
+#endif
+
+	/* Initialize UART0 and attach it to xprintf module for console */
 	uart0_init();
 	xdev_out(uart0_putc);
 	xdev_in(uart0_getc);
@@ -438,7 +442,7 @@ int main (void)
 					} else {
 						s1++; p1 += Finfo.fsize;
 					}
-					xprintf("%c%c%c%c%c %u/%02u/%02u %02u:%02u %9lu  %-12s  %s\n",
+					xprintf("%c%c%c%c%c %u/%02u/%02u %02u:%02u %9lu  %s\n",
 							(Finfo.fattrib & AM_DIR) ? 'D' : '-',
 							(Finfo.fattrib & AM_RDO) ? 'R' : '-',
 							(Finfo.fattrib & AM_HID) ? 'H' : '-',
@@ -446,11 +450,11 @@ int main (void)
 							(Finfo.fattrib & AM_ARC) ? 'A' : '-',
 							(Finfo.fdate >> 9) + 1980, (Finfo.fdate >> 5) & 15, Finfo.fdate & 31,
 							(Finfo.ftime >> 11), (Finfo.ftime >> 5) & 63,
-							Finfo.fsize, Finfo.fname,
+							Finfo.fsize,
 #if _USE_LFN
-							Lfname);
+							Lfname[0] ? Lfname : Finfo.fname);
 #else
-							"");
+							Finfo.fname);
 #endif
 				}
 				xprintf("%4u File(s),%10lu bytes total\n%4u Dir(s)", s1, p1, s2);

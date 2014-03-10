@@ -81,6 +81,7 @@ int get_status (
 
 	if (pdrv == 0) {	/* RAMDISK */
 		stat->sz_sector = SS_RAMDISK;
+		if (stat->sz_sector < _MIN_SS || stat->sz_sector > _MAX_SS) return 0;
 		stat->n_sectors = SZ_RAMDISK * 0x100000 / SS_RAMDISK;
 		stat->status = 0;
 		return 1;
@@ -94,7 +95,7 @@ int get_status (
 	}
 
 	stat->sz_sector = (WORD)parms.BytesPerSector;
-	if (_MAX_SS == 512 && stat->sz_sector != 512) return 0;
+	if (stat->sz_sector < _MIN_SS || stat->sz_sector > _MAX_SS) return 0;
 	stat->n_sectors = parms.SectorsPerTrack * parms.TracksPerCylinder * (DWORD)parms.Cylinders.QuadPart; //(DWORD)(part.PartitionLength.QuadPart / parms.BytesPerSector);
 	stat->status = DeviceIoControl(h, IOCTL_DISK_IS_WRITABLE, 0, 0, 0, 0, &dw, 0) ? 0 : STA_PROTECT;
 
@@ -158,7 +159,7 @@ int assign_drives (void)
 		if (pdrv == 1)
 			_tprintf(_T("\nYou must run the program as Administrator to access the physical drives.\n"));
 	} else {
-		_tprintf(_T("\nOn the Windows Vista and later, you cannot access physical drives.\n")
+		_tprintf(_T("\nOn the Windows Vista and later, you cannot access the physical drives.\n")
 				 _T("Use Windows NT/2k/XP instead.\n"));
 	}
 

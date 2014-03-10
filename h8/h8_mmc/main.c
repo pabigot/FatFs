@@ -134,6 +134,7 @@ int main (void)
 	FATFS *fs;
 
 
+	sci3_init();
 	xdev_in(sci3_get);
 	xdev_out(sci3_put);
 	xputs("\nFatFs module test monitor for H8\n");
@@ -255,7 +256,7 @@ int main (void)
 						fs->fatbase, fs->dirbase, fs->database
 				);
 #if _USE_LABEL
-				res = f_getlabel(ptr2, (char*)Buff, (DWORD*)&p1);
+				res = f_getlabel(ptr, (char*)Buff, (DWORD*)&p1);
 				if (res) { put_rc(res); break; }
 				xprintf("Volume S/N is %04X-%04X\n", (WORD)((DWORD)p1 >> 16), (WORD)(p1 & 0xFFFF));
 				xprintf(Buff[0] ? "Volume name is %s\n" : "No volume label\n", Buff);

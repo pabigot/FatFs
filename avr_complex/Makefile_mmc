@@ -2,7 +2,7 @@
 PROJECT	= avr_mmc
 
 ### Source files and search directory
-CSRC    = main.c uart.c ff.c mmc.c rtc.c sound.c
+CSRC    = main.c uart.c ff.c mmc_avr.c rtc.c sound.c
 ASRC    = xitoa.S
 VPATH   =
 

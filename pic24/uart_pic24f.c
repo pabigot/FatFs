@@ -13,7 +13,7 @@
 
 #include <p24FJ64GA002.h>
 #include "pic24f.h"
-#include "uart.h"
+#include "uart_pic24f.h"
 
 #define BUFFER_SIZE 128
 

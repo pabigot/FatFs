@@ -7,9 +7,9 @@ tst850.out
 tst850.dir
 -m
 main.o
-mmc.o
+mmc_v850es.o
 ff.o
-uart.o
+uart_v850es.o
 xprintf.o
 cc932.o
 -lc

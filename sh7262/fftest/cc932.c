@@ -6,11 +6,11 @@
 
 #include "ff.h"
 
-#define _TINY_TABLE	1	/* Remove SJIS to Unicode table and use incremental search instead. */
+#define _TINY_TABLE	0	/* Remove SJIS to Unicode table and use incremental search instead. */
 
 #if _USE_LFN
 #if _CODE_PAGE != 932
-#error Code page miss match.
+#error _CODE_PAGE is not defined as CP932(SJIS).
 #endif
 
 

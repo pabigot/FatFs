@@ -1,5 +1,5 @@
 /*----------------------------------------------------------------------*/
-/* FatFs Module Sample Program / Renesas RX62N        (C)ChaN, 2013     */
+/* FatFs Module Sample Program / Renesas RX62N        (C)ChaN, 2014     */
 /*----------------------------------------------------------------------*/
 /* Ev.Board: FRK-RX62N from CQ Publishing                               */
 /* Console: N81 115200bps (port is defined in scif.c)                   */

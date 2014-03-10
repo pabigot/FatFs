@@ -11,7 +11,7 @@
 /
 /-------------------------------------------------------------------------*/
 
-#include "rtc.h"
+#include "rtc176x.h"
 
 
 int rtc_initialize (void)
@@ -27,7 +27,7 @@ int rtc_initialize (void)
 
 
 
-int rtc_gettime (RTC *rtc)
+int rtc_gettime (RTC *rtc)	/* 1:RTC valid, 0:RTC volatiled */
 {
 	DWORD d, t;
 
@@ -37,14 +37,9 @@ int rtc_gettime (RTC *rtc)
 		d = CTIME1;
 	} while (t != CTIME0 || d != CTIME1);
 
-	if (RTC_AUX & _BV(4)) {
-		rtc->sec = 0;
-		rtc->min = 0;
-		rtc->hour = 0;
-		rtc->wday = 0;
-		rtc->mday = 1;
-		rtc->month = 1;
-		rtc->year = 2011;
+	if (RTC_AUX & _BV(4)) {	/* If power fail has been detected, return default time. */
+		rtc->sec = 0; rtc->min = 0; rtc->hour = 0;
+		rtc->wday = 0; rtc->mday = 1; rtc->month = 1; rtc->year = 2014;
 		return 0;
 	}
 

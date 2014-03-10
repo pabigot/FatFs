@@ -1,7 +1,7 @@
 /*-------------------------------*/
 /* V850ES UART driver            */
 
-#include "uart.h"
+#include "uart_v850es.h"
 
 
 #define BUFFER_SIZE 128

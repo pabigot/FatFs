@@ -3,9 +3,9 @@
 #
 TITLE = tst850
 DEVFILE = C:\Program Files\NEC Electronics Tools\DEV\DF3716.800
-PROJDIR = C:\user\Prj_V850\tst850
+PROJDIR = C:\user\Prj_V850\ff_v850
 TOOLDIR = C:\Program Files\NEC Electronics Tools\PM+\V6.11\BIN
-WORKDIR = C:\user\Prj_V850\tst850
+WORKDIR = C:\user\Prj_V850\ff_v850
 DEBUG = 
 
 CC	= "C:\Program Files\NEC Electronics Tools\CA850\E3.11a\bin\ca850.exe"
@@ -28,44 +28,44 @@ HX	= "C:\Program Files\NEC Electronics Tools\CA850\E3.11a\bin\hx850.exe"
 HXFLAGS	= -o tst850.hex -fS
 
 OBJS = main.o  \
-	mmc.o  \
+	mmc_v850es.o  \
 	ff.o  \
-	uart.o  \
+	uart_v850es.o  \
 	xprintf.o  \
 	cc932.o 
 
 DEP_main_c = "C:\Program Files\NEC Electronics Tools\CA850\E3.11a\inc850\string.h" \
 	"C:\Program Files\NEC Electronics Tools\CA850\E3.11a\inc850\stddef.h" \
-	C:\user\Prj_V850\tst850\uart.h \
-	C:\user\Prj_V850\tst850\v850es.h \
-	C:\user\Prj_V850\tst850\integer.h \
-	C:\user\Prj_V850\tst850\xprintf.h \
-	C:\user\Prj_V850\tst850\diskio.h \
-	C:\user\Prj_V850\tst850\ff.h \
-	C:\user\Prj_V850\tst850\ffconf.h
+	C:\user\Prj_V850\ff_v850\uart_v850es.h \
+	C:\user\Prj_V850\ff_v850\v850es.h \
+	C:\user\Prj_V850\ff_v850\integer.h \
+	C:\user\Prj_V850\ff_v850\xprintf.h \
+	C:\user\Prj_V850\ff_v850\diskio.h \
+	C:\user\Prj_V850\ff_v850\ff.h \
+	C:\user\Prj_V850\ff_v850\ffconf.h
 
-DEP_mmc_c = C:\user\Prj_V850\tst850\v850es.h \
-	C:\user\Prj_V850\tst850\diskio.h \
-	C:\user\Prj_V850\tst850\integer.h
+DEP_mmc_v850es_c = C:\user\Prj_V850\ff_v850\v850es.h \
+	C:\user\Prj_V850\ff_v850\diskio.h \
+	C:\user\Prj_V850\ff_v850\integer.h
 
-DEP_ff_c = C:\user\Prj_V850\tst850\ff.h \
-	C:\user\Prj_V850\tst850\integer.h \
-	C:\user\Prj_V850\tst850\ffconf.h \
-	C:\user\Prj_V850\tst850\diskio.h \
+DEP_ff_c = C:\user\Prj_V850\ff_v850\ff.h \
+	C:\user\Prj_V850\ff_v850\integer.h \
+	C:\user\Prj_V850\ff_v850\ffconf.h \
+	C:\user\Prj_V850\ff_v850\diskio.h \
 	"C:\Program Files\NEC Electronics Tools\CA850\E3.11a\inc850\stdarg.h"
 
-DEP_uart_c = C:\user\Prj_V850\tst850\uart.h \
-	C:\user\Prj_V850\tst850\v850es.h \
-	C:\user\Prj_V850\tst850\integer.h
+DEP_uart_v850es_c = C:\user\Prj_V850\ff_v850\uart_v850es.h \
+	C:\user\Prj_V850\ff_v850\v850es.h \
+	C:\user\Prj_V850\ff_v850\integer.h
 
-DEP_xprintf_c = C:\user\Prj_V850\tst850\xprintf.h \
+DEP_xprintf_c = C:\user\Prj_V850\ff_v850\xprintf.h \
 	"C:\Program Files\NEC Electronics Tools\CA850\E3.11a\inc850\stdarg.h"
 
-DEP_cc932_c = C:\user\Prj_V850\tst850\ff.h \
-	C:\user\Prj_V850\tst850\integer.h \
-	C:\user\Prj_V850\tst850\ffconf.h
+DEP_cc932_c = C:\user\Prj_V850\ff_v850\ff.h \
+	C:\user\Prj_V850\ff_v850\integer.h \
+	C:\user\Prj_V850\ff_v850\ffconf.h
 
-GOAL : C:\user\Prj_V850\tst850\romp.out
+GOAL : C:\user\Prj_V850\ff_v850\romp.out
 
 
 
@@ -84,14 +84,14 @@ GOAL : C:\user\Prj_V850\tst850\romp.out
 main.o : main.c $(DEP_main_c)
 	$(CC) $(CFLAGS) -Os -c main.c
 
-mmc.o : mmc.c $(DEP_mmc_c)
-	$(CC) $(CFLAGS) -Os -c mmc.c
+mmc_v850es.o : mmc_v850es.c $(DEP_mmc_v850es_c)
+	$(CC) $(CFLAGS) -Os -c mmc_v850es.c
 
 ff.o : ff.c $(DEP_ff_c)
 	$(CC) $(CFLAGS) -Os -c ff.c
 
-uart.o : uart.c $(DEP_uart_c)
-	$(CC) $(CFLAGS) -Os -c uart.c
+uart_v850es.o : uart_v850es.c $(DEP_uart_v850es_c)
+	$(CC) $(CFLAGS) -Os -c uart_v850es.c
 
 xprintf.o : xprintf.c $(DEP_xprintf_c)
 	$(CC) $(CFLAGS) -Os -c xprintf.c

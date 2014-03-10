@@ -7,13 +7,13 @@
 int rtc_initialize (void)
 {
 	/* Enable PCLK to the RTC */
-	__set_PCONP(PCRTC, 1);
+	__set_PCONP(PCRTC);
 
 	/* Start RTC with external XTAL */
 	RTC_CCR = 0x11;
 
 	/* Stop PCLK to the RTC to reduce battery power consumption */
-	__set_PCONP(PCRTC, 0);
+	__clr_PCONP(PCRTC);
 
 	return 1;
 }
@@ -47,7 +47,7 @@ int rtc_gettime (RTC *rtc)
 int rtc_settime (const RTC *rtc)
 {
 	/* Enable PCLK to the RTC */
-	__set_PCONP(PCRTC, 1);
+	__set_PCONP(PCRTC);
 
 	/* Stop RTC */
 	RTC_CCR = 0x12;
@@ -65,7 +65,7 @@ int rtc_settime (const RTC *rtc)
 	RTC_CCR = 0x11;
 
 	/* Stop PCLK to the RTC to reduce battery power consumption */
-	__set_PCONP(PCRTC, 0);
+	__clr_PCONP(PCRTC);
 
 	return 1;
 }

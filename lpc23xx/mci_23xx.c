@@ -286,8 +286,7 @@ static
 void power_on (void)
 {
 	/* Enable MCI and GPDMA power */
-	__set_PCONP(PCSDC, 1);
-	__set_PCONP(PCGPDMA, 1);
+	__set_PCONP(PCSDC|PCGPDMA);
 
 	/* Enable GPDMA controller with little-endian */
 	GPDMA_CH0_CFG &= 0xFFF80000;	/* Disable DMA ch-0 */

@@ -17,8 +17,6 @@
 //#include 	<stdlib.h>					// Remove the comment when you use rand()
 #include	"stacksct.h"
 #include	"iodefine.h"
-#include	"xprintf.h"
-#include	"sci.h"
 
 extern void main(void);
 
@@ -26,16 +24,15 @@ extern void main(void);
 
 void HardwareSetup()
 {
-	TW.TCRW.BYTE = 0xB0;	// Start Timer W with 100Hz OCA
+	TW.TCRW.BYTE = 0xB0;	// Start Timer W as 100Hz IVT (System timer)
 	TW.GRA = 25000;
 	TW.TIERW.BYTE = 0x01;
 	TW.TIOR0.BYTE = 0x03;
 	TW.TMRW.BYTE = 0x80;
 
-	TA.TMA.BYTE = 0x08;
+	TA.TMA.BYTE = 0x08;		// Start Timer A as 1Hz IVT (RTC)
 	IENR1.BIT.IENTA = 1;
 
-	sci3_init();
 }
 
 
@@ -50,7 +47,7 @@ void HardwareSetup()
 
 //extern void srand(unsigned int);	// Remove the comment when you use rand()
 //extern char *_s1ptr;				// Remove the comment when you use strtok()
-		
+
 //#ifdef __cplusplus				// Remove the comment when you use Hardware Setup
 //extern "C" {
 //#endif
@@ -67,12 +64,12 @@ void HardwareSetup()
 //#ifdef __cplusplus
 //}
 //#endif
-	
+
 #pragma section ResetPRG
 
 __entry(vect=0) void PowerON_Reset(void)
-{ 
-	 set_imask_ccr(1);
+{
+	set_imask_ccr(1);
 	_INITSCT();
 
 //	_CALL_INIT();					// Remove the comment when you use global class object
@@ -82,7 +79,7 @@ __entry(vect=0) void PowerON_Reset(void)
 //	errno=0;						// Remove the comment when you use errno
 //	srand(1);						// Remove the comment when you use rand()
 //	_s1ptr=NULL;					// Remove the comment when you use strtok()
-		
+
 	HardwareSetup();				// Remove the comment when you use Hardware Setup
 	set_imask_ccr(0);
 
@@ -91,10 +88,10 @@ __entry(vect=0) void PowerON_Reset(void)
 //	_CLOSEALL();					// Remove the comment when you use SIM I/O
 
 //	_CALL_END();					// Remove the comment when you use global class object
-	
+
 	sleep();
 }
 
 //__interrupt(vect=1) void Manual_Reset(void)	// Remove the comment when you use Manual Reset
 //{
-//} 
+//}

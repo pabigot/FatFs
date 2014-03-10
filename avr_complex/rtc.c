@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------------*/
-/*  RTC controls                                                            */
+/*  DS1338 RTC controls                                                     */
 
 #include <avr/io.h>
 #include <string.h>

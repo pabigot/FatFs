@@ -1,6 +1,6 @@
 [ProjectManager]
 Version=6.00
-Path=C:\user\Prj_V850\tst850\
+Path=C:\user\Prj_V850\ff_v850\
 Title=tst850
 Series=850.PM
 Device=uPD70F3716
@@ -45,22 +45,11 @@ StartUpOptn=0
 LinkDir=tst850.dir
 [SrcFile]
 Source1=main.c
-Source2=mmc.c
+Source2=mmc_v850es.c
 Source3=ff.c
-Source4=uart.c
+Source4=uart_v850es.c
 Source5=xprintf.c
 Source6=cc932.c
-[IncFile]
-Include1=v850es.h
-Include2=integer.h
-Include3=diskio.h
-Include4=ff.h
-Include5=ffconf.h
-Include6=..\..\..\Program Files\NEC Electronics Tools\CA850\E3.11a\inc850\string.h
-Include7=..\..\..\Program Files\NEC Electronics Tools\CA850\E3.11a\inc850\stddef.h
-Include8=uart.h
-Include9=..\..\..\Program Files\NEC Electronics Tools\CA850\E3.11a\inc850\stdarg.h
-Include10=xprintf.h
 [Options.CA850]
 Version=E3.11a [27 Oct 2006]
 Sconst=1
@@ -85,6 +74,17 @@ DebugInfo=0
 DebugInfo=0
 [Options.AS850 1 RompCrt]
 DebugInfo=0
+[IncFile]
+Include1=integer.h
+Include2=diskio.h
+Include3=ff.h
+Include4=ffconf.h
+Include5=..\..\..\Program Files\NEC Electronics Tools\CA850\E3.11a\inc850\string.h
+Include6=..\..\..\Program Files\NEC Electronics Tools\CA850\E3.11a\inc850\stddef.h
+Include7=..\..\..\Program Files\NEC Electronics Tools\CA850\E3.11a\inc850\stdarg.h
+Include8=xprintf.h
+Include9=uart_v850es.h
+Include10=v850es.h
 [ToolSet]
 ToolSetName=(ïœçX01)V850 Series Software Package V4.20
 Tool1=CA850|E3.11a

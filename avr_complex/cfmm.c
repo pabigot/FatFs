@@ -436,7 +436,7 @@ BYTE xchg_spi (		/* Returns received data */
 static
 void xmit_spi_multi (
 	const BYTE *p,	/* Data block to be sent */
-	UINT cnt		/* Size of data block */
+	UINT cnt		/* Size of data block (must be multiple of 2) */
 )
 {
 	do {
@@ -449,7 +449,7 @@ void xmit_spi_multi (
 static
 void rcvr_spi_multi (
 	BYTE *p,	/* Data buffer */
-	UINT cnt	/* Size of data block */
+	UINT cnt	/* Size of data block (must be multiple of 2) */
 )
 {
 	do {

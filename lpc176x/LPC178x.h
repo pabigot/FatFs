@@ -1147,8 +1147,6 @@
 /* These are for only privileged mode */
 #define __enable_irq() __asm__ volatile ("CPSIE i\n")
 #define __disable_irq() __asm__ volatile ("CPSID i\n")
-#define __enable_fault_irq() __asm__ volatile ("CPSIE f\n")
-#define __disable_fault_irq() __asm__ volatile ("CPSID f\n")
 #define __enable_irqn(n) ISER[(n) / 32] = 1 << ((n) % 32)
 #define __disable_irqn(n) ICER[(n) / 32] = 1 << ((n) % 32)
 #define __test_irqn_enabled(n) (ISER[(n) / 32] & (1 << ((n) % 32)))

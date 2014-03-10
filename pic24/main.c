@@ -6,7 +6,7 @@
 #include <string.h>
 #include <p24FJ64GA002.h>
 #include "pic24f.h"
-#include "uart.h"
+#include "uart_pic24f.h"
 #include "xprintf.h"
 #include "diskio.h"
 #include "ff.h"
@@ -232,7 +232,7 @@ int main (void)
 	xputs(_USE_LFN ? "LFN Enabled" : "LFN Disabled");
 	xprintf(", Code page: %u\n", _CODE_PAGE);
 
-#if _USE_LFN
+#if _USE_LFN	/* Initialize file info structure if in LFN cfg */
 	Finfo.lfname = Lfname;
 	Finfo.lfsize = sizeof Lfname;
 #endif

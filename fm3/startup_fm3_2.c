@@ -127,72 +127,24 @@ char mstk[STACK_SIZE] __attribute__ ((aligned(8), section(".STACK")));
 / Exception Vector Table for MB9BF616/617/618                         /
 /--------------------------------------------------------------------*/
 
-void (*const vector[])(void) __attribute__ ((section(".VECTOR"))) =
+void* const vector[] __attribute__ ((section(".VECTOR"))) =
 {
-	(void(*)(void))(int)&mstk[STACK_SIZE],	/* 0 Initial value of MSP */
-	Reset_Handler,			/* 1 Initial value of PC */
-	NMI_Handler,
-	HardFault_Hander,
-	MemManage_Handler,		/* 4 */
-	BusFault_Handler,
-	UsageFault_Handler,
-	0,
-	0,						/* 8 */
-	0,
-	0,
-	SVC_Handler,
-	DebugMon_Handler,		/* 12 */
-	0,
-	PendSV_Handler,
-	SysTick_Handler,
-
-	FCS_IRQHandler,			/* 16 */
-	SWDT_IRQHandler,
-	LVD_IRQHandler,
-	MFT012_WFG_IRQHandler,
-	EXTI0_7_IRQHandler,		/* 20 */
-	EXTI8_31_IRQHandler,
-	QPRC012_IRQHandler,
-	MFS0_RX_IRQHandler,
-	MFS0_TX_IRQHandler,		/* 24 */
-	MFS1_RX_IRQHandler,
-	MFS1_TX_IRQHandler,
-	MFS2_RX_IRQHandler,
-	MFS2_TX_IRQHandler,		/* 28 */
-	MFS3_RX_IRQHandler,
-	MFS3_TX_IRQHandler,
-	MFS4_RX_IRQHandler,
-	MFS4_TX_IRQHandler,		/* 32 */
-	MFS5_RX_IRQHandler,
-	MFS5_TX_IRQHandler,
-	MFS6_RX_IRQHandler,
-	MFS6_TX_IRQHandler,		/* 36 */
-	MFS7_RX_IRQHandler,
-	MFS7_TX_IRQHandler,
-	PPG_IRQHandler,
-	OSC_IRQHandler,			/* 40 */
-	ADC0_IRQHandler,
-	ADC1_IRQHandler,
-	ADC2_IRQHandler,
-	MFT012_FR_IRQHandler,	/* 44 */
-	MFT012_IC_IRQHandler,
-	MFT012_OC_IRQHandler,
-	BT0_7_IRQHandler,
-	CAN0_IRQHandler,		/* 48 */
-	CAN1_IRQHandler,
-	USB0_EP_IRQHandler,
-	USB0_CTL_IRQHandler,
-	USB1_EP_IRQHandler,		/* 52 */
-	USB1_CTL_IRQHandler,
-	DMAC0_IRQHandler,
-	DMAC1_IRQHandler,
-	DMAC2_IRQHandler,		/* 56 */
-	DMAC3_IRQHandler,
-	DMAC4_IRQHandler,
-	DMAC5_IRQHandler,
-	DMAC6_IRQHandler,		/* 60 */
-	DMAC7_IRQHandler,
-	BT8_15_IRQHandler
+	&mstk[STACK_SIZE], Reset_Handler, NMI_Handler, HardFault_Hander,
+	MemManage_Handler, BusFault_Handler, UsageFault_Handler, 0,
+	0, 0, 0, SVC_Handler,
+	DebugMon_Handler, 0, PendSV_Handler, SysTick_Handler,
+	FCS_IRQHandler, SWDT_IRQHandler, LVD_IRQHandler, MFT012_WFG_IRQHandler,
+	EXTI0_7_IRQHandler, EXTI8_31_IRQHandler, QPRC012_IRQHandler, MFS0_RX_IRQHandler,
+	MFS0_TX_IRQHandler, MFS1_RX_IRQHandler, MFS1_TX_IRQHandler, MFS2_RX_IRQHandler,
+	MFS2_TX_IRQHandler, MFS3_RX_IRQHandler, MFS3_TX_IRQHandler, MFS4_RX_IRQHandler,
+	MFS4_TX_IRQHandler, MFS5_RX_IRQHandler, MFS5_TX_IRQHandler, MFS6_RX_IRQHandler,
+	MFS6_TX_IRQHandler, MFS7_RX_IRQHandler, MFS7_TX_IRQHandler, PPG_IRQHandler,
+	OSC_IRQHandler, ADC0_IRQHandler, ADC1_IRQHandler, ADC2_IRQHandler,
+	MFT012_FR_IRQHandler, MFT012_IC_IRQHandler, MFT012_OC_IRQHandler, BT0_7_IRQHandler,
+	CAN0_IRQHandler, CAN1_IRQHandler, USB0_EP_IRQHandler, USB0_CTL_IRQHandler,
+	USB1_EP_IRQHandler, USB1_CTL_IRQHandler, DMAC0_IRQHandler, DMAC1_IRQHandler,
+	DMAC2_IRQHandler, DMAC3_IRQHandler, DMAC4_IRQHandler, DMAC5_IRQHandler,
+	DMAC6_IRQHandler, DMAC7_IRQHandler, BT8_15_IRQHandler
 };
 
 

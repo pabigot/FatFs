@@ -24,7 +24,7 @@ void int_SCI3();
 volatile WORD Timer;
 
 /* Real Time Clock */
-volatile BYTE rtcYear = 106, rtcMon = 6, rtcMday = 1, rtcHour, rtcMin, rtcSec;
+volatile BYTE rtcYear = 114, rtcMon = 1, rtcMday = 1, rtcHour, rtcMin, rtcSec;
 
 
 

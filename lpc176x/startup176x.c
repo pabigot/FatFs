@@ -112,60 +112,21 @@ char mstk[STACK_SIZE] __attribute__ ((aligned(8), section(".STACK")));
 / Exception Vector Table for LPC1768                                  /
 /--------------------------------------------------------------------*/
 
-void (*const vector[])(void) __attribute__ ((section(".VECTOR"))) =
+void* const vector[] __attribute__ ((section(".VECTOR"))) =
 {
-	(void(*)(void))(int)&mstk[STACK_SIZE],	/* Initial value of MSP */
-	Reset_Handler,
-	NMI_Handler,
-	HardFault_Hander,
-	MemManage_Handler,
-	BusFault_Handler,
-	UsageFault_Handler,
-	0,	/* Checksum for the entry 0 to 7 (set by flash programmer) */
-	0,
-	0,
-	0,
-	SVC_Handler,
-	DebugMon_Handler,
-	0,
-	PendSV_Handler,
-	SysTick_Handler,
-
-	WDT_IRQHandler,
-	TIMER0_IRQHandler,
-	TIMER1_IRQHandler,
-	TIMER2_IRQHandler,
-	TIMER3_IRQHandler,
-	UART0_IRQHandler,
-	UART1_IRQHandler,
-	UART2_IRQHandler,
-	UART3_IRQHandler,
-	PWM1_IRQHandler,
-	I2C0_IRQHandler,
-	I2C1_IRQHandler,
-	I2C2_IRQHandler,
-	SPI_IRQHandler,
-	SSP0_IRQHandler,
-	SSP1_IRQHandler,
-	PLL0_IRQHandler,
-	RTC_IRQHandler,
-	EINT0_IRQHandler,
-	EINT1_IRQHandler,
-	EINT2_IRQHandler,
-	EINT3_IRQHandler,
-	ADC_IRQHandler,
-	BOD_IRQHandler,
-	USB_IRQHandler,
-	CAN_IRQHandler,
-	GPDMA_IRQHandler,
-	I2S_IRQHandler,
-	ETHER_IRQHandler,
-	RIT_IRQHandler,
-	MCPWM_IRQHandler,
-	QEI_IRQHandler,
-	PLL1_IRQHandler,
-	USBACT_IRQHandler,
-	CANACT_IRQHandler
+	&mstk[STACK_SIZE], Reset_Handler, NMI_Handler, HardFault_Hander,
+	MemManage_Handler, BusFault_Handler, UsageFault_Handler, 0,
+	0, 0, 0, SVC_Handler,
+	DebugMon_Handler, 0, PendSV_Handler, SysTick_Handler,
+	WDT_IRQHandler, TIMER0_IRQHandler, TIMER1_IRQHandler, TIMER2_IRQHandler,
+	TIMER3_IRQHandler, UART0_IRQHandler, UART1_IRQHandler, UART2_IRQHandler,
+	UART3_IRQHandler, PWM1_IRQHandler, I2C0_IRQHandler, I2C1_IRQHandler,
+	I2C2_IRQHandler, SPI_IRQHandler, SSP0_IRQHandler, SSP1_IRQHandler,
+	PLL0_IRQHandler, RTC_IRQHandler, EINT0_IRQHandler, EINT1_IRQHandler,
+	EINT2_IRQHandler, EINT3_IRQHandler, ADC_IRQHandler, BOD_IRQHandler,
+	USB_IRQHandler, CAN_IRQHandler, GPDMA_IRQHandler, I2S_IRQHandler,
+	ETHER_IRQHandler, RIT_IRQHandler, MCPWM_IRQHandler, QEI_IRQHandler,
+	PLL1_IRQHandler, USBACT_IRQHandler, CANACT_IRQHandler
 };
 
 

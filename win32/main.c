@@ -280,7 +280,7 @@ const TCHAR HelpStr[] = {
 		_T(" ft <year> <month> <day> <hour> <min> <sec> <object name> - Change timestamp of an object\n")
 		_T(" fx <src file> <dst file> - Copy a file\n")
 		_T(" fg <path> - Change current directory\n")
-		_T(" fj <ld#> - Change current drive\n")
+		_T(" fj <path> - Change current drive\n")
 		_T(" fq - Show current directory path\n")
 		_T(" fb <name> - Set volume label\n")
 		_T(" fm <ld#> <rule> <cluster size> - Create file system\n")
@@ -305,6 +305,45 @@ int set_console_size (
 		SetConsoleWindowInfo(hCon, TRUE, &rect) ) return 1;
 
 	return 0;
+}
+
+
+
+void get_uni (
+	TCHAR* buf,
+	UINT len
+)
+{
+	UINT i = 0;
+	DWORD n;
+
+
+	for (;;) {
+		ReadConsole(hKey, &buf[i], 1, &n, 0);
+		if (buf[i] == 8) {
+			if (i) i--;
+			continue;
+		}
+		if (buf[i] == 13) {
+			buf[i] = 0;
+			break;
+		}
+		if ((UINT)buf[i] >= ' ' && i < len - 1) i++;
+	}
+}
+
+
+void put_uni (
+	TCHAR* buf
+)
+{
+	DWORD n;
+
+
+	while (*buf) {
+		WriteConsole(hCon, buf, 1, &n, 0);
+		buf++;
+	}
 }
 
 
@@ -372,7 +411,8 @@ int _tmain (int argc, TCHAR *argv[])
 
 	for (;;) {
 		_tprintf(_T(">"));
-		_getts(ptr = Line);	/* Get a line from console */
+		get_uni(Line, sizeof Line / sizeof Line[0]);
+		ptr = Line;
 
 		switch (*ptr++) {	/* Branch by primary command character */
 
@@ -417,24 +457,6 @@ int _tmain (int argc, TCHAR *argv[])
 					_tprintf(_T("Number of sectors = %u\n"), dw);
 				break;
 			}
-
-			case 'x' :	/* dx <src pd#> <src start sector> <src sector count> <dst pd#> <dst start sector> - Initialize physical drive */
-				{
-					long sdrv, ssect, scount, ddrv, dsect, xc, xx;
-
-					if (!xatoi(&ptr, &sdrv) || !xatoi(&ptr, &ssect) || !xatoi(&ptr, &scount) || !xatoi(&ptr, &ddrv) || !xatoi(&ptr, &dsect)) break;
-
-					for (xc = 0; xc < scount; xc += xx, ssect += xx, dsect += xx) {
-						if ((xc % 2048) == 0 && scount >= 128)
-							_tprintf(_T("\r%lu/%lu, %lu%% "), xc, scount, xc / (scount / 100) );
-						xx = (scount - xc >= 128) ? 128 : scount - xc;
-						res = disk_read((BYTE)sdrv, Buff, ssect, (BYTE)xx);
-						if (res) break;
-						res = disk_write((BYTE)ddrv, Buff, dsect, (BYTE)xx);
-						if (res) break;
-					}
-					put_rc(res);
-				}
 			break;
 
 		case 'b' :	/* Buffer control command */
@@ -455,7 +477,8 @@ int _tmain (int argc, TCHAR *argv[])
 				}
 				for (;;) {
 					_tprintf(_T("%04X %02X-"), (WORD)(p1), (WORD)Buff[p1]);
-					_getts(ptr = Line);
+					get_uni(Line, sizeof Line / sizeof Line[0]);
+					ptr = Line;
 					if (*ptr == '.') break;
 					if (*ptr < ' ') { p1++; continue; }
 					if (xatoi(&ptr, &p2))
@@ -487,9 +510,9 @@ int _tmain (int argc, TCHAR *argv[])
 			switch (*ptr++) {	/* Branch by secondary command character */
 
 			case 'i' :	/* fi <ld#> [<mount>] - Force initialized the logical drive */
-				if (!xatoi(&ptr, &p1) || (BYTE)p1 > 9) break;
+				if (!xatoi(&ptr, &p1) || (UINT)p1 > 9) break;
 				if (!xatoi(&ptr, &p2)) p2 = 0;
-				_stprintf(ptr, "%d:", p1);
+				_stprintf(ptr, _T("%d:"), p1);
 				put_rc(f_mount(&FatFs[p1], ptr, (BYTE)p2));
 				break;
 
@@ -564,7 +587,8 @@ int _tmain (int argc, TCHAR *argv[])
 							(Finfo.ftime >> 11), (Finfo.ftime >> 5) & 63, Finfo.fsize, Finfo.fname);
 #if _USE_LFN
 					for (p2 = _tcslen(Finfo.fname); p2 < 12; p2++) _tprintf(_T(" "));
-					_tprintf(_T("  %s"), LFName);
+					_tprintf(_T("  ")); 
+					put_uni(LFName);
 #endif
 					_tprintf(_T("\n"));
 				}
@@ -645,9 +669,8 @@ int _tmain (int argc, TCHAR *argv[])
 				put_rc(f_chdir(ptr));
 				break;
 #if _VOLUMES >= 2
-			case 'j' :	/* fj <ld#> - Change current drive */
-				if (!xatoi(&ptr, &p1) || (UINT)p1 > 9) break;
-				_stprintf(ptr, "%d:", (UINT)p1);
+			case 'j' :	/* fj <path> - Change current drive */
+				while (*ptr == ' ') ptr++;
 				put_rc(f_chdrive(ptr));
 				break;
 #endif
@@ -764,7 +787,7 @@ int _tmain (int argc, TCHAR *argv[])
 			case 'm' :	/* fm <ld#> <partition rule> <cluster size> - Create file system */
 				if (!xatoi(&ptr, &p1) || (UINT)p1 > 9 || !xatoi(&ptr, &p2) || !xatoi(&ptr, &p3)) break;
 				_tprintf(_T("The volume will be formatted. Are you sure? (Y/n)="));
-				_fgetts(ptr, 256, stdin);
+				get_uni(ptr, 256);
 				if (*ptr != 'Y') break;
 				_stprintf(ptr, _T("%u:"), (UINT)p1);
 				put_rc(f_mkfs(ptr, (BYTE)p2, (UINT)p3));

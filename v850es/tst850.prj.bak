@@ -1,0 +1,92 @@
+[ProjectManager]
+Version=6.00
+Path=C:\user\Prj_V850\tst850\
+Title=tst850
+Series=850.PM
+Device=uPD70F3716
+DeviceVer=V1.00
+Target=romp.out
+[Tools]
+MakeFile=tst850.mak
+Debugger=
+DebOption=
+DebCpuReset=1
+DebSymReset=0
+MuitiLoad=0
+LoadPrjNum=0
+CheckVersion=CA850|E3.11a
+[Options.AR850]
+Version=W1.60  [11 Dec 2003]
+[Options.LD850]
+Version=E2.71a [27 Oct 2006]
+MathLib=0
+OutFile0=tst850.out
+[Options.ROMP850]
+Version=E3.50b [29 Jul 2004]
+[Options.HX850]
+Version=E2.21a [25 May 2006]
+OutFile0=tst850.hex
+Format=2
+[Options.LD850 1]
+MathLib=0
+OutFile0=tst850.out
+LinkMap=1
+[Options.HX850 1]
+OutFile0=tst850.hex
+Format=1
+[Options.SF850]
+Version=E2.03a [22 Jan 2004]
+Romp=1
+StartUp=startup.o
+[Options.SF850 1]
+Romp=1
+StartUp=startup.s
+StartUpOptn=0
+LinkDir=tst850.dir
+[SrcFile]
+Source1=main.c
+Source2=mmc_v850es.c
+Source3=ff.c
+Source4=uart_v850es.c
+Source5=xprintf.c
+Source6=cc932.c
+[IncFile]
+Include1=v850es.h
+Include2=integer.h
+Include3=diskio.h
+Include4=ff.h
+Include5=ffconf.h
+Include6=..\..\..\Program Files\NEC Electronics Tools\CA850\E3.11a\inc850\string.h
+Include7=..\..\..\Program Files\NEC Electronics Tools\CA850\E3.11a\inc850\stddef.h
+Include8=uart_v850es.h
+Include9=..\..\..\Program Files\NEC Electronics Tools\CA850\E3.11a\inc850\stdarg.h
+Include10=xprintf.h
+[Options.CA850]
+Version=E3.11a [27 Oct 2006]
+Sconst=1
+Optimize=d
+BuildMode=1
+[Options.CA850 1]
+Pedantic=1
+Warning=2
+CxxCom=1
+OutCodeSet=s
+InlStatic=1
+Sconst=1
+SconstEqual=1
+SconstNum=512
+Optimize=s
+DebugInfo=0
+[Options.AS850]
+Version=E3.50b [23 Jul 2004]
+[Options.AS850 1]
+DebugInfo=0
+[Options.AS850 1 StartUp]
+DebugInfo=0
+[Options.AS850 1 RompCrt]
+DebugInfo=0
+[ToolSet]
+ToolSetName=(ïœçX01)V850 Series Software Package V4.20
+Tool1=CA850|E3.11a
+Tool2=STK850|V2.11
+Tool3=LDG|V1.20

@@ -589,11 +589,9 @@ int main (void)
 				put_rc(f_chdir(ptr));
 				break;
 #if _VOLUMES >= 2
-			case 'j' :	/* fj <ld#> - Change current drive */
-				if (xatoi(&ptr, &p1)) {
-					xsprintf(Line, PSTR("%u:"), (UINT)p1);
-					put_rc(f_chdrive(Line));
-				}
+			case 'j' :	/* fj <path> - Change current drive */
+				while (*ptr == ' ') ptr++;
+				put_rc(f_chdrive(ptr));
 				break;
 #endif
 #if _FS_RPATH >= 2
@@ -684,7 +682,7 @@ int main (void)
 			" ft <year> <month> <day> <hour> <min> <sec> <object name> - Change timestamp of an object\n"
 			" fx <src file> <dst file> - Copy a file\n"
 			" fg <path> - Change current directory\n"
-			" fj <ld#> - Change current drive\n"
+			" fj <path> - Change current drive\n"
 			" fq - Show current directory\n"
 			" fm <ld#> <rule> <cluster size> - Create file system\n"
 			"[Misc commands]\n"

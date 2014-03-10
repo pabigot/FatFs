@@ -1332,8 +1332,6 @@
 /* These are for only privileged mode */
 #define __enable_irq() __asm__ volatile ("CPSIE i\n")
 #define __disable_irq() __asm__ volatile ("CPSID i\n")
-#define __enable_fault_irq() __asm__ volatile ("CPSIE f\n")
-#define __disable_fault_irq() __asm__ volatile ("CPSID f\n")
 #define __enable_irqn(n) ISER[(n) / 32] = 1 << ((n) % 32)
 #define __disable_irqn(n) ICER[(n) / 32] = 1 << ((n) % 32)
 #define __test_irqn_enabled(n) (ISER[(n) / 32] & (1 << ((n) % 32)))
@@ -1454,21 +1452,23 @@ void __set_scs_reg (volatile uint32_t* reg, uint32_t val);	/* Write a register i
 /* Misc Macros                                                  */
 /*--------------------------------------------------------------*/
 
-
+/* Bit definitions */
 #define	_BV(bit) (1<<(bit))
 
-#define	IMPORT_BIN(sect, file, sym) __asm__ (\
-		".section " #sect "\n"\
-		".balign 4\n"\
-		".global " #sym "\n"\
-		#sym ":\n"\
-		".incbin \"" file "\"\n"\
-		".global _sizeof_" #sym "\n"\
-		".set _sizeof_" #sym ", . - " #sym "\n"\
-		".balign 4\n"\
-		".section \".text\"\n")
+/* Import a binary file */
+#define	IMPORT_BIN(sect, file, sym) asm (\
+		".section " #sect "\n"                  /* Change section */\
+		".balign 4\n"                           /* Word alignment */\
+		".global " #sym "\n"                    /* Export the object address to other modules */\
+		#sym ":\n"                              /* Define the object label */\
+		".incbin \"" file "\"\n"                /* Import the file */\
+		".global _sizeof_" #sym "\n"            /* Export the object size to oher modules */\
+		".set _sizeof_" #sym ", . - " #sym "\n" /* Define the object size */\
+		".balign 4\n"                           /* Word alignment */\
+		".section \".text\"\n")                 /* Restore section */
 
-#define	IMPORT_BIN_PART(sect, file, ofs, siz, sym) __asm__ (\
+/* Import a part of binary file */
+#define	IMPORT_BIN_PART(sect, file, ofs, siz, sym) asm (\
 		".section " #sect "\n"\
 		".balign 4\n"\
 		".global " #sym "\n"\
@@ -1478,6 +1478,12 @@ void __set_scs_reg (volatile uint32_t* reg, uint32_t val);	/* Write a register i
 		".set _sizeof_" #sym ", . - " #sym "\n"\
 		".balign 4\n"\
 		".section \".text\"\n")
+
+/* Jump to secondary application */
+#define JUMP_APP(appvt) asm (\
+		"LDR SP, [%0]\n"          /* Initialize SP */\
+		"LDR PC, [%0, #4]\n"      /* Go to reset vector */\
+        : : "r" (appvt))
 
 
 #endif /* __FM3TYPE2 */

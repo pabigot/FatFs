@@ -1025,32 +1025,33 @@
 
 
 /* LPC2300 Power Control */
-#define	__set_PCONP(p,v)	PCONP = (PCONP & ~(1 << (p))) | (1 << (p))
-#define PCTIM0	1
-#define PCTIM1	2
-#define PCUART0	3
-#define PCUART1	4
-#define PCPWM1	6
-#define PCI2C0	7
-#define PCSPI	8
-#define PCRTC	9
-#define PCSSP1	10
-#define PCEMC	11
-#define PCAD	12
-#define PCAN1	13
-#define PCAN2	14
-#define PCI2C1	19
-#define PCSSP0	21
-#define PCTIM2	22
-#define PCTIM3	23
-#define PCUART2	24
-#define PCUART3	25
-#define PCI2C2	26
-#define PCI2S	27
-#define PCSDC	28
-#define PCGPDMA	29
-#define PCENET	30
-#define PCUSB	31
+#define	__set_PCONP(b)	PCONP |= (b)
+#define	__clr_PCONP(b)	PCONP &= ~(b)
+#define PCTIM0	0x00000002
+#define PCTIM1	0x00000004
+#define PCUART0	0x00000008
+#define PCUART1	0x00000010
+#define PCPWM1	0x00000040
+#define PCI2C0	0x00000080
+#define PCSPI	0x00000100
+#define PCRTC	0x00000200
+#define PCSSP1	0x00000400
+#define PCEMC	0x00000800
+#define PCAD	0x00001000
+#define PCAN1	0x00002000
+#define PCAN2	0x00004000
+#define PCI2C1	0x00080000
+#define PCSSP0	0x00200000
+#define PCTIM2	0x00400000
+#define PCTIM3	0x00800000
+#define PCUART2	0x01000000
+#define PCUART3	0x02000000
+#define PCI2C2	0x04000000
+#define PCI2S	0x08000000
+#define PCSDC	0x10000000
+#define PCGPDMA	0x20000000
+#define PCENET	0x40000000
+#define PCUSB	0x80000000
 
 
 
@@ -1058,21 +1059,23 @@
 /* Misc Macros                                                  */
 /*--------------------------------------------------------------*/
 
-
+/* Bit definitions */
 #define	_BV(bit) (1<<(bit))
 
-#define	IMPORT_BIN(sect, file, sym) __asm__ (\
-		".section " #sect "\n"\
-		".balign 4\n"\
-		".global " #sym "\n"\
-		#sym ":\n"\
-		".incbin \"" file "\"\n"\
-		".global _sizeof_" #sym "\n"\
-		".set _sizeof_" #sym ", . - " #sym "\n"\
-		".balign 4\n"\
-		".section \".text\"\n")
+/* Import a binary file */
+#define	IMPORT_BIN(sect, file, sym) asm (\
+		".section " #sect "\n"                  /* Change section */\
+		".balign 4\n"                           /* Word alignment */\
+		".global " #sym "\n"                    /* Export the object address to other modules */\
+		#sym ":\n"                              /* Define the object label */\
+		".incbin \"" file "\"\n"                /* Import the file */\
+		".global _sizeof_" #sym "\n"            /* Export the object size to oher modules */\
+		".set _sizeof_" #sym ", . - " #sym "\n" /* Define the object size */\
+		".balign 4\n"                           /* Word alignment */\
+		".section \".text\"\n")                 /* Restore section */
 
-#define	IMPORT_BIN_PART(sect, file, ofs, siz, sym) __asm__ (\
+/* Import a part of binary file */
+#define	IMPORT_BIN_PART(sect, file, ofs, siz, sym) asm (\
 		".section " #sect "\n"\
 		".balign 4\n"\
 		".global " #sym "\n"\
@@ -1082,6 +1085,7 @@
 		".set _sizeof_" #sym ", . - " #sym "\n"\
 		".balign 4\n"\
 		".section \".text\"\n")
+
 
 
 #endif	/* #ifdef __LPC2300 */

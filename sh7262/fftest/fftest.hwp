@@ -121,7 +121,7 @@
 "C:\user\Prj_Renesas\ff_sh7262\fftest\cc932.c" "User" "C source file" 2 
 "C:\user\Prj_Renesas\ff_sh7262\fftest\ff.c" "User" "C source file" 2 
 "C:\user\Prj_Renesas\ff_sh7262\fftest\main.c" "User" "C source file" 2 
-"C:\user\Prj_Renesas\ff_sh7262\fftest\mmc.c" "User" "C source file" 2 
+"C:\user\Prj_Renesas\ff_sh7262\fftest\mmc_rspi.c" "User" "C source file" 2 
 "C:\user\Prj_Renesas\ff_sh7262\fftest\resetprg.c" "User" "C source file" 2 
 "C:\user\Prj_Renesas\ff_sh7262\fftest\scif.c" "User" "C source file" 2 
 "C:\user\Prj_Renesas\ff_sh7262\fftest\vecttbl.c" "User" "C source file" 2 
@@ -146,7 +146,7 @@
 "C:\user\Prj_Renesas\ff_sh7262\fftest\cc932.c" "0f088b00138fdc10" 2 
 "C:\user\Prj_Renesas\ff_sh7262\fftest\ff.c" "0f088b00138fdc10" 2 
 "C:\user\Prj_Renesas\ff_sh7262\fftest\main.c" "0f088b00138fdc10" 2 
-"C:\user\Prj_Renesas\ff_sh7262\fftest\mmc.c" "0f088b00138fdc10" 2 
+"C:\user\Prj_Renesas\ff_sh7262\fftest\mmc_rspi.c" "0f088b00138fdc10" 2 
 "C:\user\Prj_Renesas\ff_sh7262\fftest\resetprg.c" "0f088b00138fdc10" 2 
 "C:\user\Prj_Renesas\ff_sh7262\fftest\scif.c" "0f088b00138fdc10" 2 
 "C:\user\Prj_Renesas\ff_sh7262\fftest\vecttbl.c" "0f088b00138fdc10" 2 
@@ -172,16 +172,16 @@
 "Assembly source file" "0f088b00138fdc10" 4 
 "Linkage symbol file" "0f088b00138fdc10" 4 
 [OPTIONS_Release_Renesas SH C/C++ Compiler]
-"C source file" "02ad78fa37cbec10" 2 
-"C++ source file" "02ad78fa37cbec10" 3 
-"C:\user\Prj_Renesas\ff_sh7262\fftest\cc932.c" "02ad78fa37cbec10" 2 
-"C:\user\Prj_Renesas\ff_sh7262\fftest\ff.c" "02ad78fa37cbec10" 2 
-"C:\user\Prj_Renesas\ff_sh7262\fftest\main.c" "02ad78fa37cbec10" 2 
-"C:\user\Prj_Renesas\ff_sh7262\fftest\mmc.c" "02ad78fa37cbec10" 2 
-"C:\user\Prj_Renesas\ff_sh7262\fftest\resetprg.c" "02ad78fa37cbec10" 2 
-"C:\user\Prj_Renesas\ff_sh7262\fftest\scif.c" "02ad78fa37cbec10" 2 
-"C:\user\Prj_Renesas\ff_sh7262\fftest\vecttbl.c" "02ad78fa37cbec10" 2 
-"C:\user\Prj_Renesas\ff_sh7262\fftest\xprintf.c" "02ad78fa37cbec10" 2 
+"C source file" "0359741292a0fc10" 2 
+"C++ source file" "0359741292a0fc10" 3 
+"C:\user\Prj_Renesas\ff_sh7262\fftest\cc932.c" "0359741292a0fc10" 2 
+"C:\user\Prj_Renesas\ff_sh7262\fftest\ff.c" "0359741292a0fc10" 2 
+"C:\user\Prj_Renesas\ff_sh7262\fftest\main.c" "0359741292a0fc10" 2 
+"C:\user\Prj_Renesas\ff_sh7262\fftest\mmc_rspi.c" "0359741292a0fc10" 2 
+"C:\user\Prj_Renesas\ff_sh7262\fftest\resetprg.c" "0359741292a0fc10" 2 
+"C:\user\Prj_Renesas\ff_sh7262\fftest\scif.c" "0359741292a0fc10" 2 
+"C:\user\Prj_Renesas\ff_sh7262\fftest\vecttbl.c" "0359741292a0fc10" 2 
+"C:\user\Prj_Renesas\ff_sh7262\fftest\xprintf.c" "0359741292a0fc10" 2 
 [OPTIONS_Release_Renesas SH C/C++ Library Generator]
 "Single Shot" "0f088b00138fdc10" 1 
 [OPTIONS_Release]

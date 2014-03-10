@@ -2,7 +2,7 @@
 /* LPCXpresso176x: MMCv3/SDv1/SDv2 (SPI mode) control module              */
 /*------------------------------------------------------------------------*/
 /*
-/  Copyright (C) 2013, ChaN, all right reserved.
+/  Copyright (C) 2014, ChaN, all right reserved.
 /
 / * This software is a free software and there is NO WARRANTY.
 / * No restriction on use. You can use, modify and redistribute it for
@@ -18,8 +18,8 @@
 #define SCLK_FAST	25000000UL	/* SCLK frequency under normal operation [Hz] */
 #define	SCLK_SLOW	400000UL	/* SCLK frequency under initialization [Hz] */
 
-#define	INS			(!(FIO2PIN1 & _BV(1)))	/* Socket status (true:Inserted, false:Empty) */
-#define	WP			0 /* Card write protection (true:yes, false:no) */
+#define	MMC_CD		(!(FIO2PIN1 & _BV(1)))	/* Card detect (yes:true, no:false, default:true) */
+#define	MMC_WP		0						/* Write protected (yes:true, no:false, default:false) */
 
 #if SSP_CH == 0
 #define	SSPxDR		SSP0DR
@@ -27,10 +27,16 @@
 #define	SSPxCR0		SSP0CR0
 #define	SSPxCR1		SSP0CR1
 #define	SSPxCPSR	SSP0CPSR
-#define	CS_LOW()	{FIO0CLR2 = _BV(2);}	/* Set P0.18 low */
-#define	CS_HIGH()	{FIO0SET2 = _BV(2);}	/* Set P0.18 high */
+#define	CS_LOW()	{FIO0CLR2 = _BV(0);}	/* Set P0.16 low */
+#define	CS_HIGH()	{FIO0SET2 = _BV(0);}	/* Set P0.16 high */
 #define PCSSPx		PCSSP0
 #define	PCLKSSPx	PCLK_SSP0
+#define ATTACH_SSP() {\
+		__set_PINSEL(0, 15, 2);	/* SCK0 */\
+		__set_PINSEL(0, 17, 2);	/* MISO0 */\
+		__set_PINSEL(0, 18, 2);	/* MOSI0 */\
+		FIO0DIR |= _BV(16);		/* CS# (P0.16) */\
+		}
 #elif SSP_CH == 1
 #define	SSPxDR		SSP1DR
 #define	SSPxSR		SSP1SR
@@ -41,6 +47,12 @@
 #define	CS_HIGH()	{FIO0SET0 = _BV(6);}	/* Set P0.6 high */
 #define PCSSPx		PCSSP1
 #define	PCLKSSPx	PCLK_SSP1
+#define ATTACH_SSP() {\
+		__set_PINSEL(0, 7, 2);	/* SCK1 */\
+		__set_PINSEL(0, 8, 2);	/* MISO1 */\
+		__set_PINSEL(0, 9, 2);	/* MOSI1 */\
+		FIO0DIR |= _BV(6);		/* CS# (P0.6) */\
+		}
 #endif
 
 #if PCLK_SSP * 1 == CCLK
@@ -253,22 +265,12 @@ int select (void)	/* 1:OK, 0:Timeout */
 static
 void power_on (void)	/* Enable SSP module and attach it to I/O pads */
 {
-	__set_PCONP(PCSSPx, 1);		/* Enable SSP module */
+	__set_PCONP(PCSSPx, 1);	/* Enable SSP module */
 	__set_PCLKSEL(PCLKSSPx, PCLKDIV_SSP);	/* Select PCLK frequency for SSP */
-	SSPxCR0 = 0x0007;			/* Set mode: SPI mode 0, 8-bit */
-	SSPxCR1 = 0x2;				/* Enable SSP with Master */
-#if SSP_CH == 0
-	__set_PINSEL(0, 15, 2);		/* Attach SCK0 to I/O pad */
-	__set_PINSEL(0, 16, 2);		/* Attach MISO0 to I/O pad */
-	__set_PINSEL(0, 17, 2);		/* Attach MOSI0 to I/O pad */
-	FIO0DIR |= _BV(18);	/* Set CS# as output */
-#elif SSP_CH == 1
-	__set_PINSEL(0, 7, 2);		/* Attach SCK1 to I/O pad */
-	__set_PINSEL(0, 8, 2);		/* Attach MISO1 to I/O pad */
-	__set_PINSEL(0, 9, 2);		/* Attach MOSI1 to I/O pad */
-	FIO0DIR |= _BV(6);	/* Set CS# as output */
-#endif
-	CS_HIGH();					/* Set CS# high */
+	SSPxCR0 = 0x0007;		/* Set mode: SPI mode 0, 8-bit */
+	SSPxCR1 = 0x2;			/* Enable SSP with Master */
+	ATTACH_SSP();			/* Attach SSP module to I/O pads */
+	CS_HIGH();				/* Set CS# high */
 
 	for (Timer1 = 10; Timer1; ) ;	/* 10ms */
 }
@@ -480,24 +482,20 @@ DRESULT disk_read (
 	UINT count		/* Number of sectors to read (1..128) */
 )
 {
+	BYTE cmd;
+
+
 	if (drv || !count) return RES_PARERR;		/* Check parameter */
 	if (Stat & STA_NOINIT) return RES_NOTRDY;	/* Check if drive is ready */
-
 	if (!(CardType & CT_BLOCK)) sector *= 512;	/* LBA ot BA conversion (byte addressing cards) */
 
-	if (count == 1) {	/* Single sector read */
-		if ((send_cmd(CMD17, sector) == 0)	/* READ_SINGLE_BLOCK */
-			&& rcvr_datablock(buff, 512))
-			count = 0;
-	}
-	else {				/* Multiple sector read */
-		if (send_cmd(CMD18, sector) == 0) {	/* READ_MULTIPLE_BLOCK */
-			do {
-				if (!rcvr_datablock(buff, 512)) break;
-				buff += 512;
-			} while (--count);
-			send_cmd(CMD12, 0);				/* STOP_TRANSMISSION */
-		}
+	cmd = count > 1 ? CMD18 : CMD17;			/*  READ_MULTIPLE_BLOCK : READ_SINGLE_BLOCK */
+	if (send_cmd(cmd, sector) == 0) {
+		do {
+			if (!rcvr_datablock(buff, 512)) break;
+			buff += 512;
+		} while (--count);
+		if (cmd == CMD18) send_cmd(CMD12, 0);	/* STOP_TRANSMISSION */
 	}
 	deselect();
 
@@ -685,11 +683,11 @@ void disk_timerproc (void)
 	if (n) Timer2 = --n;
 
 	s = Stat;
-	if (WP)		/* Write protected */
+	if (MMC_WP)	/* Write protected */
 		s |= STA_PROTECT;
 	else		/* Write enabled */
 		s &= ~STA_PROTECT;
-	if (INS)	/* Card is in socket */
+	if (MMC_CD)	/* Card is in socket */
 		s &= ~STA_NODISK;
 	else		/* Socket empty */
 		s |= (STA_NODISK | STA_NOINIT);

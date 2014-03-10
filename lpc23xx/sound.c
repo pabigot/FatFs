@@ -109,7 +109,7 @@ int sound_start (
 	DACR = 0x8000;
 
 	/* Configure TIMER3 as sampling interval timer */
-	__set_PCONP(PCTIM3, 1);		/* Enable TIMER3 module */
+	__set_PCONP(PCTIM3);		/* Enable TIMER3 module */
 	__set_PCLKSEL(PCLK_TIMER3, PCLKDIV_T3);
 	RegisterIrq(TIMER3_IRQn, Isr_TIMER3, PRI_HIGHEST);
 	T3TCR = _BV(1);
@@ -130,7 +130,7 @@ void sound_stop (void)
 	DACR = 0x8000;		/* Return center */
 
 	T3TCR = 0;					/* Stop sampling interrupt (TIMER3) */
-	__set_PCONP(PCTIM3, 0);		/* Disable TIMER3 module */
+	__clr_PCONP(PCTIM3);		/* Disable TIMER3 module */
 
 	WavFifo = 0;		/* Unregister FIFO control structure */
 }

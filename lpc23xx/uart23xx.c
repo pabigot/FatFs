@@ -153,7 +153,7 @@ void uart0_putc (uint8_t d)
 void uart0_init (void)
 {
 	/* Enable UART0 module */
-	__set_PCONP(PCUART0, 1);
+	__set_PCONP(PCUART0);
 	__set_PCLKSEL(PCLK_UART0, PCLKDIV);
 
 	/* Initialize UART */
@@ -293,7 +293,7 @@ void uart1_putc (uint8_t d)
 void uart1_init (void)
 {
 	/* Enable UART1 module */
-	__set_PCONP(PCUART1, 1);
+	__set_PCONP(PCUART1);
 	__set_PCLKSEL(PCLK_UART1, PCLKDIV);
 
 	/* Initialize UART */
@@ -433,7 +433,7 @@ void uart2_putc (uint8_t d)
 void uart2_init (void)
 {
 	/* Enable UART2 module */
-	__set_PCONP(PCUART2, 1);
+	__set_PCONP(PCUART2);
 	__set_PCLKSEL(PCLK_UART2, PCLKDIV);
 
 	/* Initialize UART */
@@ -573,7 +573,7 @@ void uart3_putc (uint8_t d)
 void uart3_init (void)
 {
 	/* Enable UART3 module */
-	__set_PCONP(PCUART3, 1);
+	__set_PCONP(PCUART3);
 	__set_PCLKSEL(PCLK_UART3, PCLKDIV);
 
 	/* Initialize UART */

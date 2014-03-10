@@ -4,7 +4,7 @@
 
 
 #include <string.h>
-#include "uart.h"
+#include "uart_v850es.h"
 #include "xprintf.h"
 #include "diskio.h"
 #include "ff.h"
@@ -140,7 +140,7 @@ FRESULT scan_files (
 				path[i] = '\0';
 				if (res != FR_OK) break;
 			} else {
-			//	xprintf("%s/%s\n", path, fn);
+			/*	xprintf("%s/%s\n", path, fn); */
 				AccFiles++;
 				AccSize += Finfo.fsize;
 			}
@@ -238,13 +238,10 @@ void IoInit ()
 	PMDH = 0x00;
 	PMCCM = 0x02;			/* Enable CLKOUT */
 
-
 	/* Start TM0 in interval time of 1ms */
 	TM0CMP0 = SYSCLK / 1000 - 1;
 	TM0CTL0 = 0x80;
 	TM0EQMK0 = 0;
-
-	uart0_init();		/* Initialize UART driver */
 
 	__EI();
 
@@ -268,11 +265,16 @@ int main (void)
 
 	IoInit();
 
+	uart0_init();		/* Initialize UART driver */
 	xdev_in(uart0_get);
 	xdev_out(uart0_put);
 	xputs("\nFatFs test monitor for V850ES\n");
 	xputs(_USE_LFN ? "LFN Enabled" : "LFN Disabled");
 	xprintf(", Code page: %u\n", _CODE_PAGE);
+#if _USE_LFN
+	Finfo.lfname = Lfname;
+	Finfo.lfsize = sizeof Lfname;
+#endif
 
 	for (;;) {
 		xputc('>');
@@ -704,7 +706,6 @@ int main (void)
 			}
 			break;
 		}
-		break;
 	}
 }
 

@@ -112,7 +112,7 @@
 "C:\user\Prj_Renesas\h8_mmc\h8_mmc\ff.c" "User" "C source file" 0 
 "C:\user\Prj_Renesas\h8_mmc\h8_mmc\intprg.c" "User" "C source file" 2 
 "C:\user\Prj_Renesas\h8_mmc\h8_mmc\main.c" "User" "C source file" 0 
-"C:\user\Prj_Renesas\h8_mmc\h8_mmc\mmc.c" "User" "C source file" 0 
+"C:\user\Prj_Renesas\h8_mmc\h8_mmc\mmc_bb.c" "User" "C source file" 0 
 "C:\user\Prj_Renesas\h8_mmc\h8_mmc\resetprg.c" "User" "C source file" 2 
 "C:\user\Prj_Renesas\h8_mmc\h8_mmc\sci.c" "User" "C source file" 0 
 "C:\user\Prj_Renesas\h8_mmc\h8_mmc\xprintf.c" "User" "C source file" 2 
@@ -134,7 +134,7 @@
 "C:\user\Prj_Renesas\h8_mmc\h8_mmc\ff.c" "0cd1be22b3adac10" 2 
 "C:\user\Prj_Renesas\h8_mmc\h8_mmc\intprg.c" "0cd1be22b3adac10" 2 
 "C:\user\Prj_Renesas\h8_mmc\h8_mmc\main.c" "0cd1be22b3adac10" 2 
-"C:\user\Prj_Renesas\h8_mmc\h8_mmc\mmc.c" "0cd1be22b3adac10" 2 
+"C:\user\Prj_Renesas\h8_mmc\h8_mmc\mmc_bb.c" "0cd1be22b3adac10" 2 
 "C:\user\Prj_Renesas\h8_mmc\h8_mmc\resetprg.c" "0cd1be22b3adac10" 2 
 "C:\user\Prj_Renesas\h8_mmc\h8_mmc\sci.c" "0cd1be22b3adac10" 2 
 "C:\user\Prj_Renesas\h8_mmc\h8_mmc\xprintf.c" "090552c4f9f4cc10" 2 
@@ -154,23 +154,23 @@
 [LINKAGE_ORDER_Debug]
 [GENERAL_DATA_CONFIGURATION_Debug]
 [OPTIONS_Release_Renesas H8S,H8/300 Assembler]
-"Assembly source file" "014d4b3c07cbec10" 4 
-"Linkage symbol file" "014d4b3c07cbec10" 4 
+"Assembly source file" "069cb77e92a0fc10" 4 
+"Linkage symbol file" "069cb77e92a0fc10" 4 
 [OPTIONS_Release_Renesas H8S,H8/300 C/C++ Compiler]
-"C source file" "014d4b3c07cbec10" 2 
-"C++ source file" "014d4b3c07cbec10" 3 
-"C:\user\Prj_Renesas\h8_mmc\h8_mmc\dbsct.c" "014d4b3c07cbec10" 2 
-"C:\user\Prj_Renesas\h8_mmc\h8_mmc\ff.c" "014d4b3c07cbec10" 2 
-"C:\user\Prj_Renesas\h8_mmc\h8_mmc\intprg.c" "014d4b3c07cbec10" 2 
-"C:\user\Prj_Renesas\h8_mmc\h8_mmc\main.c" "014d4b3c07cbec10" 2 
-"C:\user\Prj_Renesas\h8_mmc\h8_mmc\mmc.c" "014d4b3c07cbec10" 2 
-"C:\user\Prj_Renesas\h8_mmc\h8_mmc\resetprg.c" "014d4b3c07cbec10" 2 
-"C:\user\Prj_Renesas\h8_mmc\h8_mmc\sci.c" "014d4b3c07cbec10" 2 
-"C:\user\Prj_Renesas\h8_mmc\h8_mmc\xprintf.c" "014d4b3c07cbec10" 2 
+"C source file" "069cb77e92a0fc10" 2 
+"C++ source file" "069cb77e92a0fc10" 3 
+"C:\user\Prj_Renesas\h8_mmc\h8_mmc\dbsct.c" "069cb77e92a0fc10" 2 
+"C:\user\Prj_Renesas\h8_mmc\h8_mmc\ff.c" "069cb77e92a0fc10" 2 
+"C:\user\Prj_Renesas\h8_mmc\h8_mmc\intprg.c" "069cb77e92a0fc10" 2 
+"C:\user\Prj_Renesas\h8_mmc\h8_mmc\main.c" "069cb77e92a0fc10" 2 
+"C:\user\Prj_Renesas\h8_mmc\h8_mmc\mmc_bb.c" "069cb77e92a0fc10" 2 
+"C:\user\Prj_Renesas\h8_mmc\h8_mmc\resetprg.c" "069cb77e92a0fc10" 2 
+"C:\user\Prj_Renesas\h8_mmc\h8_mmc\sci.c" "069cb77e92a0fc10" 2 
+"C:\user\Prj_Renesas\h8_mmc\h8_mmc\xprintf.c" "069cb77e92a0fc10" 2 
 [OPTIONS_Release_Renesas H8S,H8/300 C/C++ Library Generator]
-"Single Shot" "014d4b3c07cbec10" 1 
+"Single Shot" "069cb77e92a0fc10" 1 
 [OPTIONS_Release_Renesas OptLinker]
-"Single Shot" "014d4b3c07cbec10" 5 
+"Single Shot" "069cb77e92a0fc10" 5 
 [OPTIONS_Release]
 "" 0 
 "[V|VERSION|1] [B|DEBUG|0] [S|OUTPUTPATH|^"$(CONFIGDIR)\$(FILELEAF).obj^"] [B|ERRORPATH|1] [B|CHGINCPATH|1] [S|CPU|300HN] [I|SBR|0000]
