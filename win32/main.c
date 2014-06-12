@@ -1,33 +1,118 @@
 /*---------------------------------------------------------------*/
-/* Petit FAT file system module test program R0.02 (C)ChaN, 2010 */
+/* Petit FAT file system module test program R0.03 (C)ChaN, 2014 */
 /*---------------------------------------------------------------*/
 
 
 #include <string.h>
-#include <stdarg.h>
 #include <stdio.h>
-#include "monitor.h"
 #include "diskio.h"
 #include "pff.h"
 
 
-/*---------------------------------------------------------*/
-/* Work Area                                               */
-/*---------------------------------------------------------*/
+/*--------------------------------------------------------------------------*/
+/* Monitor                                                                  */
+
+/*----------------------------------------------*/
+/* Get a value of the string                    */
+/*----------------------------------------------*/
+/*	"123 -5   0x3ff 0b1111 0377  w "
+	    ^                           1st call returns 123 and next ptr
+	       ^                        2nd call returns -5 and next ptr
+                   ^                3rd call returns 1023 and next ptr
+                          ^         4th call returns 15 and next ptr
+                               ^    5th call returns 255 and next ptr
+                                  ^ 6th call fails and returns 0
+*/
+
+int xatoi (			/* 0:Failed, 1:Successful */
+	char **str,		/* Pointer to pointer to the string */
+	long *res		/* Pointer to a valiable to store the value */
+)
+{
+	unsigned long val;
+	unsigned char r, s = 0;
+	char c;
 
 
-char linebuf[128];		/* Console input buffer */
+	*res = 0;
+	while ((c = **str) == ' ') (*str)++;	/* Skip leading spaces */
 
-BYTE Buff[1024];		/* Working buffer */
+	if (c == '-') {		/* negative? */
+		s = 1;
+		c = *(++(*str));
+	}
+
+	if (c == '0') {
+		c = *(++(*str));
+		switch (c) {
+		case 'x':		/* hexdecimal */
+			r = 16; c = *(++(*str));
+			break;
+		case 'b':		/* binary */
+			r = 2; c = *(++(*str));
+			break;
+		default:
+			if (c <= ' ') return 1;	/* single zero */
+			if (c < '0' || c > '9') return 0;	/* invalid char */
+			r = 8;		/* octal */
+		}
+	} else {
+		if (c < '0' || c > '9') return 0;	/* EOL or invalid char */
+		r = 10;			/* decimal */
+	}
+
+	val = 0;
+	while (c > ' ') {
+		if (c >= 'a') c -= 0x20;
+		c -= '0';
+		if (c >= 17) {
+			c -= 7;
+			if (c <= 9) return 0;	/* invalid char */
+		}
+		if (c >= r) return 0;		/* invalid char for current radix */
+		val = val * r + c;
+		c = *(++(*str));
+	}
+	if (s) val = 0 - val;			/* apply sign if needed */
+
+	*res = val;
+	return 1;
+}
 
 
+/*----------------------------------------------*/
+/* Dump a block of byte array                   */
+
+void put_dump (
+	const unsigned char* buff,	/* Pointer to the byte array to be dumped */
+	unsigned long addr,			/* Heading address value */
+	int cnt						/* Number of bytes to be dumped */
+)
+{
+	int i;
+
+
+	printf("%08lX:", addr);
+
+	for (i = 0; i < cnt; i++)
+		printf(" %02X", buff[i]);
+
+	putchar(' ');
+	for (i = 0; i < cnt; i++)
+		putchar(((buff[i] >= ' ' && buff[i] <= '~') ? buff[i] : '.'));
+
+	putchar('\n');
+}
+
+
+/*----------------------------------------------*/
+/* Put API result code                          */
 
 void put_rc (FRESULT rc)
 {
 	const char *p;
 	static const char str[] =
-		"OK\0" "DISK_ERR\0" "NOT_READY\0" "NO_FILE\0" "NO_PATH\0"
-		"NOT_OPENED\0" "NOT_ENABLED\0" "NO_FILE_SYSTEM\0";
+		"OK\0DISK_ERR\0NOT_READY\0NO_FILE\0NOT_OPENED\0NOT_ENABLED\0NO_FILE_SYSTEM\0";
 	FRESULT i;
 
 	for (p = str, i = 0; i != rc && *p; i++) {
@@ -38,34 +123,30 @@ void put_rc (FRESULT rc)
 
 
 
-
-
 /*-----------------------------------------------------------------------*/
 /* Main                                                                  */
 
 
 int main (int argc, char *argv[])
 {
-	char *ptr;
+	char *ptr, line[128];
 	long p1, p2, p3;
-	BYTE res;
-	UINT s1, s2, ofs;
-	WORD w, cnt;
+	BYTE res, buff[1024];
+	UINT w, cnt, s1, s2, ofs;
 	FATFS fs;			/* File system object */
 	DIR dir;			/* Directory object */
 	FILINFO fno;		/* File information */
 
 
+	printf("Petit FatFs module test monitor for Windows2k/XP\n");
 	if (!assign_drives(argc, argv)) {
-		printf("\nUsage: ffdev <phy drv#> [<phy drv#>] ...\n");
+		printf("\nUsage: pffdev <pd#>\n<pd#> is the physical drive number recognized as \\\\.\\PhysicalDrive<pd#>\n");
 		return 2;
 	}
 
-	printf("\nPetit FatFs module test monitor on Win32\n");
-
 	for (;;) {
 		printf(">");
-		gets(ptr = linebuf);
+		gets(ptr = line);
 
 		switch (*ptr++) {
 
@@ -84,11 +165,11 @@ int main (int argc, char *argv[])
 			case 'd' :	/* dd <sector> <ofs> <count> - Dump secrtor */
 				if (!xatoi(&ptr, &p1) || !xatoi(&ptr, &p2) || !xatoi(&ptr, &p3)) break;
 				p2 %= 512;
-				res = disk_readp(Buff, p1, (WORD)p2, (WORD)p3);
-				if (res) { printf("rc=%d\n", (WORD)res); break; }
+				res = disk_readp(buff, p1, (UINT)p2, (UINT)p3);
+				if (res) { printf("rc=%d\n", res); break; }
 				printf("Sector:%lu\n", p1);
 				p3 = p2 + p3;
-				for (ptr=(char*)Buff; p2 < p3; ptr+=16, p2+=16) {
+				for (ptr=(char*)buff; p2 < p3; ptr+=16, p2+=16) {
 					if (p3 - p2 >= 16) 
 						put_dump((BYTE*)ptr, p2, 16);
 					else
@@ -98,10 +179,10 @@ int main (int argc, char *argv[])
 
 			case 'w' :	/* dw <sector> <count> <dat> - Write sector */
 				if (!xatoi(&ptr, &p1) || !xatoi(&ptr, &p2) || !xatoi(&ptr, &p3)) break;
-				memset(Buff, (BYTE)p3, 512);
+				memset(buff, (BYTE)p3, 512);
 				res = disk_writep(0, p1);
 				if (res) { printf("rc=%d\n", res); break; }
-				res = disk_writep(Buff, p2);
+				res = disk_writep(buff, p2);
 				if (res) { printf("rc=%d\n", res); break; }
 				res = disk_writep(0, 0);
 				if (res) { printf("rc=%d\n", res); break; }
@@ -126,8 +207,7 @@ int main (int argc, char *argv[])
 				printf("FAT type = %u\nBytes/Cluster = %lu\n"
 						"Root DIR entries = %u\nNumber of clusters = %lu\n"
 						"FAT start (lba) = %lu\nDIR start (lba,clustor) = %lu\nData start (lba) = %lu\n\n",
-						(WORD)fs.fs_type,
-						(DWORD)fs.csize * 512,
+						fs.fs_type, (DWORD)fs.csize * 512,
 						fs.n_rootdir, (DWORD)fs.n_fatent - 2,
 						fs.fatbase, fs.dirbase, fs.database
 				);
@@ -175,12 +255,12 @@ int main (int argc, char *argv[])
 				if (!xatoi(&ptr, &p1)) break;
 				p2 =0;
 				while (p1) {
-					if ((UINT)p1 >= sizeof(Buff)) {
-						cnt = sizeof(Buff); p1 -= sizeof(Buff);
+					if ((UINT)p1 >= sizeof buff) {
+						cnt = sizeof buff; p1 -= sizeof buff;
 					} else {
-						cnt = (WORD)p1; p1 = 0;
+						cnt = (UINT)p1; p1 = 0;
 					}
-					res = pf_read(Buff, cnt, &w);
+					res = pf_read(buff, cnt, &w);
 					if (res != FR_OK) { put_rc(res); break; }
 					p2 += w;
 					if (cnt != w) break;
@@ -190,15 +270,15 @@ int main (int argc, char *argv[])
 
 			case 'w' :	/* fw <len> <dat> - Read the file */
 				if (!xatoi(&ptr, &p1) || !xatoi(&ptr, &p2)) break;
-				memset(Buff, (BYTE)p2, sizeof(Buff));
+				memset(buff, (BYTE)p2, sizeof buff);
 				p3 =0;
 				while (p1) {
-					if ((UINT)p1 >= sizeof(Buff)) {
-						cnt = sizeof(Buff); p1 -= sizeof(Buff);
+					if ((UINT)p1 >= sizeof buff) {
+						cnt = sizeof buff; p1 -= sizeof buff;
 					} else {
-						cnt = (WORD)p1; p1 = 0;
+						cnt = (UINT)p1; p1 = 0;
 					}
-					res = pf_write(Buff, cnt, &w);
+					res = pf_write(buff, cnt, &w);
 					if (res != FR_OK) { put_rc(res); break; }
 					p3 += w;
 					if (cnt != w) break;
@@ -213,20 +293,20 @@ int main (int argc, char *argv[])
 				ofs = fs.fptr;
 				while (p1) {
 					if ((UINT)p1 >= 16) { cnt = 16; p1 -= 16; }
-					else 				{ cnt = (WORD)p1; p1 = 0; }
-					res = pf_read(Buff, cnt, &w);
+					else 				{ cnt = (UINT)p1; p1 = 0; }
+					res = pf_read(buff, cnt, &w);
 					if (res != FR_OK) { put_rc(res); break; }
 					if (!w) break;
-					put_dump(Buff, ofs, cnt);
+					put_dump(buff, ofs, cnt);
 					ofs += 16;
 				}
 				break;
 
 			case 't' :	/* ft - Type the file via streaming function */
 				do {
-					res = pf_read(0, 32768, &w);
+					res = pf_read(0, 16384, &w);
 					if (res != FR_OK) { put_rc(res); break; }
-				} while (w == 32768);
+				} while (w == 16384);
 				break;
 
 			}

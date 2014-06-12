@@ -1,13 +1,13 @@
-Petit FatFs Module Sample Projects                             (C)ChaN, 2010
+Petit FatFs Module Sample Projects
 
 
 DIRECTORIES
 
   <generic>   Generic microcontrollers with MMC
-  <avr>       ATMEL AVR (ATtiny85,8-bit,RISC) with MMC
+  <avr>       ATMEL AVR (ATtiny85) with MMC
   <avr_boot>  ATMEL AVR generic MMC boot loader
-  <pic>       Microchip PIC (PIC24FJ46GA002,16-bit,RISC) with MMC
-  <win32>     Windows (VC++ 6.0)
+  <pic>       Microchip PIC (PIC24FJ46GA002) with MMC
+  <win32>     Windows 2000/XP (VC++)
 
   These are sample projects for function/compatibility test of FatFs module
   with low level disk I/O codes.
@@ -24,9 +24,10 @@ AGREEMENTS
 
 REVISION HISTORY
 
-  Jun 15, 2009  First release. (branched from FatFs R0.07b)
+  Jun 15, 2009  First release.
   Dec 14, 2009  Modified for R0.02
   Oct 23, 2010  Added a sample of generic uC
   Dec 3,  2010  Added a sample for PIC devices.
   Dec 7,  2010  Added a generic MMC boot loader for AVR devices.
+  Jun 10, 2014  Modified for R0.03
 

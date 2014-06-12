@@ -43,10 +43,10 @@ file_003=no
 file_004=no
 [FILE_INFO]
 file_000=main.c
-file_001=mmc.c
-file_002=monitor.c
-file_003=pff.c
-file_004=uart.c
+file_001=pic24_mmcp.c
+file_002=pff.c
+file_003=uart.c
+file_004=xprintf.c
 [SUITE_INFO]
 suite_guid={479DDE59-4D56-455E-855E-FFF59A3DB57E}
 suite_state=

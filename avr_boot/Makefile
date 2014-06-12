@@ -10,7 +10,7 @@ F_CPU       = 8000000	# CPU clock frequency [Hz]
 #------------------------------------------------------------------
 
 TARGET      = avr_boot
-CSRC        = main.c pff.c mmc.c
+CSRC        = main.c pff.c mmcbbp.c
 ASRC        = asmfunc.S
 OPTIMIZE    = -Os -mcall-prologues
 DEFS        = -DBOOT_ADR=$(BOOT_ADR) -DF_CPU=$(F_CPU)

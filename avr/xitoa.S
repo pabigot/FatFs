@@ -67,8 +67,10 @@ xputc:
 	push	ZL
 	lds	ZL, xfunc_out+0	;Pointer to the registered output function.
 	lds	ZH, xfunc_out+1	;/
+	sbiw	ZL, 0		;Skip if null
+	breq	2f		;/
 	icall
-	pop	ZL
+2:	pop	ZL
 	pop	ZH
 	ret
 .endfunc
@@ -347,7 +349,7 @@ xsprintf:
 #endif
 
 
-#if USE_XDPRINTF
+#if USE_XFPRINTF
 .func xfprintf
 .global xfprintf
 xfprintf:

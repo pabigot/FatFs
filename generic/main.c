@@ -24,7 +24,7 @@ int main (void)
 	FATFS fatfs;			/* File system object */
 	DIR dir;				/* Directory object */
 	FILINFO fno;			/* File information object */
-	WORD bw, br, i;
+	UINT bw, br, i;
 	BYTE buff[64];
 
 
@@ -81,20 +81,4 @@ int main (void)
 
 	printf("\nTest completed.\n");
 	for (;;) ;
-}
-
-
-
-/*---------------------------------------------------------*/
-/* User Provided Timer Function for FatFs module           */
-/*---------------------------------------------------------*/
-
-DWORD get_fattime (void)
-{
-	return	  ((DWORD)(2010 - 1980) << 25)	/* Fixed to Jan. 1, 2010 */
-			| ((DWORD)1 << 21)
-			| ((DWORD)1 << 16)
-			| ((DWORD)0 << 11)
-			| ((DWORD)0 << 5)
-			| ((DWORD)0 >> 1);
 }

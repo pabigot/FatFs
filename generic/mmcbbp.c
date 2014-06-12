@@ -2,7 +2,7 @@
 /  Bitbanging MMCv3/SDv1/SDv2 (in SPI mode) control module for PFF
 /-------------------------------------------------------------------------/
 /
-/  Copyright (C) 2010, ChaN, all right reserved.
+/  Copyright (C) 2014, ChaN, all right reserved.
 /
 / * This software is a free software and there is NO WARRANTY.
 / * No restriction on use. You can use, modify and redistribute it for
@@ -40,7 +40,7 @@
 #define	CK_L()		bclr(P1)	/* Set MMC SCLK "low" */
 #define DI_H()		bset(P2)	/* Set MMC DI "high" */
 #define DI_L()		bclr(P2)	/* Set MMC DI "low" */
-#define DO			btest(P3)	/* Get MMC DO value (high:true, low:false) */
+#define DO			btest(P3)	/* Test MMC DO (high:true, low:false) */
 
 
 
@@ -144,7 +144,7 @@ BYTE rcvr_mmc (void)
 
 static
 void skip_mmc (
-	WORD n		/* Number of bytes to skip */
+	UINT n		/* Number of bytes to skip */
 )
 {
 	DI_H();	/* Send 0xFF */
@@ -238,7 +238,6 @@ DSTATUS disk_initialize (void)
 
 
 	INIT_PORT();
-
 	CS_H();
 	skip_mmc(10);			/* Dummy clocks */
 
@@ -284,20 +283,20 @@ DSTATUS disk_initialize (void)
 
 DRESULT disk_readp (
 	BYTE *buff,		/* Pointer to the read buffer (NULL:Read bytes are forwarded to the stream) */
-	DWORD lba,		/* Sector number (LBA) */
-	WORD ofs,		/* Byte offset to read from (0..511) */
-	WORD cnt		/* Number of bytes to read (ofs + cnt mus be <= 512) */
+	DWORD sector,	/* Sector number (LBA) */
+	UINT offset,	/* Byte offset to read from (0..511) */
+	UINT count		/* Number of bytes to read (ofs + cnt mus be <= 512) */
 )
 {
 	DRESULT res;
 	BYTE d;
-	WORD bc, tmr;
+	UINT bc, tmr;
 
 
-	if (!(CardType & CT_BLOCK)) lba *= 512;		/* Convert to byte address if needed */
+	if (!(CardType & CT_BLOCK)) sector *= 512;	/* Convert to byte address if needed */
 
 	res = RES_ERROR;
-	if (send_cmd(CMD17, lba) == 0) {		/* READ_SINGLE_BLOCK */
+	if (send_cmd(CMD17, sector) == 0) {		/* READ_SINGLE_BLOCK */
 
 		tmr = 1000;
 		do {							/* Wait for data packet in timeout of 100ms */
@@ -306,21 +305,21 @@ DRESULT disk_readp (
 		} while (d == 0xFF && --tmr);
 
 		if (d == 0xFE) {				/* A data packet arrived */
-			bc = 514 - ofs - cnt;
+			bc = 514 - offset - count;
 
 			/* Skip leading bytes */
-			if (ofs) skip_mmc(ofs);
+			if (offset) skip_mmc(offset);
 
 			/* Receive a part of the sector */
 			if (buff) {	/* Store data to the memory */
 				do
 					*buff++ = rcvr_mmc();
-				while (--cnt);
+				while (--count);
 			} else {	/* Forward data to the outgoing stream */
 				do {
 					d = rcvr_mmc();
 					FORWARD(d);
-				} while (--cnt);
+				} while (--count);
 			}
 
 			/* Skip trailing bytes and CRC */
@@ -344,32 +343,32 @@ DRESULT disk_readp (
 
 DRESULT disk_writep (
 	const BYTE *buff,	/* Pointer to the bytes to be written (NULL:Initiate/Finalize sector write) */
-	DWORD sa			/* Number of bytes to send, Sector number (LBA) or zero */
+	DWORD sc			/* Number of bytes to send, Sector number (LBA) or zero */
 )
 {
 	DRESULT res;
-	WORD bc, tmr;
-	static WORD wc;
+	UINT bc, tmr;
+	static UINT wc;
 
 
 	res = RES_ERROR;
 
 	if (buff) {		/* Send data bytes */
-		bc = (WORD)sa;
+		bc = (UINT)sc;
 		while (bc && wc) {		/* Send data bytes to the card */
 			xmit_mmc(*buff++);
 			wc--; bc--;
 		}
 		res = RES_OK;
 	} else {
-		if (sa) {	/* Initiate sector write process */
-			if (!(CardType & CT_BLOCK)) sa *= 512;	/* Convert to byte address if needed */
-			if (send_cmd(CMD24, sa) == 0) {			/* WRITE_SINGLE_BLOCK */
+		if (sc) {	/* Initiate sector write transaction */
+			if (!(CardType & CT_BLOCK)) sc *= 512;	/* Convert to byte address if needed */
+			if (send_cmd(CMD24, sc) == 0) {			/* WRITE_SINGLE_BLOCK */
 				xmit_mmc(0xFF); xmit_mmc(0xFE);		/* Data block header */
 				wc = 512;							/* Set byte counter */
 				res = RES_OK;
 			}
-		} else {	/* Finalize sector write process */
+		} else {	/* Finalize sector write transaction */
 			bc = wc + 2;
 			while (bc--) xmit_mmc(0);	/* Fill left bytes and CRC with zeros */
 			if ((rcvr_mmc() & 0x1F) == 0x05) {	/* Receive data resp and wait for end of write process in timeout of 300ms */

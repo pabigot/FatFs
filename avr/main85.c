@@ -1,18 +1,20 @@
 /*---------------------------------------------------------------*/
-/* Petit FAT file system module test program R0.03 (C)ChaN, 2014 */
+/* Petit FAT file system module test program (C)ChaN, 2012       */
 /*---------------------------------------------------------------*/
 
-#include <string.h>
-#include <p24FJ64GA002.h>
-#include "pic24f.h"
-#include "uart.h"
-#include "xprintf.h"
+#include <avr/io.h>
+#include <avr/pgmspace.h>
 #include "diskio.h"
 #include "pff.h"
+#include "xitoa.h"
+#include "suart.h"
 
 
-_CONFIG1(JTAGEN_OFF & GCP_OFF & GWRP_OFF & BKBUG_OFF & COE_OFF & ICS_PGx1 & FWDTEN_OFF & WINDIS_OFF & FWPSA_PR32 & WDTPS_PS32768)
-_CONFIG2(IESO_OFF & FNOSC_PRIPLL & FCKSM_CSDCMD & OSCIOFNC_OFF & IOL1WAY_OFF & I2C1SEL_PRI & POSCMOD_HS)
+FUSES = {0xE2, 0xDD, 0xFF};	/* ATtiny25/45/85 fuses: low, high, extended.
+This is the fuse settings of this project. The fuse data will be included
+in the output hex file with program code. However some old flash programmers
+cannot load the fuse bits from hex file. If it is the case, remove this line
+and use these values to program the fuse bits. */
 
 
 /*---------------------------------------------------------*/
@@ -23,19 +25,19 @@ _CONFIG2(IESO_OFF & FNOSC_PRIPLL & FCKSM_CSDCMD & OSCIOFNC_OFF & IOL1WAY_OFF & I
 char Line[128];		/* Console input buffer */
 
 
-
 static
 void put_rc (FRESULT rc)
 {
-	const char *p;
+	const prog_char *p;
+	static const prog_char str[] =
+		"OK\0" "DISK_ERR\0" "NOT_READY\0" "NO_FILE\0" "NO_PATH\0"
+		"NOT_OPENED\0" "NOT_ENABLED\0" "NO_FILE_SYSTEM\0";
 	FRESULT i;
-	static const char str[] =
-		"OK\0DISK_ERR\0NOT_READY\0NO_FILE\0NOT_OPENED\0NOT_ENABLED\0NO_FILE_SYSTEM\0";
 
-	for (p = str, i = 0; i != rc && *p; i++) {
-		while(*p++) ;
+	for (p = str, i = 0; i != rc && pgm_read_byte_near(p); i++) {
+		while(pgm_read_byte_near(p++));
 	}
-	xprintf("rc=%u FR_%S\n", rc, p);
+	xprintf(PSTR("rc=%u FR_%S\n"), (WORD)rc, p);
 }
 
 
@@ -43,65 +45,76 @@ void put_rc (FRESULT rc)
 static
 void put_drc (BYTE res)
 {
-	xprintf("rc=%d\n", res);
+	xprintf(PSTR("rc=%d\n"), res);
 }
 
 
 
 static
-void IoInit (void)
+int get_line (char *buff, int len)
 {
-	/* Initialize GPIO ports */
-	AD1PCFG = 0x1FFF;
-	LATB =  0xD00C;
-	TRISB = 0x1C08;
-	LATA =  0x0001;
-	TRISA = 0x0000;
-	_CN15PUE = 1;
-	_CN16PUE = 1;
+	BYTE c;
+	int i;
 
-	/* Attach UART1 module to I/O pads */
-	RPOR1 = 0x0003;		/* U1TX -- RP2 */
-	RPINR18 = 0x1F03;	/* U1RX -- RP3 */
+	i = 0;
+	for (;;) {
+		c = rcvr();
+		if (c == '\r') break;
+		if ((c == '\b') && i) i--;
+		if ((c >= ' ') && (i < len - 1))
+				buff[i++] = c;
+	}
+	buff[i] = 0;
+	xmit('\n');
 
-	/* Attach SPI1 module to I/O pads */
-	RPINR20 = 0x1F0C;	/* SDI1 -- RP12 */
-	RPOR6 = 0x0800;		/* SCK1OUT -- RP13 */
-	RPOR7 = 0x0007;		/* SDO1 -- RP14 */
-
-	_EI();
-
-	uart_init();	/* Initialize UART driver */
-
-	_LATA0 = 0;		/* LED ON */
+	return i;
 }
+
+
+
+static
+void put_dump (const BYTE *buff, DWORD ofs, int cnt)
+{
+	BYTE n;
+
+
+	xitoa(ofs, 16, -8); xputc(' ');
+	for(n = 0; n < cnt; n++) {
+		xputc(' ');	xitoa(buff[n], 16, -2); 
+	}
+	xputs(PSTR("  "));
+	for(n = 0; n < cnt; n++)
+		xputc(((buff[n] < 0x20)||(buff[n] >= 0x7F)) ? '.' : buff[n]);
+	xputc('\n');
+}
+
 
 
 /*-----------------------------------------------------------------------*/
 /* Main                                                                  */
 
-void dly_100us (void);
-
 int main (void)
 {
 	char *ptr;
 	long p1, p2;
+	int n;
 	BYTE res;
-	UINT s1, s2, s3, ofs, cnt, w;
+	UINT s1, s2, s3, ofs, cnt, bw;
 	FATFS fs;			/* File system object */
 	DIR dir;			/* Directory object */
 	FILINFO fno;		/* File information */
 
+	/* Initialize GPIO ports */
+	PORTB = 0b101011;	/* u z H L H u */
+	DDRB =  0b001110;
 
-	IoInit();
-
-	xdev_out(uart_put);
-	xdev_in(uart_get);
-	xputs("\nPetit FatFs test monitor\n");
+	/* Join UART and xitoa module */
+	xfunc_out = xmit;
+	xputs(PSTR("\nPFF test monitor\n"));
 
 	for (;;) {
 		xputc('>');
-		xgets(Line, sizeof Line);
+		get_line(Line, sizeof Line);
 		ptr = Line;
 
 		switch (*ptr++) {
@@ -121,7 +134,7 @@ int main (void)
 				s3 = s2 + 128;
 				for (ptr = Line; s2 < s3; s2 += 16, ptr += 16, ofs += 16) {
 					s1 = (s3 - s2 >= 16) ? 16 : s3 - s2;
-					put_dump((BYTE*)ptr, s2, s1, 16);
+					put_dump((BYTE*)ptr, s2, s1);
 				}
 				break;
 			}
@@ -140,19 +153,19 @@ int main (void)
 				break;
 #if _USE_READ
 			case 'd' :	/* fd - Read the file 128 bytes and dump it */
-				ofs = fs.fptr;
+				p2 = fs.fptr;
 				res = pf_read(Line, sizeof Line, &s1);
 				if (res != FR_OK) { put_rc(res); break; }
 				ptr = Line;
 				while (s1) {
 					s2 = (s1 >= 16) ? 16 : s1;
 					s1 -= s2;
-					put_dump((BYTE*)ptr, ofs, s2, DW_CHAR);
-					ptr += 16; ofs += 16;
+					put_dump((BYTE*)ptr, p2, s2);
+					ptr += 16; p2 += 16;
 				}
 				break;
 
-			case 't' :	/* ft - Type the file data via dreadp function */
+			case 't' :	/* ft - Type the file text (direct output) */
 				do {
 					res = pf_read(0, 32768, &s1);
 					if (res != FR_OK) { put_rc(res); break; }
@@ -168,29 +181,28 @@ int main (void)
 					if ((UINT)p1 >= sizeof Line) {
 						cnt = sizeof Line; p1 -= sizeof Line;
 					} else {
-						cnt = (UINT)p1; p1 = 0;
+						cnt = (WORD)p1; p1 = 0;
 					}
-					res = pf_write(Line, cnt, &w);	/* Write data to the file */
-					p2 += w;
+					res = pf_write(Line, cnt, &bw);	/* Write data to the file */
+					p2 += bw;
 					if (res != FR_OK) { put_rc(res); break; }
-					if (cnt != w) break;
+					if (cnt != bw) break;
 				}
-				res = pf_write(0, 0, &w);		/* Finalize the write process */
+				res = pf_write(0, 0, &bw);		/* Finalize the write process */
 				put_rc(res);
 				if (res == FR_OK)
-					xprintf("%lu bytes written.\n", p2);
+					xprintf(PSTR("%lu bytes written.\n"), p2);
 				break;
 
 			case 'p' :	/* fp - Write console input to the file */
-				xputs("Enter lines to write. A blank line finalize the write operation.\n");
+				xputs(PSTR("Enter text to write. A blank line finalizes the write operation.\n"));
 				for (;;) {
-					xgets(Line, sizeof Line);
-					if (!Line[0]) break;
-					strcat(Line, "\r\n");
-					res = pf_write(Line, strlen(Line), &w);	/* Write a line to the file */
-					if (res) break;
+					n = get_line(Line, sizeof Line);
+					if (!n) break;
+					pf_write(Line, n, &bw);
+					pf_write("\r\n", 2, &bw);
 				}
-				res = pf_write(0, 0, &w);		/* Finalize the write process */
+				res = pf_write(0, 0, &bw);			/* Finalize the write process */
 				put_rc(res);
 				break;
 #endif
@@ -200,7 +212,7 @@ int main (void)
 				res = pf_lseek(p1);
 				put_rc(res);
 				if (res == FR_OK)
-					xprintf("fptr = %lu(0x%lX)\n", fs.fptr, fs.fptr);
+					xprintf(PSTR("fptr = %lu(0x%lX)\n"), fs.fptr, fs.fptr);
 				break;
 #endif
 #if _USE_DIR
@@ -214,12 +226,12 @@ int main (void)
 					if (res != FR_OK) { put_rc(res); break; }
 					if (!fno.fname[0]) break;
 					if (fno.fattrib & AM_DIR)
-						xprintf("   <DIR>   %s\n", fno.fname);
+						xprintf(PSTR("   <DIR>   %s\n"), fno.fname);
 					else
-						xprintf("%9lu  %s\n", fno.fsize, fno.fname);
+						xprintf(PSTR("%9lu  %s\n"), fno.fsize, fno.fname);
 					s1++;
 				}
-				xprintf("%u item(s)\n", s1);
+				xprintf(PSTR("%u item(s)\n"), s1);
 				break;
 #endif
 			}

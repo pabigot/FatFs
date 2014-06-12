@@ -1,17 +1,14 @@
 /*-----------------------------------------------------------------------/
-/  PFF - Generic low level disk control module            (C)ChaN, 2010
+/  PFF - Generic low level disk control module            (C)ChaN, 2014
 /------------------------------------------------------------------------/
 /
-/  Copyright (C) 2010, ChaN, all right reserved.
+/  Copyright (C) 2014, ChaN, all right reserved.
 /
 / * This software is a free software and there is NO WARRANTY.
 / * No restriction on use. You can use, modify and redistribute it for
 /   personal, non-profit or commercial products UNDER YOUR RESPONSIBILITY.
 / * Redistributions of source code must retain the above copyright notice.
-/
-/------------------------------------------------------------------------/
-/* Dec 6, 2010  First release
-*/
+/-----------------------------------------------------------------------*/
 
 #include "pff.h"
 #include "diskio.h"
@@ -155,20 +152,20 @@ DSTATUS disk_initialize (void)
 
 DRESULT disk_readp (
 	BYTE *buff,		/* Pointer to the read buffer (NULL:Read bytes are forwarded to the stream) */
-	DWORD lba,		/* Sector number (LBA) */
-	WORD ofs,		/* Byte offset to read from (0..511) */
-	WORD cnt		/* Number of bytes to read (ofs + cnt mus be <= 512) */
+	DWORD sector,	/* Sector number (LBA) */
+	UINT offset,	/* Byte offset to read from (0..511) */
+	UINT count		/* Number of bytes to read (ofs + cnt mus be <= 512) */
 )
 {
 	DRESULT res;
 	BYTE rc;
-	WORD bc;
+	UINT bc;
 
 
-	if (!(CardType & CT_BLOCK)) lba *= 512;		/* Convert to byte address if needed */
+	if (!(CardType & CT_BLOCK)) sector *= 512;	/* Convert to byte address if needed */
 
 	res = RES_ERROR;
-	if (send_cmd(CMD17, lba) == 0) {		/* READ_SINGLE_BLOCK */
+	if (send_cmd(CMD17, sector) == 0) {		/* READ_SINGLE_BLOCK */
 
 		bc = 40000;
 		do {							/* Wait for data packet */
@@ -176,17 +173,17 @@ DRESULT disk_readp (
 		} while (rc == 0xFF && --bc);
 
 		if (rc == 0xFE) {				/* A data packet arrived */
-			bc = 514 - ofs - cnt;
+			bc = 514 - offset - count;
 
 			/* Skip leading bytes */
-			if (ofs) {
-				do rcv_spi(); while (--ofs);
+			if (offset) {
+				do rcv_spi(); while (--offset);
 			}
 
 			/* Receive a part of the sector */
 			do {
 				*buff++ = rcv_spi();
-			} while (--cnt);
+			} while (--count);
 
 			/* Skip trailing bytes and CRC */
 			do rcv_spi(); while (--bc);

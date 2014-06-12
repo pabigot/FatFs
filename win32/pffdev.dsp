@@ -89,15 +89,11 @@ SOURCE=.\diskio.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\monitor.c
+SOURCE=.\main.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\pff.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\pffdev.c
 # End Source File
 # End Group
 # Begin Group "Header Files"
@@ -113,11 +109,11 @@ SOURCE=.\integer.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\monitor.h
+SOURCE=.\pff.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\pff.h
+SOURCE=.\pffconf.h
 # End Source File
 # End Group
 # Begin Group "Resource Files"

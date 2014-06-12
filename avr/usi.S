@@ -24,17 +24,17 @@ init_spi:
 ;---------------------------------------------------------------------------;
 ; Delay 100 microseconds
 ;
-; void dly_us (UINT n);
+; void dly_100us (void);
 
 .global dly_100us
 .func dly_100us
 dly_100us:
 	ldi	r24, lo8(F_CPU / 100000)	/* Loop counter */
-1:	sbiw	r30, 1		/* 10 clocks per loop */
+	ldi	r25, hi8(F_CPU / 100000)
+1:	sbiw	r30, 1		/* 10 clocks a loop */
 	sbiw	r30, 1
 	sbiw	r30, 1
-	nop
-	dec	r24
+	sbiw	r24, 1
 	brne	1b
 	ret
 .endfunc

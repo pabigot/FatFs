@@ -1,9 +1,10 @@
 /*-------------------------------------------------------------------------*/
-/* PFF - Low level disk control module for PIC            (C)ChaN, 2010    */
+/* PFF - Low level disk control module for PIC            (C)ChaN, 2014    */
 /*-------------------------------------------------------------------------*/
 
 #include "pff.h"
 #include "diskio.h"
+#include "uart.h"
 
 /*-------------------------------------------------------------------------*/
 /* Platform dependent macros and functions needed to be modified           */
@@ -35,7 +36,7 @@ void dly_100us (void)		/* Delay 100 microseconds */
 }
 
 static
-void xmit_spi (BYTE d)		/* Send a byte to the MMC */
+void xmit_spi (BYTE d)		/* Send a byte to the SDC/MMC */
 {
 	SPI1BUF = d;
 	while (!_SPIRBF) ;
@@ -43,12 +44,13 @@ void xmit_spi (BYTE d)		/* Send a byte to the MMC */
 }
 
 static
-BYTE rcv_spi (void)			/* Send a 0xFF to the MMC and get the received byte */
+BYTE rcv_spi (void)			/* Send a 0xFF to the SDC/MMC and get the received byte */
 {
 	SPI1BUF = 0xFF;
 	while (!_SPIRBF) ;
 	return (BYTE)SPI1BUF;
 }
+
 
 /*--------------------------------------------------------------------------
 
@@ -80,7 +82,7 @@ BYTE CardType;
 
 
 /*-----------------------------------------------------------------------*/
-/* Send a command packet to MMC                                          */
+/* Send a command packet to the SDC/MMC                                  */
 /*-----------------------------------------------------------------------*/
 
 static
@@ -145,7 +147,7 @@ DSTATUS disk_initialize (void)
 #if _USE_WRITE
 	if (CardType && MMC_SEL) disk_writep(0, 0);	/* Finalize write process if it is in progress */
 #endif
-	init_spi();		/* Initialize ports to control MMC */
+	init_spi();		/* Initialize ports to control SDC/MMC */
 	DESELECT();
 	for (n = 10; n; n--) rcv_spi();	/* 80 Dummy clocks with CS=H */
 
@@ -186,20 +188,20 @@ DSTATUS disk_initialize (void)
 
 DRESULT disk_readp (
 	BYTE *buff,		/* Pointer to the read buffer (NULL:Read bytes are forwarded to the stream) */
-	DWORD lba,		/* Sector number (LBA) */
-	WORD ofs,		/* Byte offset to read from (0..511) */
-	WORD cnt		/* Number of bytes to read (ofs + cnt mus be <= 512) */
+	DWORD sector,	/* Sector number (LBA) */
+	UINT offset,	/* Byte offset to read from (0..511) */
+	UINT count		/* Number of bytes to read (ofs + cnt mus be <= 512) */
 )
 {
 	DRESULT res;
 	BYTE rc;
-	WORD bc;
+	UINT bc;
 
 
-	if (!(CardType & CT_BLOCK)) lba *= 512;		/* Convert to byte address if needed */
+	if (!(CardType & CT_BLOCK)) sector *= 512;	/* Convert to byte address if needed */
 
 	res = RES_ERROR;
-	if (send_cmd(CMD17, lba) == 0) {		/* READ_SINGLE_BLOCK */
+	if (send_cmd(CMD17, sector) == 0) {		/* READ_SINGLE_BLOCK */
 
 		bc = 40000;
 		do {							/* Wait for data packet */
@@ -207,25 +209,25 @@ DRESULT disk_readp (
 		} while (rc == 0xFF && --bc);
 
 		if (rc == 0xFE) {				/* A data packet arrived */
-			bc = 514 - ofs - cnt;
+			bc = 514 - offset - count;
 
 			/* Skip leading bytes */
-			if (ofs) {
-				do rcv_spi(); while (--ofs);
+			if (offset) {
+				do rcv_spi(); while (--offset);
 			}
 
 			/* Receive a part of the sector */
 			if (buff) {	/* Store data to the memory */
 				do {
 					*buff++ = rcv_spi();
-				} while (--cnt);
+				} while (--count);
 			} else {	/* Forward data to the outgoing stream (depends on the project) */
 				do {
 					FORWARD(rcv_spi());
-				} while (--cnt);
+				} while (--count);
 			}
 
-			/* Skip trailing bytes and CRC */
+			/* Skip remaining bytes and CRC */
 			do rcv_spi(); while (--bc);
 
 			res = RES_OK;
@@ -247,26 +249,26 @@ DRESULT disk_readp (
 #if _USE_WRITE
 DRESULT disk_writep (
 	const BYTE *buff,	/* Pointer to the bytes to be written (NULL:Initiate/Finalize sector write) */
-	DWORD sa			/* Number of bytes to send, Sector number (LBA) or zero */
+	DWORD sc			/* Number of bytes to send, Sector number (LBA) or zero */
 )
 {
 	DRESULT res;
-	WORD bc;
+	UINT bc;
 	static WORD wc;
 
 	res = RES_ERROR;
 
 	if (buff) {		/* Send data bytes */
-		bc = (WORD)sa;
+		bc = (WORD)sc;
 		while (bc && wc) {		/* Send data bytes to the card */
 			xmit_spi(*buff++);
 			wc--; bc--;
 		}
 		res = RES_OK;
 	} else {
-		if (sa) {	/* Initiate sector write process */
-			if (!(CardType & CT_BLOCK)) sa *= 512;	/* Convert to byte address if needed */
-			if (send_cmd(CMD24, sa) == 0) {			/* WRITE_SINGLE_BLOCK */
+		if (sc) {	/* Initiate sector write process */
+			if (!(CardType & CT_BLOCK)) sc *= 512;	/* Convert to byte address if needed */
+			if (send_cmd(CMD24, sc) == 0) {			/* WRITE_SINGLE_BLOCK */
 				xmit_spi(0xFF); xmit_spi(0xFE);		/* Data block header */
 				wc = 512;							/* Set byte counter */
 				res = RES_OK;

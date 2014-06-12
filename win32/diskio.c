@@ -1,12 +1,11 @@
 /*-----------------------------------------------------------------------*/
-/* PFF - Low level disk control module for Win32        (C)ChaN, 2009    */
+/* PFF - Low level disk control module for Win32        (C)ChaN, 2014    */
 /*-----------------------------------------------------------------------*/
 
 #include <stdio.h>
 #include "diskio.h"
 #include <windows.h>
 #include <winioctl.h>
-
 
 
 /*--------------------------------------------------------------------------
@@ -77,8 +76,8 @@ BOOL get_status (volatile STAT *stat) {
 
 	if (h == IHV
 		|| !DeviceIoControl(h, IOCTL_STORAGE_CHECK_VERIFY, NULL, 0, NULL, 0, &dw, NULL)
-		|| !DeviceIoControl(h, IOCTL_DISK_GET_PARTITION_INFO, NULL, 0, &part, sizeof(part), &dw, NULL)
-		|| !DeviceIoControl(h, IOCTL_DISK_GET_DRIVE_GEOMETRY, NULL, 0, &parms, sizeof(parms), &dw, NULL)) {
+		|| !DeviceIoControl(h, IOCTL_DISK_GET_PARTITION_INFO, NULL, 0, &part, sizeof part, &dw, NULL)
+		|| !DeviceIoControl(h, IOCTL_DISK_GET_DRIVE_GEOMETRY, NULL, 0, &parms, sizeof parms, &dw, NULL)) {
 		stat->status = STA_NOINIT;
 		return FALSE;
 	}
@@ -168,10 +167,10 @@ DSTATUS disk_initialize (void)
 /*-----------------------------------------------------------------------*/
 
 DRESULT disk_readp (
-	BYTE* buff,			/* Data read buffer */
-	DWORD sector,		/* Sector number (LBA) */
-	WORD sofs,			/* Offset in the sector */
-	WORD count			/* Byte count */
+	BYTE* buff,		/* Data read buffer */
+	DWORD sector,	/* Sector number (LBA) */
+	UINT offset,	/* Offset in the sector */
+	UINT count		/* Byte count */
 )
 {
 	DRESULT res;
@@ -181,7 +180,7 @@ DRESULT disk_readp (
 
 	if (Stat[0].sz_sector != 512 || Stat[0].status & STA_NOINIT || WaitForSingleObject(hMutex, 3000) != WAIT_OBJECT_0) return RES_NOTRDY;
 
-	if (sector >= Stat[0].n_sectors || !count || sofs + count > 512 || Stat[0].wip) {
+	if (sector >= Stat[0].n_sectors || !count || offset + count > 512 || Stat[0].wip) {
 		res = RES_PARERR;
 	} else {
 		dofs.QuadPart = (LONGLONG)sector * 512;
@@ -192,11 +191,11 @@ DRESULT disk_readp (
 				res = RES_ERROR;
 			} else {
 				if (buff) {
-					memcpy(buff, &Buffer[sofs], count);
+					memcpy(buff, &Buffer[offset], count);
 					res = RES_OK;
 				} else {
 					while (count--)
-						putchar(Buffer[sofs++]);
+						putchar(Buffer[offset++]);
 					res = RES_OK;
 				}
 			}
@@ -215,7 +214,7 @@ DRESULT disk_readp (
 
 DRESULT disk_writep (
 	const BYTE* buff,	/* Pointer to the write data */
-	DWORD sa			/* Sector number (LBA), Number of bytes to send */
+	DWORD sc			/* Sector number (LBA), Number of bytes to send */
 )
 {
 	DRESULT res;
@@ -223,15 +222,15 @@ DRESULT disk_writep (
 	LARGE_INTEGER dofs;
 
 
-	printf("disk_writep(%u, %u)\n", (UINT)buff, sa);
+	printf("disk_writep(%u, %u)\n", (UINT)buff, sc);
 
 	if (Stat[0].sz_sector != 512 || Stat[0].status & STA_NOINIT || WaitForSingleObject(hMutex, 3000) != WAIT_OBJECT_0) return RES_NOTRDY;
 
 	if (!buff) {
-		if (sa) {
-			Stat[0].wip = sa;
+		if (sc) {
+			Stat[0].wip = sc;
 			Stat[0].wofs = 0;
-			memset(Buffer, 0, sizeof(Buffer));
+			memset(Buffer, 0, sizeof Buffer);
 			res = RES_OK;
 		} else {
 			if (Stat[0].wip) {
@@ -251,9 +250,9 @@ DRESULT disk_writep (
 			}
 		}
 	} else {
-		if (Stat[0].wofs + sa > 512) sa = 512 - Stat[0].wofs;
-		memcpy(&Buffer[Stat[0].wofs], buff, sa);
-		Stat[0].wofs += sa;
+		if (Stat[0].wofs + sc > 512) sc = 512 - Stat[0].wofs;
+		memcpy(&Buffer[Stat[0].wofs], buff, sc);
+		Stat[0].wofs += sc;
 		res = RES_OK;
 	}
 

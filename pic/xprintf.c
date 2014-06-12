@@ -2,7 +2,7 @@
 /  Universal string handler for user console interface
 /-------------------------------------------------------------------------/
 /
-/  Copyright (C) 2010, ChaN, all right reserved.
+/  Copyright (C) 2011, ChaN, all right reserved.
 /
 / * This software is a free software and there is NO WARRANTY.
 / * No restriction on use. You can use, modify and redistribute it for
@@ -11,21 +11,14 @@
 /
 /-------------------------------------------------------------------------*/
 
-#include "monitor.h"
+#include "xprintf.h"
+
 
 #if _USE_XFUNC_OUT
 #include <stdarg.h>
 void (*xfunc_out)(unsigned char);	/* Pointer to the output stream */
 static char *outptr;
-#endif
 
-#if _USE_XFUNC_IN
-unsigned char (*xfunc_in)(void);	/* Pointer to the input stream */
-#endif
-
-
-
-#if _USE_XFUNC_OUT
 /*----------------------------------------------*/
 /* Put a character                              */
 /*----------------------------------------------*/
@@ -48,10 +41,28 @@ void xputc (char c)
 /* Put a null-terminated string                 */
 /*----------------------------------------------*/
 
-void xputs (const char* str)
+void xputs (					/* Put a string to the default device */
+	const char* str				/* Pointer to the string */
+)
 {
 	while (*str)
 		xputc(*str++);
+}
+
+
+void xfputs (					/* Put a string to the specified device */
+	void(*func)(unsigned char),	/* Pointer to the output function */
+	const char*	str				/* Pointer to the string */
+)
+{
+	void (*pf)(unsigned char);
+
+
+	pf = xfunc_out;		/* Save current output device */
+	xfunc_out = func;	/* Switch output to specified device */
+	while (*str)		/* Put the string */
+		xputc(*str++);
+	xfunc_out = pf;		/* Restore output device */
 }
 
 
@@ -131,7 +142,7 @@ void xvprintf (
 		}
 
 		/* Get an argument and put it in numeral */
-		v = (f & 4) ? va_arg(arp, long) : ((d == 'D') ? (long)va_arg(arp, int) : va_arg(arp, unsigned int));
+		v = (f & 4) ? va_arg(arp, long) : ((d == 'D') ? (long)va_arg(arp, int) : (long)va_arg(arp, unsigned int));
 		if (d == 'D' && (v & 0x80000000)) {
 			v = 0 - v;
 			f |= 8;
@@ -151,7 +162,7 @@ void xvprintf (
 }
 
 
-void xprintf (
+void xprintf (			/* Put a formatted string to the default device */
 	const char*	fmt,	/* Pointer to the format string */
 	...					/* Optional arguments */
 )
@@ -165,7 +176,7 @@ void xprintf (
 }
 
 
-void xsprintf (
+void xsprintf (			/* Put a formatted string to the memory */
 	char* buff,			/* Pointer to the output buffer */
 	const char*	fmt,	/* Pointer to the format string */
 	...					/* Optional arguments */
@@ -180,12 +191,12 @@ void xsprintf (
 	xvprintf(fmt, arp);
 	va_end(arp);
 
-	*outptr = 0;		/* Terminate output string */
+	*outptr = 0;		/* Terminate output string with a \0 */
 	outptr = 0;			/* Switch destination for device */
 }
 
 
-void xdprintf (
+void xfprintf (					/* Put a formatted string to the specified device */
 	void(*func)(unsigned char),	/* Pointer to the output function */
 	const char*	fmt,			/* Pointer to the format string */
 	...							/* Optional arguments */
@@ -210,34 +221,109 @@ void xdprintf (
 /*----------------------------------------------*/
 /* Dump a line of binary dump                   */
 /*----------------------------------------------*/
-#if _USE_DUMP
+
 void put_dump (
-	const void* buff,		/* Pointer to the byte array to be dumped */
+	const void* buff,		/* Pointer to the array to be dumped */
 	unsigned long addr,		/* Heading address value */
-	int len					/* Number of bytes to be dumped */
+	int len,				/* Number of items to be dumped */
+	int width				/* Size of the items (DW_CHAR, DW_SHORT, DW_LONG) */
 )
 {
 	int i;
-	const unsigned char *p = buff;
+	const unsigned char *bp;
+	const unsigned short *sp;
+	const unsigned long *lp;
 
 
 	xprintf("%08lX ", addr);		/* address */
 
-	for (i = 0; i < len; i++)		/* data (hexdecimal) */
-		xprintf(" %02X", p[i]);
-
-	xputc(' ');
-	for (i = 0; i < len; i++)		/* data (ascii) */
-		xputc((p[i] >= ' ' && p[i] <= '~') ? p[i] : '.');
+	switch (width) {
+	case DW_CHAR:
+		bp = buff;
+		for (i = 0; i < len; i++)		/* Hexdecimal dump */
+			xprintf(" %02X", bp[i]);
+		xputc(' ');
+		for (i = 0; i < len; i++)		/* ASCII dump */
+			xputc((bp[i] >= ' ' && bp[i] <= '~') ? bp[i] : '.');
+		break;
+	case DW_SHORT:
+		sp = buff;
+		do								/* Hexdecimal dump */
+			xprintf(" %04X", *sp++);
+		while (--len);
+		break;
+	case DW_LONG:
+		lp = buff;
+		do								/* Hexdecimal dump */
+			xprintf(" %08LX", *lp++);
+		while (--len);
+		break;
+	}
 
 	xputc('\n');
 }
-#endif	/* _USE_DUMP */
-#endif	/* _USE_XFUNC_OUT */
+
+#endif /* _USE_XFUNC_OUT */
 
 
 
 #if _USE_XFUNC_IN
+unsigned char (*xfunc_in)(void);	/* Pointer to the input stream */
+
+/*----------------------------------------------*/
+/* Get a line from the input                    */
+/*----------------------------------------------*/
+
+int xgets (		/* 0:End of stream, 1:A line arrived */
+	char* buff,	/* Pointer to the buffer */
+	int len		/* Buffer length */
+)
+{
+	int c, i;
+
+
+	if (!xfunc_in) return 0;		/* No input function specified */
+
+	i = 0;
+	for (;;) {
+		c = xfunc_in();				/* Get a char from the incoming stream */
+		if (!c) return 0;			/* End of stream? */
+		if (c == '\r') break;		/* End of line? */
+		if (c == '\b' && i) {		/* Back space? */
+			i--;
+			if (_LINE_ECHO) xputc(c);
+			continue;
+		}
+		if (c >= ' ' && i < len - 1) {	/* Visible chars */
+			buff[i++] = c;
+			if (_LINE_ECHO) xputc(c);
+		}
+	}
+	buff[i] = 0;	/* Terminate with a \0 */
+	if (_LINE_ECHO) xputc('\n');
+	return 1;
+}
+
+
+int xfgets (	/* 0:End of stream, 1:A line arrived */
+	unsigned char (*func)(void),	/* Pointer to the input stream function */
+	char* buff,	/* Pointer to the buffer */
+	int len		/* Buffer length */
+)
+{
+	unsigned char (*pf)(void);
+	int n;
+
+
+	pf = xfunc_in;			/* Save current input device */
+	xfunc_in = func;		/* Switch input to specified device */
+	n = xgets(buff, len);	/* Get a line */
+	xfunc_in = pf;			/* Restore input device */
+
+	return n;
+}
+
+
 /*----------------------------------------------*/
 /* Get a value of the string                    */
 /*----------------------------------------------*/
@@ -302,41 +388,6 @@ int xatoi (			/* 0:Failed, 1:Successful */
 	if (s) val = 0 - val;			/* apply sign if needed */
 
 	*res = val;
-	return 1;
-}
-
-
-
-/*----------------------------------------------*/
-/* Get a line from the input                    */
-/*----------------------------------------------*/
-
-int get_line (		/* 0:End of stream, 1:A line arrived */
-	char* buff,		/* Pointer to the buffer */
-	int len			/* Buffer length */
-)
-{
-	int rv, c, i;
-
-	rv = i = 0;
-	for (;;) {
-		c = 0;
-		if (xfunc_in)
-			c = xfunc_in();				/* Get a char from the incoming stream */
-		if (!c) return 0;			/* End of stream? */
-		if (c == '\r') break;		/* End of line? */
-		if (c == '\b' && i) {		/* Back space? */
-			i--;
-			if (_LINE_ECHO) xputc(c);
-			continue;
-		}
-		if (c >= ' ' && i < len - 1) {	/* Visible chars */
-			buff[i++] = c;
-			if (_LINE_ECHO) xputc(c);
-		}
-	}
-	buff[i] = 0;	/* Terminate with zero */
-	if (_LINE_ECHO) xputc('\n');
 	return 1;
 }
 

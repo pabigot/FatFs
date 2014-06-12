@@ -2,12 +2,14 @@
 /  PFF - Low level disk interface modlue include file    (C)ChaN, 2010
 /-----------------------------------------------------------------------*/
 
-#ifndef _DISKIO
-#define _DISKIO
+#ifndef _DISKIO_DEFINED
+#define _DISKIO_DEFINED
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "integer.h"
-#include "pff.h"
-
 
 /* Status of Disk Functions */
 typedef BYTE	DSTATUS;
@@ -29,11 +31,12 @@ typedef enum {
 /* Prototypes for disk control functions */
 
 DSTATUS disk_initialize (void);
-#if _USE_READ
 DRESULT disk_readp (BYTE*, DWORD, WORD, WORD);
-#endif
-#if _USE_WRITE
 DRESULT disk_writep (const BYTE*, DWORD);
+
+
+#ifdef __cplusplus
+}
 #endif
 
-#endif
+#endif	/* _DISKIO_DEFINED */

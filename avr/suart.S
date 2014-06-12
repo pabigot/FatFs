@@ -19,6 +19,7 @@
 
 #define	BPS	68	/* Bit delay. (see above table) */
 #define	BIDIR	1	/* 0:Separated Tx/Rx, 1:Shared Tx/Rx */
+#define USE_RCV	1	/* Enable receiving function */
 
 #define	OUT_1		cbi _SFR_IO_ADDR(DDRB), 4	/* Output 1 */
 #define	OUT_0		sbi _SFR_IO_ADDR(DDRB), 4	/* Output 0 */
@@ -91,6 +92,7 @@ xmit:
 ;Prototype: uint8_t rcvr (void);
 ;Size: 19 words
 
+#if USE_RCV
 .global rcvr
 .func rcvr
 rcvr:
@@ -118,5 +120,5 @@ rcvr:
 	out	_SFR_IO_ADDR(SREG), r0	;End of critical section
 	ret
 .endfunc
-
+#endif
 

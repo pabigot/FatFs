@@ -1,8 +1,13 @@
 /*-----------------------------------------------------------------------
-/  PFF - Low level disk interface modlue include file    (C)ChaN, 2009
+/  PFF - Low level disk interface modlue include file    (C)ChaN, 2014
 /-----------------------------------------------------------------------*/
 
-#ifndef _DISKIO
+#ifndef _DISKIO_DEFINED
+#define _DISKIO_DEFINED
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "integer.h"
 
@@ -24,8 +29,8 @@ typedef enum {
 /* Prototypes for disk control functions */
 
 DSTATUS disk_initialize (void);
-DRESULT disk_readp (BYTE*, DWORD, WORD, WORD);
-DRESULT disk_writep (const BYTE*, DWORD);
+DRESULT disk_readp (BYTE* buff, DWORD sector, UINT offset, UINT count);
+DRESULT disk_writep (const BYTE* buff, DWORD sc);
 
 #define STA_NOINIT		0x01	/* Drive not initialized */
 #define STA_NODISK		0x02	/* No medium in the drive */
@@ -37,5 +42,9 @@ DRESULT disk_writep (const BYTE*, DWORD);
 #define CT_SDC				(CT_SD1|CT_SD2)	/* SD */
 #define CT_BLOCK			0x08	/* Block addressing */
 
-#define _DISKIO
+
+#ifdef __cplusplus
+}
 #endif
+
+#endif	/* _DISKIO_DEFINED */
