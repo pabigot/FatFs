@@ -13,19 +13,18 @@
 <h1>Petit FatFs Module Application Note</h1>
 <hr>
 
-<div class="para">
-<h3>Considerations on porting to various platform</h3>
-<p>The Petit FatFs module is assuming following terms on portability.</p>
+<h3>Basic Considerations</h3>
+<p>The FatFs module is assuming following conditions on portability.</p>
 <ul>
 <li>ANSI C<br>
-The Petit FatFs module is a middleware that written in ANSI C. There is no platform dependence, so long as the compiler is in compliance with ANSI C.</li>
+The FatFs module is a middleware written in ANSI C (C89). There is no platform dependence, so long as the compiler is in compliance with ANSI C.</li>
 <li>Size of integer types<br>
-The Petit FatFs module assumes that size of char/short/long are 8/16/32-bit and int is 16 or 32 bit. These correspondence are defined in integer.h. This will not be a problem on most compilers. When any conflict with existing definitions is occured, you must resolve it with care.</li>
+The FatFs module assumes that size of char/short/long are 8/16/32 bit and int is 16 or 32 bit. These correspondence are defined in <tt>integer.h</tt>. This will not be a problem on most compilers. When any conflict with existing definitions is occured, you must resolve it with care.</li>
 </ul>
 </div>
 
 <div class="para">
-<h3>Memory Usage (R0.02a)</h3>
+<h3>Memory Usage (R0.03)</h3>
 <table class="lst2">
 <tr><th></th><th>AVR</th><th>x86</th></tr>
 <tr><td>Compiler</td><td>gcc(WinAVR)</td><td>VC6</td></tr>
@@ -67,24 +66,24 @@ The Petit FatFs module assumes that size of char/short/long are 8/16/32-bit and 
 </div>
 
 <div class="para">
-<h3>About Petit FatFs License</h3>
-<p>This is a copy of the Petit FatFs license document that included in the source codes.</p>
+<h3>About FatFs License</h3>
+<p>Petit FatFs has being developped as a personal project of author, ChaN. It is free from the code anyone else wrote. Following code block shows a copy of the license document that included in the source files.</p>
 <pre>/*----------------------------------------------------------------------------/
-/  Petit FatFs - FAT file system module  R0.02a                (C)ChaN, 2010
+/  Petit FatFs - FAT file system module  R0.03                  (C)ChaN, 2014
 /-----------------------------------------------------------------------------/
-/ Petit FatFs module is an open source software to implement FAT file system to
-/ small embedded systems. This is a free software and is opened for education,
-/ research and commercial developments under license policy of following trems.
+/ Petit FatFs module is a generic FAT file system module for small embedded
+/ systems. This is a free software that opened for education, research and
+/ commercial developments under license policy of following trems.
 /
-/  Copyright (C) 2010, ChaN, all right reserved.
+/  Copyright (C) 2014, ChaN, all right reserved.
 /
 / * The Petit FatFs module is a free software and there is NO WARRANTY.
 / * No restriction on use. You can use, modify and redistribute it for
-/   personal, non-profit or commercial use UNDER YOUR RESPONSIBILITY.
+/   personal, non-profit or commercial products UNDER YOUR RESPONSIBILITY.
 / * Redistributions of source code must retain the above copyright notice.
 /
 /-----------------------------------------------------------------------------/</pre>
-<p>Therefore Petit FatFs license is one of the BSD-style license but there is a big difference. Because Petit FatFs is for embedded projects, the conditions for redistributions in binary form, such as embedded code, hex file and binary library, are not specified to increase its usability. The documentation of the distributions need not include about Petit FatFs and its license document, and it may also. Of course Petit FatFs is compatible with the projects under GNU GPL.</p>
+<p>Therefore FatFs license is one of the BSD-style licenses but there is a significant feature. Because FatFs is for embedded projects, the conditions of redistributions in binary form, such as embedded code, hex file, binary library and any form without source code, are not specified in order to extend usability to commercial use. The documentation of the distributions need not include about Petit FatFs and its license document, and it may also. This is equivalent to the BSD 1-Clause License. Of course Petit FatFs is compatible with the projects under GNU GPL. When redistribute the Petit FatFs with any modification, the license can also be changed to GNU GPL or BSD-style license.</p>
 </div>
 
 <p class="foot"><a href="../00index_p.html">Return</a></p>

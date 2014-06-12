@@ -1,11 +1,11 @@
 /*---------------------------------------------------------------------------/
-/  Petit FatFs - FAT file system module include file  R0.02a   (C)ChaN, 2010
+/  Petit FatFs - FAT file system module include file  R0.03   (C)ChaN, 2014
 /----------------------------------------------------------------------------/
 / Petit FatFs module is an open source software to implement FAT file system to
 / small embedded systems. This is a free software and is opened for education,
 / research and commercial developments under license policy of following trems.
 /
-/  Copyright (C) 2010, ChaN, all right reserved.
+/  Copyright (C) 2014, ChaN, all right reserved.
 /
 / * The Petit FatFs module is a free software and there is NO WARRANTY.
 / * No restriction on use. You can use, modify and redistribute it for
@@ -14,55 +14,19 @@
 /
 /----------------------------------------------------------------------------*/
 
+#ifndef _PFATFS
+#define _PFATFS	4004	/* Revision ID */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "integer.h"
+#include "pffconf.h"
 
-/*---------------------------------------------------------------------------/
-/ Petit FatFs Configuration Options
-/
-/ CAUTION! Do not forget to make clean the project after any changes to
-/ the configuration options.
-/
-/----------------------------------------------------------------------------*/
-#ifndef _FATFS
-#define _FATFS
-
-#define	_USE_READ	1	/* 1:Enable pf_read() */
-
-#define	_USE_DIR	0	/* 1:Enable pf_opendir() and pf_readdir() */
-
-#define	_USE_LSEEK	0	/* 1:Enable pf_lseek() */
-
-#define	_USE_WRITE	0	/* 1:Enable pf_write() */
-
-#define _FS_FAT12	1	/* 1:Enable FAT12 support */
-#define _FS_FAT32	0	/* 1:Enable FAT32 support */
-
-
-#define	_CODE_PAGE	1
-/* Defines which code page is used for path name. Supported code pages are:
-/  932, 936, 949, 950, 437, 720, 737, 775, 850, 852, 855, 857, 858, 862, 866,
-/  874, 1250, 1251, 1252, 1253, 1254, 1255, 1257, 1258 and 1 (ASCII only).
-/  SBCS code pages except for 1 requiers a case conversion table. This
-/  might occupy 128 bytes on the RAM on some platforms, e.g. avr-gcc. */
-
-
-#define _WORD_ACCESS	0
-/* The _WORD_ACCESS option defines which access method is used to the word
-/  data in the FAT structure.
-/
-/   0: Byte-by-byte access. Always compatible with all platforms.
-/   1: Word access. Do not choose this unless following condition is met.
-/
-/  When the byte order on the memory is big-endian or address miss-aligned
-/  word access results incorrect behavior, the _WORD_ACCESS must be set to 0.
-/  If it is not the case, the value can also be set to 1 to improve the
-/  performance and code efficiency. */
-
-
-/* End of configuration options. Do not change followings without care.     */
-/*--------------------------------------------------------------------------*/
-
-
+#if _PFATFS != _PFFCONF
+#error Wrong configuration file (pffconf.h).
+#endif
 
 #if _FS_FAT32
 #define	CLUST	DWORD
@@ -123,10 +87,9 @@ typedef enum {
 	FR_DISK_ERR,		/* 1 */
 	FR_NOT_READY,		/* 2 */
 	FR_NO_FILE,			/* 3 */
-	FR_NO_PATH,			/* 4 */
-	FR_NOT_OPENED,		/* 5 */
-	FR_NOT_ENABLED,		/* 6 */
-	FR_NO_FILESYSTEM	/* 7 */
+	FR_NOT_OPENED,		/* 4 */
+	FR_NOT_ENABLED,		/* 5 */
+	FR_NO_FILESYSTEM	/* 6 */
 } FRESULT;
 
 
@@ -134,13 +97,13 @@ typedef enum {
 /*--------------------------------------------------------------*/
 /* Petit FatFs module application interface                     */
 
-FRESULT pf_mount (FATFS*);						/* Mount/Unmount a logical drive */
-FRESULT pf_open (const char*);					/* Open a file */
-FRESULT pf_read (void*, WORD, WORD*);			/* Read data from the open file */
-FRESULT pf_write (const void*, WORD, WORD*);	/* Write data to the open file */
-FRESULT pf_lseek (DWORD);						/* Move file pointer of the open file */
-FRESULT pf_opendir (DIR*, const char*);			/* Open a directory */
-FRESULT pf_readdir (DIR*, FILINFO*);			/* Read a directory item from the open directory */
+FRESULT pf_mount (FATFS* fs);								/* Mount/Unmount a logical drive */
+FRESULT pf_open (const char* path);							/* Open a file */
+FRESULT pf_read (void* buff, UINT btr, UINT* br);			/* Read data from the open file */
+FRESULT pf_write (const void* buff, UINT btw, UINT* bw);	/* Write data to the open file */
+FRESULT pf_lseek (DWORD ofs);								/* Move file pointer of the open file */
+FRESULT pf_opendir (DIR* dj, const char* path);				/* Open a directory */
+FRESULT pf_readdir (DIR* dj, FILINFO* fno);					/* Read a directory item from the open directory */
 
 
 
@@ -189,4 +152,8 @@ FRESULT pf_readdir (DIR*, FILINFO*);			/* Read a directory item from the open di
 #endif
 
 
-#endif /* _FATFS */
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* _PFATFS */

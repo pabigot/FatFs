@@ -16,11 +16,11 @@
 <p>The <tt>DIR</tt> structure is used for the work area to read a directory by pf_oepndir, pf_readdir function.</p>
 <pre>
 typedef struct {
-    WORD    index;     /* Current read/write index number */
-    BYTE*   fn;        /* Pointer to the SFN (in/out) {file[8],ext[3],status[1]} */
-    CLUST   sclust;    /* Table start cluster (0:Static table) */
-    CLUST   clust;     /* Current cluster */
-    DWORD   sect;      /* Current sector */
+    WORD    index;     <span class="c">/* Current read/write index number */</span>
+    BYTE*   fn;        <span class="c">/* Pointer to the SFN (in/out) {file[8],ext[3],status[1]} */</span>
+    CLUST   sclust;    <span class="c">/* Table start cluster (0:Static table) */</span>
+    CLUST   clust;     <span class="c">/* Current cluster */</span>
+    DWORD   sect;      <span class="c">/* Current sector */</span>
 } DIR;
 </pre>
 </div>

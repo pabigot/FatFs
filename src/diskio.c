@@ -1,9 +1,8 @@
 /*-----------------------------------------------------------------------*/
-/* Low level disk I/O module skeleton for Petit FatFs (C)ChaN, 2009      */
+/* Low level disk I/O module skeleton for Petit FatFs (C)ChaN, 2014      */
 /*-----------------------------------------------------------------------*/
 
 #include "diskio.h"
-
 
 
 /*-----------------------------------------------------------------------*/
@@ -26,10 +25,10 @@ DSTATUS disk_initialize (void)
 /*-----------------------------------------------------------------------*/
 
 DRESULT disk_readp (
-	BYTE* dest,			/* Pointer to the destination object */
-	DWORD sector,		/* Sector number (LBA) */
-	WORD sofs,			/* Offset in the sector */
-	WORD count			/* Byte count (bit15:destination) */
+	BYTE* buff,		/* Pointer to the destination object */
+	DWORD sector,	/* Sector number (LBA) */
+	UINT offset,	/* Offset in the sector */
+	UINT count		/* Byte count (bit15:destination) */
 )
 {
 	DRESULT res;

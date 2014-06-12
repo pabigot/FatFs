@@ -14,11 +14,9 @@
 <div class="para">
 <h2>Format of the path names</h2>
 <p>The path name format on the Petit FatFs module is similer to MS-DOS as follows.</p>
-<pre>
- "[/]<em>directory</em>/<em>file</em>"
-</pre>
-<p>The Petit FatFs module supports only 8.3 format file name. The sub directories are separated with a /. The path name is terminated with a NUL character, control character or white space. Extended characters (0x80-0xFF) are not allowed for the path name on ASCII only configuration <tt>(_CODE_PAGE == 1)</tt>.</p>
-<p>The Petit FatFs module does not have a concept of current directory like OS oriented file system. All objects on the volume are always specified in full path name following from the root directory. Dot names are not available. Heading separator is ignored and it can be exist or omitted.</p>
+<pre>"[/]<em>directory</em>/<em>file</em>"</pre>
+<p>The Petit FatFs module supports only 8.3 format file name. The sub-directories are separated with a /. The path name is terminated with a nul character, control character or white space. Heading spaces are ignored and skipped. When <tt>_USE_LCC == 1</tt>, lower case characters are allowed for the path name.</p>
+<p>The Petit FatFs module does not have a concept of current directory like OS oriented file system. All objects on the volume are always specified in full path name following from the root directory. Heading separator is ignored and it can be exist or omitted.</p>
 </div>
 </body>
 </html>
