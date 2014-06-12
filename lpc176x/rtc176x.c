@@ -20,7 +20,7 @@ int rtc_initialize (void)
 	__set_PCONP(PCRTC, 1);
 
 	/* Start RTC with external XTAL */
-	CCR = 0x11;
+	RTC_CCR = 0x11;
 
 	return 1;
 }
@@ -33,9 +33,9 @@ int rtc_gettime (RTC *rtc)	/* 1:RTC valid, 0:RTC volatiled */
 
 
 	do {
-		t = CTIME0;
-		d = CTIME1;
-	} while (t != CTIME0 || d != CTIME1);
+		t = RTC_CTIME0;
+		d = RTC_CTIME1;
+	} while (t != RTC_CTIME0 || d != RTC_CTIME1);
 
 	if (RTC_AUX & _BV(4)) {	/* If power fail has been detected, return default time. */
 		rtc->sec = 0; rtc->min = 0; rtc->hour = 0;
@@ -58,19 +58,19 @@ int rtc_gettime (RTC *rtc)	/* 1:RTC valid, 0:RTC volatiled */
 
 int rtc_settime (const RTC *rtc)
 {
-	CCR = 0x12;		/* Stop RTC */
+	RTC_CCR = 0x12;		/* Stop RTC */
 
 	/* Update RTC registers */
-	SEC = rtc->sec;
-	MIN = rtc->min;
-	HOUR = rtc->hour;
-	DOW = rtc->wday;
-	DOM = rtc->mday;
-	MONTH = rtc->month;
-	YEAR = rtc->year;
+	RTC_SEC = rtc->sec;
+	RTC_MIN = rtc->min;
+	RTC_HOUR = rtc->hour;
+	RTC_DOW = rtc->wday;
+	RTC_DOM = rtc->mday;
+	RTC_MONTH = rtc->month;
+	RTC_YEAR = rtc->year;
 
 	RTC_AUX = _BV(4);	/* Clear power fail flag */
-	CCR = 0x11;			/* Restart RTC, Disable calibration feature */
+	RTC_CCR = 0x11;		/* Restart RTC, Disable calibration feature */
 
 	return 1;
 }

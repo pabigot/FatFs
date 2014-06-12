@@ -11,9 +11,8 @@
 #define CS_LOW()	P0.6 = 0	/* MMC CS = L */
 #define	CS_HIGH()	P0.6 = 1	/* MMC CS = H */
 
-#define SOCKPORT	P3L			/* Socket contact port */
-#define SOCKWP		0x04		/* Write protect switch (bit2) */
-#define SOCKINS		0x08		/* Card detect switch (bit3) */
+#define	MMC_CD		!(P3L & 0x08)	/* Card detect (yes:true, no:false, default:true) */
+#define	MMC_WP		(P3L & 0x04)	/* Write protected (yes:true, no:false, default:false) */
 
 #define	FCLK_SLOW()			/* Set slow clock (100k-400k) */
 #define	FCLK_FAST()	{ CB0PWR=0; CB0CTL1=0x18; CB0PWR=1; }	/* Set fast clock (depends on the CSD) */
@@ -410,24 +409,20 @@ DRESULT disk_read (
 	UINT count			/* Sector count (1..128) */
 )
 {
+	BYTE cmd;
+
+
 	if (pdrv || !count) return RES_PARERR;
 	if (Stat & STA_NOINIT) return RES_NOTRDY;
-
 	if (!(CardType & CT_BLOCK)) sector *= 512;	/* Convert to byte address if needed */
 
-	if (count == 1) {	/* Single block read */
-		if ((send_cmd(CMD17, sector) == 0)	/* READ_SINGLE_BLOCK */
-			&& rcvr_datablock(buff, 512))
-			count = 0;
-	}
-	else {				/* Multiple block read */
-		if (send_cmd(CMD18, sector) == 0) {	/* READ_MULTIPLE_BLOCK */
-			do {
-				if (!rcvr_datablock(buff, 512)) break;
-				buff += 512;
-			} while (--count);
-			send_cmd(CMD12, 0);				/* STOP_TRANSMISSION */
-		}
+	cmd = count > 1 ? CMD18 : CMD17;			/*  READ_MULTIPLE_BLOCK : READ_SINGLE_BLOCK */
+	if (send_cmd(cmd, sector) == 0) {
+		do {
+			if (!rcvr_datablock(buff, 512)) break;
+			buff += 512;
+		} while (--count);
+		if (cmd == CMD18) send_cmd(CMD12, 0);	/* STOP_TRANSMISSION */
 	}
 	deselect();
 
@@ -591,33 +586,24 @@ DRESULT disk_ioctl (
 
 void disk_timerproc (void)
 {
-	static BYTE pv;
-	BYTE s, p;
+	BYTE s;
 	UINT n;
 
 
-	n = Timer1;						/* 1000Hz decrement timer */
+	n = Timer1;				/* 1000Hz decrement timer */
 	if (n) Timer1 = --n;
 	n = Timer2;
 	if (n) Timer2 = --n;
 
-	p = pv;
-	pv = SOCKPORT & (SOCKWP | SOCKINS);	/* Sample socket switch */
-
-	if (p == pv) {					/* Have contacts stabled? */
-		s = Stat;
-
-		if (p & SOCKWP)				/* WP is H (write protected) */
-			s |= STA_PROTECT;
-		else						/* WP is L (write enabled) */
-			s &= ~STA_PROTECT;
-
-		if (p & SOCKINS)			/* INS = H (Socket empty) */
-			s |= (STA_NODISK | STA_NOINIT);
-		else						/* INS = L (Card inserted) */
-			s &= ~STA_NODISK;
-
-		Stat = s;
-	}
+	s = Stat;
+	if (MMC_WP)				/* WP is H (write protected) */
+		s |= STA_PROTECT;
+	else					/* WP is L (write enabled) */
+		s &= ~STA_PROTECT;
+	if (MMC_CD)				/* INS = H (Socket empty) */
+		s |= (STA_NODISK | STA_NOINIT);
+	else						/* INS = L (Card inserted) */
+		s &= ~STA_NODISK;
+	Stat = s;
 }
 

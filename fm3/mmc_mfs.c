@@ -19,8 +19,8 @@
 #define	SCLK_SLOW	400000		/* SCLK under initialization [Hz] */
 #define APB2CLK		72000000	/* Bus clock [Hz] */
 
-#define	INS			!(PDIRA & 0x0008)	/* Socket status (true:Inserted, false:Empty) */
-#define	WP			0				 	/* WP status (true:Protected, false:Writable) */
+#define	MMC_CD		!(PDIRA & 0x0008)	/* Card detect (yes:true, no:false, default:true) */
+#define	MMC_WP		0				 	/* Write protected (yes:true, no:false, default:false) */
 
 #define CTRL_INIT()	{ PDOR3 |= 0x0001; DDR3 |= 0x0001; PCRA |= 0x0008; }	/* Initialize control pins P30(CS)=H, PA3(INS)=pu */
 #define CS_LOW()	PDOR3 &= ~0x0001	/* Set P30(CS) low */
@@ -517,24 +517,20 @@ DRESULT disk_read (
 	UINT count		/* Number of sectors to read (1..128) */
 )
 {
+	BYTE cmd;
+
+
 	if (drv || !count) return RES_PARERR;		/* Check parameter */
 	if (Stat & STA_NOINIT) return RES_NOTRDY;	/* Check if drive is ready */
-
 	if (!(CardType & CT_BLOCK)) sector *= 512;	/* LBA ot BA conversion (byte addressing cards) */
 
-	if (count == 1) {	/* Single sector read */
-		if ((send_cmd(CMD17, sector) == 0)	/* READ_SINGLE_BLOCK */
-			&& rcvr_datablock(buff, 512))
-			count = 0;
-	}
-	else {				/* Multiple sector read */
-		if (send_cmd(CMD18, sector) == 0) {	/* READ_MULTIPLE_BLOCK */
-			do {
-				if (!rcvr_datablock(buff, 512)) break;
-				buff += 512;
-			} while (--count);
-			send_cmd(CMD12, 0);				/* STOP_TRANSMISSION */
-		}
+	cmd = count > 1 ? CMD18 : CMD17;			/*  READ_MULTIPLE_BLOCK : READ_SINGLE_BLOCK */
+	if (send_cmd(cmd, sector) == 0) {
+		do {
+			if (!rcvr_datablock(buff, 512)) break;
+			buff += 512;
+		} while (--count);
+		if (cmd == CMD18) send_cmd(CMD12, 0);	/* STOP_TRANSMISSION */
 	}
 	deselect();
 
@@ -722,11 +718,11 @@ void disk_timerproc (void)
 	if (n) Timer2 = --n;
 
 	s = Stat;
-	if (WP)		/* Write protected */
+	if (MMC_WP)	/* Write protected */
 		s |= STA_PROTECT;
 	else		/* Write enabled */
 		s &= ~STA_PROTECT;
-	if (INS)	/* Card is in socket */
+	if (MMC_CD)	/* Card is in socket */
 		s &= ~STA_NODISK;
 	else		/* Socket empty */
 		s |= (STA_NODISK | STA_NOINIT);

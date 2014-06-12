@@ -48,37 +48,35 @@ void disk_timerproc (void);
 
 /* Command code for disk_ioctrl() */
 
-/* Generic ioctl command (defined for FatFs) */
-#define CTRL_SYNC			0	/* Flush disk cache (for write functions) */
-#define GET_SECTOR_COUNT	1	/* Get media size (for only f_mkfs()) */
-//#define GET_SECTOR_SIZE		2	/* Get sector size (for multiple sector size (_MAX_SS >= 1024)) */
-#define GET_BLOCK_SIZE		3	/* Get erase block size (for only f_mkfs()) */
-#define CTRL_ERASE_SECTOR	4	/* Force erased a sector group (for only _USE_ERASE) */
+/* Generic command (used by FatFs) */
+#define CTRL_SYNC			0	/* Complete pending write process (used at read/write cfg.) */
+#define GET_SECTOR_COUNT	1	/* Get media size (used in f_mkfs()) */
+#define GET_SECTOR_SIZE		2	/* Get sector size (used at variable sector size, _MAX_SS > _MIN_SS) */
+#define GET_BLOCK_SIZE		3	/* Get erase block size (used in f_mkfs()) */
+#define CTRL_ERASE_SECTOR	4	/* Force erased a block of sectors (used at _USE_ERASE) */
 
-/* Generic ioctl command */
-#define CTRL_POWER			5	/* Get/Set power status */
-#define CTRL_LOCK			6	/* Lock/Unlock media removal */
-#define CTRL_EJECT			7	/* Eject media */
+/* Generic command (not used by FatFs) */
+#define CTRL_FORMAT			5	/* Create physical format on the media */
+#define CTRL_POWER_IDLE		6	/* Put the device idle state */
+#define CTRL_POWER_OFF		7	/* Put the device off state */
+#define CTRL_LOCK			8	/* Lock media removal */
+#define CTRL_UNLOCK			9	/* Unlock media removal */
+#define CTRL_EJECT			10	/* Eject media */
 
 /* MMC/SDC specific ioctl command */
-#define MMC_GET_TYPE		10	/* Get card type */
-#define MMC_GET_CSD			11	/* Get CSD */
-#define MMC_GET_CID			12	/* Get CID */
-#define MMC_GET_OCR			13	/* Get OCR */
-#define MMC_GET_SDSTAT		14	/* Get SD status */
+#define MMC_GET_TYPE		50	/* Get card type */
+#define MMC_GET_CSD			51	/* Get CSD */
+#define MMC_GET_CID			52	/* Get CID */
+#define MMC_GET_OCR			53	/* Get OCR */
+#define MMC_GET_SDSTAT		54	/* Get SD status */
 
 /* ATA/CF specific ioctl command */
-//#define ATA_GET_REV			20	/* Get F/W revision */
-//#define ATA_GET_MODEL		21	/* Get model name */
-//#define ATA_GET_SN			22	/* Get serial number */
-
-/* NAND specific ioctl command */
-//#define NAND_FORMAT			30	/* Create physical format */
-
+#define ATA_GET_REV			60	/* Get F/W revision */
+#define ATA_GET_MODEL		61	/* Get model name */
+#define ATA_GET_SN			62	/* Get serial number */
 
 
 /* Card type flags (CardType) */
-
 #define CT_MMC				0x01
 #define CT_SD1				0x02
 #define CT_SD2				0x04

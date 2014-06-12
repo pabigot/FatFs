@@ -442,23 +442,20 @@ DRESULT disk_read (
 	UINT count			/* Sector count (1..128) */
 )
 {
+	BYTE cmd;
+
+
 	if (disk_status(drv) & STA_NOINIT) return RES_NOTRDY;
 	if (!count) return RES_PARERR;
 	if (!(CardType & CT_BLOCK)) sector *= 512;	/* Convert LBA to byte address if needed */
 
-	if (count == 1) {	/* Single block read */
-		if ((send_cmd(CMD17, sector) == 0)	/* READ_SINGLE_BLOCK */
-			&& rcvr_datablock(buff, 512))
-			count = 0;
-	}
-	else {				/* Multiple block read */
-		if (send_cmd(CMD18, sector) == 0) {	/* READ_MULTIPLE_BLOCK */
-			do {
-				if (!rcvr_datablock(buff, 512)) break;
-				buff += 512;
-			} while (--count);
-			send_cmd(CMD12, 0);				/* STOP_TRANSMISSION */
-		}
+	cmd = count > 1 ? CMD18 : CMD17;			/*  READ_MULTIPLE_BLOCK : READ_SINGLE_BLOCK */
+	if (send_cmd(cmd, sector) == 0) {
+		do {
+			if (!rcvr_datablock(buff, 512)) break;
+			buff += 512;
+		} while (--count);
+		if (cmd == CMD18) send_cmd(CMD12, 0);	/* STOP_TRANSMISSION */
 	}
 	deselect();
 
@@ -526,31 +523,31 @@ DRESULT disk_ioctl (
 
 	res = RES_ERROR;
 	switch (ctrl) {
-		case CTRL_SYNC :		/* Make sure that no pending write process */
-			if (select()) res = RES_OK;
-			break;
+	case CTRL_SYNC :		/* Make sure that no pending write process */
+		if (select()) res = RES_OK;
+		break;
 
-		case GET_SECTOR_COUNT :	/* Get number of sectors on the disk (DWORD) */
-			if ((send_cmd(CMD9, 0) == 0) && rcvr_datablock(csd, 16)) {
-				if ((csd[0] >> 6) == 1) {	/* SDC ver 2.00 */
-					cs = csd[9] + ((WORD)csd[8] << 8) + ((DWORD)(csd[7] & 63) << 16) + 1;
-					*(DWORD*)buff = cs << 10;
-				} else {					/* SDC ver 1.XX or MMC */
-					n = (csd[5] & 15) + ((csd[10] & 128) >> 7) + ((csd[9] & 3) << 1) + 2;
-					cs = (csd[8] >> 6) + ((WORD)csd[7] << 2) + ((WORD)(csd[6] & 3) << 10) + 1;
-					*(DWORD*)buff = cs << (n - 9);
-				}
-				res = RES_OK;
+	case GET_SECTOR_COUNT :	/* Get number of sectors on the disk (DWORD) */
+		if ((send_cmd(CMD9, 0) == 0) && rcvr_datablock(csd, 16)) {
+			if ((csd[0] >> 6) == 1) {	/* SDC ver 2.00 */
+				cs = csd[9] + ((WORD)csd[8] << 8) + ((DWORD)(csd[7] & 63) << 16) + 1;
+				*(DWORD*)buff = cs << 10;
+			} else {					/* SDC ver 1.XX or MMC */
+				n = (csd[5] & 15) + ((csd[10] & 128) >> 7) + ((csd[9] & 3) << 1) + 2;
+				cs = (csd[8] >> 6) + ((WORD)csd[7] << 2) + ((WORD)(csd[6] & 3) << 10) + 1;
+				*(DWORD*)buff = cs << (n - 9);
 			}
-			break;
-
-		case GET_BLOCK_SIZE :	/* Get erase block size in unit of sector (DWORD) */
-			*(DWORD*)buff = 128;
 			res = RES_OK;
-			break;
+		}
+		break;
 
-		default:
-			res = RES_PARERR;
+	case GET_BLOCK_SIZE :	/* Get erase block size in unit of sector (DWORD) */
+		*(DWORD*)buff = 128;
+		res = RES_OK;
+		break;
+
+	default:
+		res = RES_PARERR;
 	}
 
 	deselect();

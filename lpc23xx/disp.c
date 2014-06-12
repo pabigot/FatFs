@@ -23,7 +23,7 @@
 
 #define USE_DBCS	1	/* 0:ANK only, 1:Enable kanji chars */
 
-#define	DISP_TYPE	(FIO4PIN1 & _BV(2))	/* P4.10(Module type): H=SSD1339, L=SSD1355 */
+#define	DISP_TYPE	(FIO4PIN1 & _BV(7))	/* P4.15(Module type): H=SSD1339, L=SSD1355 */
 
 #define	CMD_WRB(d)	{ FIO4PIN0 = (d); FIO4CLR1 = _BV(3); FIO4CLR1=_BV(1); FIO4SET1=_BV(1); }	/* Write a command to the OLED */
 #define	DATA_WRB(d)	{ FIO4PIN0 = (d); FIO4SET1 = _BV(3); FIO4CLR1=_BV(1); FIO4SET1=_BV(1); }	/* Write a byte to the OLED */
@@ -119,7 +119,7 @@ void disp_init (void)
 
 
 	/* Initialize display module control port */
-	FIO4PINL = 0x1FFF;		/* P4L: -|-|-|RES#|D/C#|CS#|WR#|RD#|D7|D6|D5|D4|D3|D2|D1|D0 */
+	FIO4PINL = 0x1FFF;		/* P4L: TYPE|-|-|RES#|D/C#|CS#|WR#|RD#|D7|D6|D5|D4|D3|D2|D1|D0 */
 	FIO4DIRL = 0x1FFF;
 
 	/* Reset display module */

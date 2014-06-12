@@ -16,12 +16,13 @@
 #include "diskio.h"
 
 
-/* Port Controls  (Platform dependent) */
+/* Socket controls  (Platform dependent) */
 #define CS_LOW()  _LATB15 = 0	/* MMC CS = L */
 #define CS_HIGH() _LATB15 = 1	/* MMC CS = H */
-#define INS	!(PORTB & (1<<11))	/* Card detected   (yes:true, no:false, default:true) */
-#define WP	(PORTB & (1<<10))	/* Write protected (yes:true, no:false, default:false) */
+#define CD	(!_RB11)	/* Card detected   (yes:true, no:false, default:true) */
+#define WP	(_RB10)		/* Write protected (yes:true, no:false, default:false) */
 
+/* SPI bit rate controls */
 #define	FCLK_SLOW()			/* Set slow clock (100k-400k) */
 #define	FCLK_FAST()			/* Set fast clock (depends on the CSD) */
 
@@ -87,8 +88,6 @@ void power_off (void)
 	_SPIEN = 0;			/* Disable SPI1 */
 
 	;					/* Turn off socket power (Nothing to do) */
-
-	Stat |= STA_NOINIT;	/* Force uninitialized */
 }
 
 
@@ -276,6 +275,21 @@ BYTE send_cmd (
 
 
 /*-----------------------------------------------------------------------*/
+/* Get Disk Status                                                       */
+/*-----------------------------------------------------------------------*/
+
+DSTATUS disk_status (
+	BYTE pdrv		/* Physical drive nmuber (0) */
+)
+{
+	if (pdrv != 0) return STA_NOINIT;	/* Supports only single drive */
+
+	return Stat;
+}
+
+
+
+/*-----------------------------------------------------------------------*/
 /* Initialize Disk Drive                                                 */
 /*-----------------------------------------------------------------------*/
 
@@ -286,10 +300,10 @@ DSTATUS disk_initialize (
 	BYTE n, cmd, ty, ocr[4];
 
 
-	if (pdrv) return STA_NOINIT;		/* Supports only single drive */
+	if (pdrv != 0) return STA_NOINIT;	/* Supports only single drive */
 	if (Stat & STA_NODISK) return Stat;	/* No card in the socket */
 
-	power_on();							/* Force socket power on */
+	power_on();							/* Initialize memory card interface */
 	FCLK_SLOW();
 	for (n = 10; n; n--) xchg_spi(0xFF);	/* 80 dummy clocks */
 
@@ -319,27 +333,13 @@ DSTATUS disk_initialize (
 	CardType = ty;
 	deselect();
 
-	if (ty) {			/* Initialization succeded */
+	if (ty) {		/* Function succeded */
 		Stat &= ~STA_NOINIT;	/* Clear STA_NOINIT */
 		FCLK_FAST();
-	} else {			/* Initialization failed */
-		power_off();
+	} else {		/* Function failed */
+		power_off();	/* Deinitialize interface */
 	}
 
-	return Stat;
-}
-
-
-
-/*-----------------------------------------------------------------------*/
-/* Get Disk Status                                                       */
-/*-----------------------------------------------------------------------*/
-
-DSTATUS disk_status (
-	BYTE pdrv		/* Physical drive nmuber (0) */
-)
-{
-	if (pdrv) return STA_NOINIT;	/* Supports only single drive */
 	return Stat;
 }
 
@@ -518,6 +518,12 @@ DRESULT disk_ioctl (
 		}
 		break;
 
+	case CTRL_POWER_OFF :	/* Power off */
+		power_off();
+		Stat |= STA_NOINIT;
+		res = RES_OK;
+		break;
+
 	default:
 		res = RES_PARERR;
 	}
@@ -527,6 +533,7 @@ DRESULT disk_ioctl (
 	return res;
 }
 #endif
+
 
 
 /*-----------------------------------------------------------------------*/
@@ -551,10 +558,10 @@ void disk_timerproc (void)
 	s = Stat;
 
 	if (WP) s |= STA_PROTECT;
-	else		s &= ~STA_PROTECT;
+	else	s &= ~STA_PROTECT;
 
-	if (INS) s &= ~STA_NODISK;
-	else		 s |= (STA_NODISK | STA_NOINIT);
+	if (CD) s &= ~STA_NODISK;
+	else	s |= (STA_NODISK | STA_NOINIT);
 
 	Stat = s;
 }

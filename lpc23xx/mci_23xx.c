@@ -35,8 +35,8 @@ void Copy_un2al (DWORD *dst, const BYTE *src, int count);	/* Copy unaligned to a
 
 
 /* ----- Port definitions ----- */
-#define SOCKINS		!(FIO0PIN2 & 0x20)	/* Card detect switch */
-#define	SOCKWP		0//(FIO0PIN2 & 0x04)	/* Write protect switch */
+#define	MMC_CD		!(FIO0PIN2 & 0x20)	/* Card detect (yes:true, no:false, default:true) */
+#define	MMC_WP		0				 	/* Write protected (yes:true, no:false, default:false) */
 
 
 /* ----- MMC/SDC command ----- */
@@ -813,11 +813,11 @@ void MCI_timerproc (void)
 
 	s = Stat;
 
-	if (SOCKWP)			/* Write protected */
+	if (MMC_WP)			/* Write protected */
 		s |= STA_PROTECT;
 	else				/* Write enabled */
 		s &= ~STA_PROTECT;
-	if (SOCKINS)		/* Card inserted */
+	if (MMC_CD)			/* Card is in socket */
 		s &= ~STA_NODISK;
 	else				/* Socket empty */
 		s |= (STA_NODISK | STA_NOINIT);

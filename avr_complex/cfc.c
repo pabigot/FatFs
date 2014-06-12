@@ -479,6 +479,10 @@ DRESULT disk_ioctl (
 		return RES_OK;
 	case CTRL_SYNC :		/* Nothing to do */
 		return RES_OK;
+	case CTRL_POWER_OFF :	/* Power off */
+		power_off();
+		Stat |= STA_NOINIT;
+		break;
 	}
 
 	switch (cmd) {

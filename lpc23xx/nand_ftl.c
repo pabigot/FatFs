@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------------*/
-/* NAND-FTL driver (via GPIO)                                 (C)ChaN, 2013 */
+/* FTL driver for SLC small block NAND flash                  (C)ChaN, 2013 */
 /*--------------------------------------------------------------------------*/
 /* This program is opened under license policy of following trems.
 /
@@ -21,11 +21,11 @@ void Copy_un2al (DWORD *dst, const BYTE *src, int count);	/* Copy unaligned to a
 
 
 
-/* NAND flash configurations (depends on the memory chip) */
+/* NAND flash and FTL configurations (depends on the memory chip) */
 
-#define	N_TOTAL_BLKS	8192	/* Total number of blocks on the memory chip (8MB:1024, 16MB:1024, 32MB:2048, 64MB:4096, 128MB:8192) */
-#define	N_SIZE_BLK		32		/* Block size (Number of pages per erase block) 8MB:16, >=16MB:32 */
-#define	N_RES_BLKS		1		/* Number of top blocks to be reserved for system (1 or lager) */
+#define	N_TOTAL_BLKS	8192	/* Total number of erase blocks on the memory chip (8MB:1024, 16MB:1024, 32MB:2048, 64MB:4096, 128MB:8192) */
+#define	N_SIZE_BLK		32		/* Erase block size (8MB:16, 16MB+:32) */
+#define	N_RES_BLKS		1		/* Number of top blocks to be reserved for system (1 or larger) */
 #define	P_SPARE_BLKS	3		/* Percentage of spare blocks in total blocks */
 
 #define	N_SPARE_BLKS	(N_TOTAL_BLKS * P_SPARE_BLKS / 100)			/* Number of spare blocks */

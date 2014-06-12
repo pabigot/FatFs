@@ -93,8 +93,8 @@
 #define CS_LOW()	PORTB &= ~1		/* MMC CS = L */
 #define	CS_HIGH()	PORTB |= 1		/* MMC CS = H */
 
-#define MMWP	(PINB & 0x20)		/* Write protected. yes:true, no:false, default:false */
-#define MMINS	(!(PINB & 0x10))	/* Card detected.   yes:true, no:false, default:true */
+#define MMC_WP	(PINB & 0x20)		/* Write protected. yes:true, no:false, default:false */
+#define MMC_CD	(!(PINB & 0x10))	/* Card detected.   yes:true, no:false, default:true */
 
 #define	FCLK_SLOW()	SPCR = 0x52		/* Set slow clock (100k-400k) */
 #define	FCLK_FAST()	SPCR = 0x50		/* Set fast clock (depends on the CSD) */
@@ -785,24 +785,21 @@ DRESULT MM_disk_read (
 	UINT count			/* Sector count (1..128) */
 )
 {
+	BYTE cmd;
+
+
 	if (!count) return RES_PARERR;
 	if (Stat[MMC] & STA_NOINIT) return RES_NOTRDY;
 
 	if (!(CardType & CT_BLOCK)) sector *= 512;	/* Convert LBA to byte address if needed */
 
-	if (count == 1) {	/* Single block read */
-		if ((send_cmd(CMD17, sector) == 0)	/* READ_SINGLE_BLOCK */
-			&& rcvr_datablock(buff, 512))
-			count = 0;
-	}
-	else {				/* Multiple block read */
-		if (send_cmd(CMD18, sector) == 0) {	/* READ_MULTIPLE_BLOCK */
-			do {
-				if (!rcvr_datablock(buff, 512)) break;
-				buff += 512;
-			} while (--count);
-			send_cmd(CMD12, 0);				/* STOP_TRANSMISSION */
-		}
+	cmd = count > 1 ? CMD18 : CMD17;			/*  READ_MULTIPLE_BLOCK : READ_SINGLE_BLOCK */
+	if (send_cmd(cmd, sector) == 0) {
+		do {
+			if (!rcvr_datablock(buff, 512)) break;
+			buff += 512;
+		} while (--count);
+		if (cmd == CMD18) send_cmd(CMD12, 0);	/* STOP_TRANSMISSION */
 	}
 	deselect();
 
@@ -939,6 +936,10 @@ DRESULT CF_disk_ioctl (
 		return RES_OK;
 	case CTRL_SYNC :		/* Nothing to do */
 		return RES_OK;
+	case CTRL_POWER_OFF :	/* Power off */
+		CF_power_off();
+		Stat[CFC] |= STA_NOINIT;
+		break;
 	}
 
 	switch (cmd) {
@@ -1056,6 +1057,11 @@ DRESULT MM_disk_ioctl (
 		}
 		break;
 
+	case CTRL_POWER_OFF :	/* Power off */
+		MM_power_off();
+		Stat[MMC] |= STA_NOINIT;
+		break;
+
 	default:
 		res = RES_PARERR;
 	}
@@ -1109,11 +1115,11 @@ void disk_timerproc (void)
 
 	/* MMC control */
 	s = Stat[MMC];
-	if (MMWP)		/* MMC write protected */
+	if (MMC_WP)		/* MMC write protected */
 		s |= STA_PROTECT;
 	else			/* MMC not write enabled */
 		s &= ~STA_PROTECT;
-	if (MMINS)		/* MMC inserted */
+	if (MMC_CD)		/* MMC inserted */
 		s &= ~STA_NODISK;
 	else			/* MMC socket empty */
 		s |= (STA_NODISK | STA_NOINIT);

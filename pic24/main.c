@@ -32,7 +32,8 @@ BYTE Buff[4096];		/* Working buffer */
 
 volatile UINT Timer;	/* 1kHz increment timer */
 
-volatile BYTE rtcYear = 2013-1980, rtcMon = 7, rtcMday = 6, rtcHour, rtcMin, rtcSec;
+volatile WORD rtcYear = 2014;
+volatile BYTE rtcMon = 4, rtcMday = 6, rtcHour, rtcMin, rtcSec;
 
 
 
@@ -94,7 +95,7 @@ DWORD get_fattime (void)
 
 	_DI();
 	/* Pack date and time into a DWORD variable */
-	tmr =	  (((DWORD)rtcYear - 80) << 25)
+	tmr =	  (((DWORD)rtcYear - 1980) << 25)
 			| ((DWORD)rtcMon << 21)
 			| ((DWORD)rtcMday << 16)
 			| (WORD)(rtcHour << 11)

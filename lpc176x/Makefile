@@ -100,7 +100,7 @@ ALL_ASFLAGS = -mcpu=$(CPU) $(THUMBIW) -I. -x assembler-with-cpp $(ASFLAGS)
 
 
 # Default target.
-all: version build size
+all: build size
 
 ifeq ($(OUTPUT),hex)
 build: elf hex lst sym
