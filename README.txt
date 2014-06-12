@@ -6,9 +6,9 @@ http://elm-chan.org/fsw/ff/00index_e.html or
 http://elm-chan.org/fsw/ff/00index_p.html.
 
 Branch ff/master tracks the standard FatFs releases, from R0.01 through
-R0.10a plus any upstream patches.
+R0.10b plus any upstream patches.
 
-Branch pf/master tracks the Petit FatFs release, from R0.01a through R0.02a.
+Branch pf/master tracks the Petit FatFs release, from R0.01a through R0.03.
 
 Branch ffsample/master tracks periodic, unversioned release of the FatFs
 sample code, which includes example drivers.
@@ -16,4 +16,4 @@ sample code, which includes example drivers.
 Branch pfsample/master tracks periodic, unversioned release of the Petit
 FatFs sample code, which includes example drivers.
 
-Last upstream sync: 20140310
+Last upstream sync: 20140612
