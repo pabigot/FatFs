@@ -276,13 +276,6 @@ void stop_transfer (void)
 /*-----------------------------------------------------------------------*/
 
 static
-int power_status (void)
-{
-	return (MCI_POWER & 3) ? 1 : 0;
-}
-
-
-static
 void power_on (void)
 {
 	/* Enable MCI and GPDMA power */
@@ -724,7 +717,7 @@ DRESULT MCI_ioctl (
 			res = RES_OK;
 			break;
 
-		case CTRL_ERASE_SECTOR :	/* Erase a block of sectors */
+		case CTRL_TRIM :		/* Erase a block of sectors */
 			if (!(CardType & CT_SDC) || (!(CardInfo[0] >> 6) && !(CardInfo[10] & 0x40))) break;	/* Check if sector erase can be applied to the card */
 			dp = buff; st = dp[0]; ed = dp[1];
 			if (!(CardType & CT_BLOCK)) {
@@ -734,19 +727,9 @@ DRESULT MCI_ioctl (
 				res = RES_OK;
 			break;
 
-		case CTRL_POWER :
-			switch (ptr[0]) {
-			case 0:		/* Sub control code == 0 (POWER_OFF) */
-				power_off();		/* Power off */
-				res = RES_OK;
-				break;
-			case 1:		/* Sub control code == 1 (POWER_GET) */
-				ptr[1] = (BYTE)power_status();
-				res = RES_OK;
-				break;
-			default :
-				res = RES_PARERR;
-			}
+		case CTRL_POWER_OFF :
+			power_off();		/* Power off */
+			res = RES_OK;
 			break;
 
 		case MMC_GET_TYPE :		/* Get card type flags (1 byte) */

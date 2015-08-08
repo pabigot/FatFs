@@ -2,7 +2,7 @@
 /  The Main Development Bench of FatFs Module
 /-------------------------------------------------------------------------/
 /
-/  Copyright (C) 2013, ChaN, all right reserved.
+/  Copyright (C) 2014, ChaN, all right reserved.
 /
 / * This software is a free software and there is NO WARRANTY.
 / * No restriction on use. You can use, modify and redistribute it for
@@ -255,6 +255,7 @@ const TCHAR HelpStr[] = {
 		_T(" di <pd#> - Initialize disk\n")
 		_T(" dd [<pd#> <sect>] - Dump a secrtor\n")
 		_T(" ds <pd#> - Show disk status\n")
+		_T(" dl <file> - Load FAT image into RAM disk (pd#0)\n")
 		_T("[Buffer contorls]\n")
 		_T(" bd <ofs> - Dump working buffer\n")
 		_T(" be <ofs> [<data>] ... - Edit working buffer\n")
@@ -265,6 +266,7 @@ const TCHAR HelpStr[] = {
 		_T(" fi <ld#> [<mount>] - Force initialized the volume\n")
 		_T(" fs [<path>] - Show volume status\n")
 		_T(" fl [<path>] - Show a directory\n")
+		_T(" fL <path> <pat> - Find a directory\n")
 		_T(" fo <mode> <file> - Open a file\n")
 		_T(" fc - Close the file\n")
 		_T(" fe <ofs> - Move fp in normal seek\n")
@@ -328,7 +330,7 @@ void get_uni (
 			buf[i] = 0;
 			break;
 		}
-		if ((UINT)buf[i] >= ' ' && i < len - 1) i++;
+		if ((UINT)buf[i] >= ' ' && i + n < len) i += n;
 	}
 }
 
@@ -456,6 +458,13 @@ int _tmain (int argc, TCHAR *argv[])
 				if (disk_ioctl((BYTE)p1, GET_SECTOR_COUNT, &dw) == RES_OK)
 					_tprintf(_T("Number of sectors = %u\n"), dw);
 				break;
+
+			case 'l' :	/* dl <image file> - Load image of a FAT volume into RAM disk */
+				while (*ptr == ' ') ptr++;
+				if (disk_ioctl(0, 200, ptr) == RES_OK)
+					_tprintf(_T("Ok\n"));
+				break;
+
 			}
 			break;
 
@@ -597,7 +606,29 @@ int _tmain (int argc, TCHAR *argv[])
 				if (f_getfree(ptr, (DWORD*)&p1, &fs) == FR_OK)
 					_tprintf(_T(",%12I64u bytes free\n"), (LONGLONG)p1 * fs->csize * 512);
 				break;
+#if _USE_FIND
+			case 'L' :	/* fL <path> <pattern> - Directory search */
+				while (*ptr == ' ') ptr++;
+				ptr2 = ptr;
+				while (*ptr != ' ') ptr++;
+				*ptr++ = 0;
+				res = f_findfirst(&dir, &Finfo, ptr2, ptr);
+				while (res == FR_OK && Finfo.fname[0]) {
+					_tprintf(_T("%s"),Finfo.fname);
+#if _USE_LFN
+					for (p2 = _tcslen(Finfo.fname); p2 < 12; p2++) _tprintf(_T(" "));
+					_tprintf(_T("  ")); 
+					put_uni(LFName);
+#endif
+					_tprintf(_T("\n"));
 
+					res = f_findnext(&dir, &Finfo);
+				}
+				if (res) put_rc(res);
+
+				f_closedir(&dir);
+				break;
+#endif			
 			case 'o' :	/* fo <mode> <file> - Open a file */
 				if (!xatoi(&ptr, &p1)) break;
 				while (*ptr == ' ') ptr++;

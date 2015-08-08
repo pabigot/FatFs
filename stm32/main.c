@@ -1,5 +1,5 @@
 /*----------------------------------------------------------------------*/
-/* FAT file system sample project for FatFs            (C)ChaN, 2013    */
+/* FAT file system sample project for FatFs            (C)ChaN, 2014    */
 /*----------------------------------------------------------------------*/
 
 #include <string.h>
@@ -53,15 +53,13 @@ void SysTick_Handler (void)
 
 
 /*---------------------------------------------------------*/
-/* User Provided RTC Function for FatFs module             */
+/* User provided RTC function for FatFs module             */
 /*---------------------------------------------------------*/
-/* This is a real time clock service to be called from     */
-/* FatFs module. Any valid time must be returned even if   */
-/* the system does not support an RTC.                     */
-/* This function is not required in read-only cfg.         */
+/* This is a real time clock service to be called back     */
+/* from FatFs module.                                      */
 
-
-DWORD get_fattime ()
+#if !_FS_NORTC && !_FS_READONLY
+DWORD get_fattime (void)
 {
 	RTCTIME rtc;
 
@@ -76,6 +74,7 @@ DWORD get_fattime ()
 			| ((DWORD)rtc.min << 5)
 			| ((DWORD)rtc.sec >> 1);
 }
+#endif
 
 
 /*--------------------------------------------------------------------------*/
@@ -339,9 +338,9 @@ int main (void)
 					if (!xatoi(&ptr, &p1)) break;
 					xprintf("rc=%d\n", disk_ioctl((BYTE)p1, CTRL_SYNC, 0));
 					break;
-				case 'e' :	/* dce <pd#> <s.lba> <e.lba> - CTRL_ERASE_SECTOR */
+				case 'e' :	/* dce <pd#> <s.lba> <e.lba> - CTRL_TRIM */
 					if (!xatoi(&ptr, &p1) || !xatoi(&ptr, (long*)&blk[0]) || !xatoi(&ptr, (long*)&blk[1])) break;
-					xprintf("rc=%d\n", disk_ioctl((BYTE)p1, CTRL_ERASE_SECTOR, blk));
+					xprintf("rc=%d\n", disk_ioctl((BYTE)p1, CTRL_TRIM, blk));
 					break;
 				}
 				break;

@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------
-/  Low level disk interface modlue include file   (C)ChaN, 2013
+/  Low level disk interface modlue include file   (C)ChaN, 2014
 /-----------------------------------------------------------------------*/
 
 #ifndef _DISKIO_DEFINED
@@ -45,14 +45,14 @@ DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff);
 
 /* Command code for disk_ioctrl fucntion */
 
-/* Generic ioctl command (defined by FatFs) */
-#define CTRL_SYNC			0	/* Flush disk cache (for write functions) */
-#define GET_SECTOR_COUNT	1	/* Get media size (for only f_mkfs()) */
-#define GET_SECTOR_SIZE		2	/* Get sector size (for multiple sector size (_MAX_SS >= 1024)) */
-#define GET_BLOCK_SIZE		3	/* Get erase block size (for only f_mkfs()) */
-#define CTRL_ERASE_SECTOR	4	/* Force erased a block of sectors (for only _USE_ERASE) */
+/* Generic command (Used by FatFs) */
+#define CTRL_SYNC			0	/* Complete pending write process (needed at _FS_READONLY == 0) */
+#define GET_SECTOR_COUNT	1	/* Get media size (needed at _USE_MKFS == 1) */
+#define GET_SECTOR_SIZE		2	/* Get sector size (needed at _MAX_SS != _MIN_SS) */
+#define GET_BLOCK_SIZE		3	/* Get erase block size (needed at _USE_MKFS == 1) */
+#define CTRL_TRIM			4	/* Inform device that the data on the block of sectors is no longer used (needed at _USE_TRIM == 1) */
 
-/* Generic ioctl command */
+/* Generic command (Not used by FatFs) */
 #define CTRL_FORMAT			5	/* Create physical format on the media */
 #define CTRL_POWER_IDLE		6	/* Put the device idle state */
 #define CTRL_POWER_OFF		7	/* Put the device off state */
@@ -60,14 +60,14 @@ DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff);
 #define CTRL_UNLOCK			9	/* Unlock media removal */
 #define CTRL_EJECT			10	/* Eject media */
 
-/* MMC/SDC specific ioctl command */
+/* MMC/SDC specific command (Not used by FatFs) */
 #define MMC_GET_TYPE		50	/* Get card type */
 #define MMC_GET_CSD			51	/* Get CSD */
 #define MMC_GET_CID			52	/* Get CID */
 #define MMC_GET_OCR			53	/* Get OCR */
 #define MMC_GET_SDSTAT		54	/* Get SD status */
 
-/* ATA/CF specific ioctl command */
+/* ATA/CF specific command (Not used by FatFs) */
 #define ATA_GET_REV			60	/* Get F/W revision */
 #define ATA_GET_MODEL		61	/* Get model name */
 #define ATA_GET_SN			62	/* Get serial number */

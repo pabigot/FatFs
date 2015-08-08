@@ -334,23 +334,37 @@ DRESULT disk_ioctl (
 		return RES_NOTRDY;
 
 	switch (ctrl) {
-	case CTRL_SYNC:
+	case CTRL_SYNC:			/* Nothing to do */
 		res = RES_OK;
 		break;
 
-	case GET_SECTOR_COUNT:
+	case GET_SECTOR_COUNT:	/* Get number of sectors on the drive */
 		*(DWORD*)buff = Stat[pdrv].n_sectors;
 		res = RES_OK;
 		break;
 
-	case GET_SECTOR_SIZE:
+	case GET_SECTOR_SIZE:	/* Get size of sector to read/write */
 		*(WORD*)buff = Stat[pdrv].sz_sector;
 		res = RES_OK;
 		break;
 
-	case GET_BLOCK_SIZE:
+	case GET_BLOCK_SIZE:	/* Get internal block size in unit of sector */
 		*(DWORD*)buff = 128;
 		res = RES_OK;
+		break;
+
+	case 200:				/* Load disk image file to the RAM disk (drive 0) */
+		{
+			HANDLE h;
+			DWORD br;
+
+			h = CreateFile((TCHAR*)buff, GENERIC_READ, 0, 0, OPEN_EXISTING, 0, 0);
+			if (!pdrv && h != INVALID_HANDLE_VALUE) {
+				if (ReadFile(h, RamDisk, SZ_RAMDISK * 1024 * 1024, &br, 0))
+					res = RES_OK;
+				CloseHandle(h);
+			}
+		}
 		break;
 
 	}

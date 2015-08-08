@@ -7,13 +7,9 @@
 [GENERAL_DATA]
 [BREAKPOINTS]
 [OPEN_WORKSPACE_FILES]
-"C:\user\Prj_Renesas\ff_rx62n\fftest\ff.c" 
-"C:\user\Prj_Renesas\ff_rx62n\fftest\ffconf.h" 
 "C:\user\Prj_Renesas\ff_rx62n\fftest\main.c" 
 [WORKSPACE_FILE_STATES]
-"C:\user\Prj_Renesas\ff_rx62n\fftest\ff.c" 0 0 994 590 0 0 
-"C:\user\Prj_Renesas\ff_rx62n\fftest\ffconf.h" 22 22 994 854 0 1 
-"C:\user\Prj_Renesas\ff_rx62n\fftest\main.c" 287 44 994 829 0 2 
+"C:\user\Prj_Renesas\ff_rx62n\fftest\main.c" 0 0 994 590 0 0 
 [LOADED_PROJECTS]
 "ff_rx62n" 
 [END]

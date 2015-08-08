@@ -31,7 +31,7 @@ BYTE Buff[32768] __attribute__ ((aligned (4))) ;	/* Working buffer */
 
 volatile UINT Timer;		/* Performance timer (1kHz increment) */
 
-IMPORT_BIN(".rodata", "bigsight.bin", BitMap1);	/* Built-in picture */
+IMPORT_BIN(".rodata", "rc/bigsight.bin", BitMap1);	/* Built-in picture */
 extern const uint16_t BitMap1[];
 
 
@@ -56,12 +56,10 @@ void Isr_TIMER0 (void)
 /*---------------------------------------------------------*/
 /* User Provided RTC Function for FatFs module             */
 /*---------------------------------------------------------*/
-/* This is a real time clock service to be called from     */
-/* FatFs module. Any valid time must be returned even if   */
-/* the system does not support an RTC.                     */
-/* This function is not required in read-only cfg.         */
+/* This is a real time clock service to be called back     */
+/* from FatFs module.                                      */
 
-
+#if !_FS_NORTC && !_FS_READONLY
 DWORD get_fattime ()
 {
 	RTC rtc;
@@ -72,11 +70,12 @@ DWORD get_fattime ()
 	/* Pack date and time into a DWORD variable */
 	return	  ((DWORD)(rtc.year - 1980) << 25)
 			| ((DWORD)rtc.month << 21)
-			| ((DWORD)rtc.mday << 16)
-			| ((DWORD)rtc.hour << 11)
-			| ((DWORD)rtc.min << 5)
-			| ((DWORD)rtc.sec >> 1);
+			| ((DWORD)rtc.mday  << 16)
+			| ((DWORD)rtc.hour  << 11)
+			| ((DWORD)rtc.min   << 5)
+			| ((DWORD)rtc.sec   >> 1);
 }
+#endif
 
 
 /*--------------------------------------------------------------------------*/
@@ -158,6 +157,7 @@ const char HelpMsg[] =
 	" fi [<mount>] - Force initialized the volume\n"
 	" fs [<path>] - Show volume status\n"
 	" fl [<path>] - Show a directory\n"
+	" fL <path> <pat> - Search directory\n"
 	" fo <mode> <file> - Open a file\n"
 	" fc - Close the file\n"
 	" fe <ofs> - Move fp in normal seek\n"
@@ -374,12 +374,12 @@ int main (void)
 
 			case 'k' :	/* gk <l> <r> <t> <b> - Set mask */
 				if (!xatoi(&ptr, &p1) || !xatoi(&ptr, &p2) || !xatoi(&ptr, &p3) || !xatoi(&ptr, &p4)) break;
-				disp_mask(p1, p2, p3, p4);
+				disp_setmask(p1, p2, p3, p4);
 				break;
 
 			case 'f' :	/* gf <l> <r> <t> <b> <col> - Rectangular fill */
 				if (!xatoi(&ptr, &p1) || !xatoi(&ptr, &p2) || !xatoi(&ptr, &p3) || !xatoi(&ptr, &p4) || !xatoi(&ptr, &p5)) break;
-				disp_fill(p1, p2, p3, p4, p5);
+				disp_rectfill(p1, p2, p3, p4, p5);
 				break;
 
 			case 'm' :	/* gm <x> <y> - Set current position */
@@ -390,11 +390,6 @@ int main (void)
 			case 'l' :	/* gl <x> <y> <col> - Draw line */
 				if (!xatoi(&ptr, &p1) || !xatoi(&ptr, &p2) || !xatoi(&ptr, &p3)) break;
 				disp_lineto(p1, p2, p3);
-				break;
-
-			case 'p' :	/* gp <x> <y> <col> - Set point */
-				if (!xatoi(&ptr, &p1) || !xatoi(&ptr, &p2) || !xatoi(&ptr, &p3)) break;
-				disp_pset(p1, p2, p3);
 				break;
 
 			case 'b' :	/* gb <x> <y> - Put built-in bitmap image */
@@ -498,9 +493,9 @@ int main (void)
 					if (!xatoi(&ptr, &p1)) break;
 					xprintf("rc=%d\n", disk_ioctl((BYTE)p1, CTRL_SYNC, 0));
 					break;
-				case 'e' :	/* dce <pd#> <s.lba> <e.lba> - CTRL_ERASE_SECTOR */
+				case 'e' :	/* dce <pd#> <s.lba> <e.lba> - CTRL_TRIM */
 					if (!xatoi(&ptr, &p1) || !xatoi(&ptr, (long*)&blk[0]) || !xatoi(&ptr, (long*)&blk[1])) break;
-					xprintf("rc=%d\n", disk_ioctl((BYTE)p1, CTRL_ERASE_SECTOR, blk));
+					xprintf("rc=%d\n", disk_ioctl((BYTE)p1, CTRL_TRIM, blk));
 					break;
 				case 'f' :	/* dcf <pd#> - CTRL_FORMAT */
 					if (!xatoi(&ptr, &p1)) break;
@@ -633,7 +628,25 @@ int main (void)
 				else
 					put_rc(res);
 				break;
-
+#if _USE_FIND
+			case 'L' :	/* fL <path> <pattern> - Directory search */
+				while (*ptr == ' ') ptr++;
+				ptr2 = ptr;
+				while (*ptr != ' ') ptr++;
+				*ptr++ = 0;
+				res = f_findfirst(&Dir, &Finfo, ptr2, ptr);
+				while (res == FR_OK && Finfo.fname[0]) {
+#if _USE_LFN
+					xprintf("%-12s  %s\n", Finfo.fname, Finfo.lfname);
+#else
+					xprintf("%s\n", Finfo.fname);
+#endif
+					res = f_findnext(&Dir, &Finfo);
+				}
+				if (res) put_rc(res);
+				f_closedir(&Dir);
+				break;
+#endif
 			case 'o' :	/* fo <mode> <file> - Open a file */
 				if (!xatoi(&ptr, &p1)) break;
 				while (*ptr == ' ') ptr++;

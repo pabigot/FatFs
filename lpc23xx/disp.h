@@ -1,10 +1,10 @@
 #ifndef _DISPLAY
 #define _DISPLAY
 #include <stdint.h>
-#include "ff.h"
 
 
 #define _USE_FILE_LOADER	1	/* Enable file loaders */
+
 
 /* Dot screen size */
 #define DISP_XS	128
@@ -14,17 +14,22 @@
 #define TS_WIDTH	26
 #define TS_HEIGHT	13
 
+/* RGB pixel data format (Create RGB565 from RGB888) */
+#define RGB16(r,g,b)	(uint16_t)(((r) & 0xF8) << 8 | ((g) & 0xFC) << 3 | (b) >> 3)
+
+#if _USE_FILE_LOADER
+#include "ff.h"
+#endif
 
 extern const uint8_t FontH24[], FontH10[], FontZ10[];
-extern volatile long TmrFrm;	/* Timer: increased 1000 in interval of 1ms */
+extern volatile long TmrFrm;	/* Timer: to be increased 1000 in interval of 1ms */
 
 void disp_init (void);
 
 /* Grafix functions */
-void disp_mask (int left, int right, int top, int bottom);
-void disp_pset (int x, int y, uint16_t color);
-void disp_fill (int left, int right, int top, int bottom, uint16_t color);
-void disp_box (int left, int right, int top, int bottom, uint16_t color);
+void disp_setmask (int left, int right, int top, int bottom);
+void disp_rectfill (int left, int right, int top, int bottom, uint16_t color);
+void disp_rect (int left, int right, int top, int bottom, uint16_t color);
 void disp_moveto (int x, int y);
 void disp_lineto (int x, int y, uint16_t color);
 void disp_blt (int left, int right, int top, int bottom, const uint16_t *pat);
@@ -45,7 +50,6 @@ void load_img (FIL* fil, void* work, UINT sz_work);
 
 
 /* Color values */
-#define RGB16(r,g,b) (((r << 8) & 0xF800)|((g << 3) & 0x07E0)|(b >> 3))
 #define	C_BLACK		RGB16(0,0,0)
 #define	C_BLUE		RGB16(0,0,255)
 #define	C_RED		RGB16(255,0,0)

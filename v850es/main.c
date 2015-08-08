@@ -1,5 +1,5 @@
 /*---------------------------------------------------------------*/
-/* V850ES FatFs module test program               (C)ChaN, 2013  */
+/* V850ES FatFs module test program               (C)ChaN, 2014  */
 /*---------------------------------------------------------------*/
 
 
@@ -84,11 +84,10 @@ __interrupt void ISR_tmm0 (void)
 /*---------------------------------------------------------*/
 /* User Provided RTC Function for FatFs module             */
 /*---------------------------------------------------------*/
-/* This is a real time clock service to be called from     */
-/* FatFs module. Any valid time must be returned even if   */
-/* the system does not support an RTC.                     */
-/* This function is not required in read-only cfg.         */
+/* This is a real time clock service to be called back     */
+/* from FatFs module.                                      */
 
+#if !_FS_NORTC && !_FS_READONLY
 DWORD get_fattime (void)
 {
 	DWORD tmr;
@@ -105,7 +104,7 @@ DWORD get_fattime (void)
 
 	return tmr;
 }
-
+#endif
 
 
 
@@ -394,9 +393,9 @@ int main (void)
 					if (!xatoi(&ptr, &p1)) break;
 					xprintf("rc=%d\n", disk_ioctl((BYTE)p1, CTRL_SYNC, 0));
 					break;
-				case 'e' :	/* dce <pd#> <s.lba> <e.lba> - CTRL_ERASE_SECTOR */
+				case 'e' :	/* dce <pd#> <s.lba> <e.lba> - CTRL_TRIM */
 					if (!xatoi(&ptr, &p1) || !xatoi(&ptr, (long*)&blk[0]) || !xatoi(&ptr, (long*)&blk[1])) break;
-					xprintf("rc=%d\n", disk_ioctl((BYTE)p1, CTRL_ERASE_SECTOR, blk));
+					xprintf("rc=%d\n", disk_ioctl((BYTE)p1, CTRL_TRIM, blk));
 					break;
 				}
 				break;

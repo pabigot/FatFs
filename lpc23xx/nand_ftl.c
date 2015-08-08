@@ -798,11 +798,11 @@ DRESULT NAND_ioctl (
 		*(DWORD*)buff = N_SIZE_BLK;
 		return RES_OK;
 
-	case CTRL_ERASE_SECTOR:	/* Erase (force blanked) a sector group */
+	case CTRL_TRIM:			/* Erase (force blanked) a sector group */
 		if (!Init) return RES_NOTRDY;
 		return blank_log_blocks(buff);
 
-	case CTRL_FORMAT:	/* Create physical format on the memory */
+	case CTRL_FORMAT:		/* Create physical format on the memory */
 		return phy_format(buff);
 	}
 

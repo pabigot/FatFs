@@ -65,27 +65,20 @@ void SysTick_Handler (void)
 /*---------------------------------------------------------*/
 /* User Provided RTC Function for FatFs module             */
 /*---------------------------------------------------------*/
-/* This is a real time clock service to be called from     */
-/* FatFs module. Any valid time must be returned even if   */
-/* the system does not support an RTC.                     */
-/* This function is not required in read-only cfg.         */
+/* This is a real time clock service to be called back     */
+/* from FatFs module.                                      */
 
-
+#if !_FS_NORTC && !_FS_READONLY
 DWORD get_fattime (void)
 {
-//	return	  ((DWORD)(rtc.year - 1980) << 25)
-//			| ((DWORD)rtc.month << 21)
-//			| ((DWORD)rtc.mday << 16)
-//			| ((DWORD)rtc.hour << 11)
-//			| ((DWORD)rtc.min << 5)
-//			| ((DWORD)rtc.sec >> 1);
-	return	  ((DWORD)(2012 - 1980) << 25)	// 2012/4/1 0:0:0
+	return	  ((DWORD)(2012 - 1980) << 25)	/* Return fixed value 2012/4/1 0:0:0 */
 			| ((DWORD)4 << 21)
 			| ((DWORD)1 << 16)
 			| ((DWORD)0 << 11)
 			| ((DWORD)0 << 5)
 			| ((DWORD)0 >> 1);
 }
+#endif
 
 
 /*--------------------------------------------------------------------------*/
@@ -355,7 +348,7 @@ int main (void)
 					break;
 				case 'e' :	/* dce <pd#> <s.lba> <e.lba> - CTRL_ERASE_SECTOR */
 					if (!xatoi(&ptr, &p1) || !xatoi(&ptr, (long*)&blk[0]) || !xatoi(&ptr, (long*)&blk[1])) break;
-					xprintf("rc=%d\n", disk_ioctl((BYTE)p1, CTRL_ERASE_SECTOR, blk));
+					xprintf("rc=%d\n", disk_ioctl((BYTE)p1, CTRL_TRIM, blk));
 					break;
 				}
 				break;

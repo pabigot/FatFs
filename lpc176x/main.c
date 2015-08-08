@@ -155,6 +155,7 @@ const char HelpMsg[] =
 	" fi <ld#> [<mount>]- Force initialized the volume\n"
 	" fs [<path>] - Show volume status\n"
 	" fl [<path>] - Show a directory\n"
+	" fL <path> <pat> - Search directory\n"
 	" fo <mode> <file> - Open a file\n"
 	" fc - Close the file\n"
 	" fe <ofs> - Move fp in normal seek\n"
@@ -336,9 +337,9 @@ int main (void)
 					if (!xatoi(&ptr, &p1)) break;
 					xprintf("rc=%d\n", disk_ioctl((BYTE)p1, CTRL_SYNC, 0));
 					break;
-				case 'e' :	/* dce <pd#> <s.lba> <e.lba> - CTRL_ERASE_SECTOR */
+				case 'e' :	/* dce <pd#> <s.lba> <e.lba> - CTRL_TRIM */
 					if (!xatoi(&ptr, &p1) || !xatoi(&ptr, (long*)&blk[0]) || !xatoi(&ptr, (long*)&blk[1])) break;
-					xprintf("rc=%d\n", disk_ioctl((BYTE)p1, CTRL_ERASE_SECTOR, blk));
+					xprintf("rc=%d\n", disk_ioctl((BYTE)p1, CTRL_TRIM, blk));
 					break;
 				}
 				break;
@@ -464,7 +465,25 @@ int main (void)
 				else
 					put_rc(res);
 				break;
-
+#if _USE_FIND
+			case 'L' :	/* fL <path> <pattern> - Directory search */
+				while (*ptr == ' ') ptr++;
+				ptr2 = ptr;
+				while (*ptr != ' ') ptr++;
+				*ptr++ = 0;
+				res = f_findfirst(&Dir, &Finfo, ptr2, ptr);
+				while (res == FR_OK && Finfo.fname[0]) {
+#if _USE_LFN
+					xprintf("%-12s  %s\n", Finfo.fname, Finfo.lfname);
+#else
+					xprintf("%s\n", Finfo.fname);
+#endif
+					res = f_findnext(&Dir, &Finfo);
+				}
+				if (res) put_rc(res);
+				f_closedir(&Dir);
+				break;
+#endif
 			case 'o' :	/* fo <mode> <file> - Open a file */
 				if (!xatoi(&ptr, &p1)) break;
 				while (*ptr == ' ') ptr++;

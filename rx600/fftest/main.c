@@ -106,16 +106,18 @@ void clock_init (void)
 /* the system does not support an RTC.                     */
 /* This function is not required in read-only cfg.         */
 
+#if !_FS_NORTC
 DWORD get_fattime (void)
 {
-	/* No RTC feature provided. Return a fixed value 2011/1/29 0:00:00 */
-	return	  ((DWORD)(2011 - 1980) << 25)	/* Y */
-			| ((DWORD)1  << 21)				/* M */
-			| ((DWORD)29 << 16)				/* D */
-			| ((DWORD)0  << 11)				/* H */
-			| ((DWORD)0  << 5)				/* M */
-			| ((DWORD)0  >> 1);				/* S */
+	/* No RTC feature provided. Return a fixed value 2014/11/9 0:00:00 */
+	return	  ((DWORD)(2014 - 1980) << 25)	/* Y */
+			| ((DWORD)11 << 21)				/* M */
+			| ((DWORD)9 << 16)				/* D */
+			| ((DWORD)0 << 11)				/* H */
+			| ((DWORD)0 << 5)				/* M */
+			| ((DWORD)0 >> 1);				/* S */
 }
+#endif
 
 
 
@@ -240,6 +242,7 @@ const char HelpMsg[] =
 	" fi <ld#> [<mount>] - Force initialized the volume\n"
 	" fs [<path>] - Show volume status\n"
 	" fl [<path>] - Show a directory\n"
+	" fL <dir> <pat> - Find directory\n"
 	" fo <mode> <file> - Open a file\n"
 	" fc - Close the file\n"
 	" fe <ofs> - Move fp in normal seek\n"
@@ -535,7 +538,26 @@ int main (void)
 				else
 					put_rc(res);
 				break;
-
+#if _USE_FIND
+			case 'L' :	/* fL <path> <pattern> - Directory search */
+				while (*ptr == ' ') ptr++;
+				ptr2 = ptr;
+				while (*ptr != ' ') ptr++;
+				*ptr++ = 0;
+				res = f_findfirst(&Dir, &Finfo, ptr2, ptr);
+				while (res == FR_OK && Finfo.fname[0]) {
+					xprintf("%s", Finfo.fname);
+#if _USE_LFN
+					for (p2 = xstrlen(Finfo.fname); p2 < 12; p2++) xprintf(" ");
+					xprintf("  %s", Lfname); 
+#endif
+					xprintf("\n");
+					res = f_findnext(&Dir, &Finfo);
+				}
+				if (res) put_rc(res);
+				f_closedir(&Dir);
+				break;
+#endif
 			case 'o' :	/* fo <mode> <file> - Open a file */
 				if (!xatoi(&ptr, &p1)) break;
 				while (*ptr == ' ') ptr++;

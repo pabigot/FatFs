@@ -2,7 +2,7 @@
 /  MMCv3/SDv1/SDv2 (in SPI mode) control module
 /-------------------------------------------------------------------------/
 /
-/  Copyright (C) 2013, ChaN, all right reserved.
+/  Copyright (C) 2014, ChaN, all right reserved.
 /
 / * This software is a free software and there is NO WARRANTY.
 / * No restriction on use. You can use, modify and redistribute it for
@@ -23,8 +23,8 @@
 #define WP	(_RB10)		/* Write protected (yes:true, no:false, default:false) */
 
 /* SPI bit rate controls */
-#define	FCLK_SLOW()			/* Set slow clock (100k-400k) */
-#define	FCLK_FAST()			/* Set fast clock (depends on the CSD) */
+#define	FCLK_SLOW()			/* Set slow clock, 100k-400k (Nothing to do) */
+#define	FCLK_FAST()			/* Set fast clock, depends on the CSD (Nothing to do) */
 
 
 
@@ -87,13 +87,16 @@ void power_off (void)
 {
 	_SPIEN = 0;			/* Disable SPI1 */
 
-	;					/* Turn off socket power (Nothing to do) */
+	;					/* Turn off port and socket power (Nothing to do) */
 }
+
 
 
 /*-----------------------------------------------------------------------*/
 /* Transmit/Receive data to/from MMC via SPI  (Platform dependent)       */
 /*-----------------------------------------------------------------------*/
+
+/* Single byte SPI transfer */
 
 static
 BYTE xchg_spi (BYTE dat)
@@ -103,9 +106,33 @@ BYTE xchg_spi (BYTE dat)
 	return (BYTE)SPI1BUF;
 }
 
-/* Alternative macro to transfer data fast */
-#define XMIT_SPI_MULTI(src,cnt) {UINT c=cnt/2; const BYTE *p=src; do {SPI1BUF=*p++; while(!_SPIRBF); SPI1BUF; SPI1BUF=*p++; while(!_SPIRBF); SPI1BUF; } while(--c);}
-#define RCVR_SPI_MULTI(dst,cnt)	{UINT c=cnt/2; BYTE *p=dst; do {SPI1BUF=0xFF; while(!_SPIRBF); *p++=SPI1BUF; SPI1BUF=0xFF; while(!_SPIRBF); *p++=SPI1BUF; } while(--c);}
+
+/* Block SPI transfers */
+
+static
+void xmit_spi_multi (
+	const BYTE* buff,	/* Data to be sent */
+	UINT cnt			/* Number of bytes to send */
+)
+{
+	do {
+		SPI1BUF = *buff++; while (!_SPIRBF) ; SPI1BUF;
+		SPI1BUF = *buff++; while (!_SPIRBF) ; SPI1BUF;
+	} while (cnt -= 2);
+}
+
+
+static
+void rcvr_spi_multi (
+	BYTE* buff,		/* Buffer to store received data */
+	UINT cnt		/* Number of bytes to receive */
+)
+{
+	do {
+		SPI1BUF = 0xFF; while (!_SPIRBF) ; *buff++ = SPI1BUF;
+		SPI1BUF = 0xFF; while (!_SPIRBF) ; *buff++ = SPI1BUF;
+	} while (cnt -= 2);
+}
 
 
 
@@ -119,9 +146,9 @@ int wait_ready (void)
 	BYTE d;
 
 	Timer2 = 500;	/* Wait for ready in timeout of 500ms */
-	do {
+	do
 		d = xchg_spi(0xFF);
-	} while ((d != 0xFF) && Timer2);
+	while ((d != 0xFF) && Timer2);
 
 	return (d == 0xFF) ? 1 : 0;
 }
@@ -135,8 +162,8 @@ int wait_ready (void)
 static
 void deselect (void)
 {
-	CS_HIGH();
-	xchg_spi(0xFF);		/* Dummy clock (force DO hi-z for multiple slave SPI) */
+	CS_HIGH();			/* Set CS# high */
+	xchg_spi(0xFF);		/* Dummy clock (force MMC DO hi-z for multiple slave SPI) */
 }
 
 
@@ -148,10 +175,11 @@ void deselect (void)
 static
 int select (void)	/* 1:Successful, 0:Timeout */
 {
-	CS_LOW();
-	xchg_spi(0xFF);		/* Dummy clock (force DO enabled) */
+	CS_LOW();			/* Set CS# low */
+	xchg_spi(0xFF);		/* Dummy clock (force MMC DO enabled) */
 
-	if (wait_ready()) return 1;	/* OK */
+	if (wait_ready()) return 1;	/* Wait for card ready */
+
 	deselect();
 	return 0;	/* Timeout */
 }
@@ -178,7 +206,7 @@ int rcvr_datablock (	/* 1:OK, 0:Failed */
 
 	if(token != 0xFE) return 0;		/* If not valid data token, retutn with error */
 
-	RCVR_SPI_MULTI(buff, btr);		/* Receive the data block into buffer */
+	rcvr_spi_multi(buff, btr);		/* Receive the data block into buffer */
 	xchg_spi(0xFF);					/* Discard CRC */
 	xchg_spi(0xFF);
 
@@ -205,7 +233,7 @@ int xmit_datablock (	/* 1:OK, 0:Failed */
 
 	xchg_spi(token);		/* Xmit a token */
 	if (token != 0xFD) {	/* Not StopTran token */
-		XMIT_SPI_MULTI(buff, 512);	/* Xmit the data block to the MMC */
+		xmit_spi_multi(buff, 512);	/* Xmit the data block to the MMC */
 		xchg_spi(0xFF);				/* CRC (Dummy) */
 		xchg_spi(0xFF);
 		resp = xchg_spi(0xFF);		/* Receive a data response */

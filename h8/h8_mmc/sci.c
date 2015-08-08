@@ -1,5 +1,6 @@
 /*------------------------------------------------*/
 /* SCI contorl functions                          */
+/*------------------------------------------------*/
 
 
 #include <machine.h>
@@ -51,7 +52,7 @@ BYTE sci3_get (void)
 
 	i = RxFifo.rp;
 	d = RxFifo.buff[i++];
-	RxFifo.rp = i % sizeof(RxFifo.buff);
+	RxFifo.rp = i % sizeof RxFifo.buff;
 	set_imask_ccr(1);
 	RxFifo.ctr--;
 	set_imask_ccr(0);
@@ -68,11 +69,11 @@ void sci3_put (BYTE d)
 	BYTE i;
 
 
-	while (TxFifo.ctr >= sizeof(TxFifo.buff)) ;
+	while (TxFifo.ctr >= sizeof TxFifo.buff) ;
 
 	i = TxFifo.wp;
 	TxFifo.buff[i++] = d;
-	TxFifo.wp = i % sizeof(TxFifo.buff);
+	TxFifo.wp = i % sizeof TxFifo.buff;
 	set_imask_ccr(1);
 	TxFifo.ctr++;
 	SCI3.SCR3.BIT.TIE = 1;
@@ -96,11 +97,11 @@ void int_SCI3 (void)
 	if (stat & 0x40) {
 		d = SCI3.RDR;
 		n = RxFifo.ctr;
-		if(n < sizeof(RxFifo.buff)) {
+		if(n < sizeof RxFifo.buff) {
 			RxFifo.ctr = n + 1;
 			i = RxFifo.wp;
 			RxFifo.buff[i++] = d;
-			RxFifo.wp = i % sizeof(RxFifo.buff);
+			RxFifo.wp = i % sizeof RxFifo.buff;
 		}
 	}
 	if (stat & 0x80) {
@@ -109,7 +110,7 @@ void int_SCI3 (void)
 			TxFifo.ctr = n - 1;
 			i = TxFifo.rp;
 			SCI3.TDR = TxFifo.buff[i++];
-			TxFifo.rp = i % sizeof(TxFifo.buff);
+			TxFifo.rp = i % sizeof TxFifo.buff;
 		}
 		if(n == 0)
 			SCI3.SCR3.BIT.TIE = 0;

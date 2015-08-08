@@ -495,7 +495,7 @@ uint8_t uart3_getc (void)
 
 void uart3_putc (uint8_t d)
 {
-	uint16_t i, n;
+	uint16_t i;
 
 	/* Wait for Tx FIFO ready */
 	while (TxFifo3.ct >= UART3_TXB) ;

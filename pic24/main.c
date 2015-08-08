@@ -394,7 +394,26 @@ int main (void)
 				if (f_getfree(ptr, (DWORD*)&p1, &fs) == FR_OK)
 					xprintf(", %10lu bytes free\n", p1 * fs->csize * 512);
 				break;
-
+#if _USE_FIND
+			case 'L' :	/* fL <path> <pattern> - Directory search */
+				while (*ptr == ' ') ptr++;
+				ptr2 = ptr;
+				while (*ptr != ' ') ptr++;
+				*ptr++ = 0;
+				res = f_findfirst(&dir, &Finfo, ptr2, ptr);
+				while (res == FR_OK && Finfo.fname[0]) {
+					xprintf("%s", Finfo.fname);
+#if _USE_LFN
+					for (p2 = strlen(Finfo.fname); p2 < 12; p2++) xprintf(" ");
+					xprintf("  %s", Lfname); 
+#endif
+					xprintf("\n");
+					res = f_findnext(&dir, &Finfo);
+				}
+				if (res) put_rc(res);
+				f_closedir(&dir);
+				break;
+#endif
 			case 'o' :	/* fo <mode> <file> - Open a file */
 				if (!xatoi(&ptr, &p1)) break;
 				while (*ptr == ' ') ptr++;

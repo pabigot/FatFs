@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------*/
-/* MMC3/SD1/SD2 (in SPI mode) control module  (C)ChaN, 2013              */
+/* MMC3/SD1/SD2 (in SPI mode) control module  (C)ChaN, 2014              */
 /*-----------------------------------------------------------------------*/
 
 
@@ -113,7 +113,7 @@ int wait_ready (	/* 1:Ready, 0:Timeout */
 static
 void deselect (void)
 {
-	CS_HIGH();
+	CS_HIGH();		/* Set CS# high */
 	rcvr_spi();		/* Dummy clock (force DO hi-z for multiple slave SPI) */
 }
 
@@ -126,10 +126,11 @@ void deselect (void)
 static
 int select (void)	/* 1:Successful, 0:Timeout */
 {
-	CS_LOW();
+	CS_LOW();		/* Set CS# low */
 	rcvr_spi();		/* Dummy clock (force DO enabled) */
 
-	if (wait_ready(500)) return 1;	/* OK */
+	if (wait_ready(500)) return 1;	/* Wait for card ready */
+
 	deselect();
 	return 0;	/* Timeout */
 }
@@ -534,7 +535,7 @@ DRESULT disk_ioctl (
 		}
 		break;
 
-	case CTRL_ERASE_SECTOR :	/* Erase a block of sectors (used when _USE_ERASE == 1) */
+	case CTRL_TRIM :	/* Erase a block of sectors (used when _USE_TRIM == 1) */
 		if (!(CardType & CT_SDC)) break;				/* Check if the card is SDC */
 		if (disk_ioctl(pdrv, MMC_GET_CSD, csd)) break;	/* Get CSD */
 		if (!(csd[0] >> 6) && !(csd[10] & 0x40)) break;	/* Check if sector erase can be applied to the card */

@@ -13,21 +13,32 @@
 
 #include <string.h>
 #include "LPC2300.h"
-#include "interrupt.h"
-#include "xprintf.h"
 #include "disp.h"
+
+#if _USE_FILE_LOADER
+#include "xprintf.h"
 #include "ff.h"
+#include "interrupt.h"
 #include "sound.h"
 #include "uart23xx.h"
 #include "tjpgd.h"
+#endif
 
 #define USE_DBCS	1	/* 0:ANK only, 1:Enable kanji chars */
 
 #define	DISP_TYPE	(FIO4PIN1 & _BV(7))	/* P4.15(Module type): H=SSD1339, L=SSD1355 */
 
-#define	CMD_WRB(d)	{ FIO4PIN0 = (d); FIO4CLR1 = _BV(3); FIO4CLR1=_BV(1); FIO4SET1=_BV(1); }	/* Write a command to the OLED */
-#define	DATA_WRB(d)	{ FIO4PIN0 = (d); FIO4SET1 = _BV(3); FIO4CLR1=_BV(1); FIO4SET1=_BV(1); }	/* Write a byte to the OLED */
-#define	DATA_WPX(d)	{ FIO4SET1 = _BV(3); FIO4PIN0 = ((d)>>8); FIO4CLR1=_BV(1); FIO4SET1=_BV(1); FIO4PIN0 = (d); FIO4CLR1=_BV(1); FIO4SET1=_BV(1); }	/* Write a pixel to the OLED */
+#define DISP_DAT	FIO4PIN0
+#define DISP_WR_L()	FIO4CLR1 = _BV(1)
+#define DISP_WR_H()	FIO4SET1 = _BV(1)
+#define DISP_CD_H()	FIO4SET1 = _BV(3)
+#define DISP_CD_L()	FIO4CLR1 = _BV(3)
+#define DISP_RES_L()	FIO4CLR1 = _BV(4)
+#define DISP_RES_H()	FIO4SET1 = _BV(4)
+
+#define	CMD_WRB(d)	{ DISP_DAT = (d); DISP_CD_L(); DISP_WR_L(); DISP_WR_H(); DISP_CD_H(); }	/* Write a command to the OLED */
+#define	DATA_WRB(d)	{ DISP_DAT = (d); DISP_WR_L(); DISP_WR_H(); }	/* Write a byte to the OLED */
+#define	DATA_WPX(d)	{ DATA_WRB((d)>>8); DATA_WRB(d); }				/* Write a pixel to the OLED */
 
 
 
@@ -40,12 +51,14 @@ static const uint8_t *FontD;	/* Current font (Kanji) */
 static uint8_t Sjis;			/* Sjis leading byte */
 #endif
 
+#if _USE_FILE_LOADER
 volatile long TmrFrm;			/* Timer (increased 1000 every 1ms) */
+#endif
 
 /* Import FONTX2 files as byte array */
-IMPORT_BIN(".rodata", "FONT24S.FNT", FontH24);			/* const uint8_t FontH24[] */
-IMPORT_BIN(".rodata", "mplfont/MPLHN10X.FNT", FontH10);	/* const uint8_t FontH10[] */
-IMPORT_BIN(".rodata", "mplfont/MPLZN10X.FNT", FontZ10);	/* const uint8_t FontZ10[] */
+IMPORT_BIN(".rodata", "rc/FONT24S.FNT", FontH24);			/* const uint8_t FontH24[] */
+IMPORT_BIN(".rodata", "rc/mplfont/MPLHN10X.FNT", FontH10);	/* const uint8_t FontH10[] */
+IMPORT_BIN(".rodata", "rc/mplfont/MPLZN10X.FNT", FontZ10);	/* const uint8_t FontZ10[] */
 
 
 
@@ -121,12 +134,14 @@ void disp_init (void)
 	/* Initialize display module control port */
 	FIO4PINL = 0x1FFF;		/* P4L: TYPE|-|-|RES#|D/C#|CS#|WR#|RD#|D7|D6|D5|D4|D3|D2|D1|D0 */
 	FIO4DIRL = 0x1FFF;
+	FIO4SET1 = 0x01;	/* RD=H (fixed) */
+	FIO4CLR1 = 0x04;	/* CS=L (fixed) */
 
 	/* Reset display module */
-	FIO4SET1 = 0x03;	// RD=H, WR=H
-	FIO4CLR1 = 0x14;	// RES=L, CS=L
+	DISP_WR_H();
+	DISP_RES_L();
 	for (TmrFrm = 0; TmrFrm < 20000; ) ;	/* 20ms */
-	FIO4SET1 = 0x18;	// RES=H, DC=H
+	DISP_RES_H();
 	for (TmrFrm = 0; TmrFrm < 20000; ) ;	/* 20ms */
 
 	/* Send initialization data */
@@ -138,9 +153,9 @@ void disp_init (void)
 	}
 
 	/* Clear screen and Display ON */
-	disp_mask(0, DISP_XS - 1, 0, DISP_YS - 1);
-	disp_fill(0, DISP_XS - 1, 0, DISP_YS - 1, 0x0000);
-	CMD_WRB(*p);
+	disp_setmask(0, DISP_XS - 1, 0, DISP_YS - 1);
+	disp_rectfill(0, DISP_XS - 1, 0, DISP_YS - 1, 0x0000);
+	CMD_WRB(*p);	/* Display ON */
 
 	/* Register text fonts */
 	disp_font_face(FontH10);	/* ANK font */
@@ -152,10 +167,9 @@ void disp_init (void)
 /*-----------------------------------------------------*/
 /* Set active drawing area                             */
 /*-----------------------------------------------------*/
-/* The mask feature affects only disp_fill, disp_box,  */
-/* disp_pset, disp_lineto and disp_blt function        */
+/* The mask feature affects only graphics functions    */
 
-void disp_mask (
+void disp_setmask (
 	int left,		/* Left end of active window (0..DISP_XS-1) */
 	int right,		/* Right end of active window (0..DISP_XS-1, >=left) */
 	int top,		/* Top end of active window (0..DISP_YS-1) */
@@ -175,7 +189,7 @@ void disp_mask (
 /*-----------------------------------------------------*/
 /* Draw a solid rectangular                            */
 
-void disp_fill (
+void disp_rectfill (
 	int left,		/* Left end (-32768..32767) */
 	int right,		/* Right end (-32768..32767, >=left) */
 	int top,		/* Top end (-32768..32767) */
@@ -205,7 +219,7 @@ void disp_fill (
 /*-----------------------------------------------------*/
 /* Draw a hollow rectangular                           */
 
-void disp_box (
+void disp_rect (
 	int left,		/* Left end (-32768..32767) */
 	int right,		/* Right end (-32768..32767, >=left) */
 	int top,		/* Top end (-32768..32767) */
@@ -213,31 +227,10 @@ void disp_box (
 	uint16_t color	/* Box color */
 )
 {
-	disp_fill(left, left, top, bottom, color);
-	disp_fill(right, right, top, bottom, color);
-	disp_fill(left, right, top, top, color);
-	disp_fill(left, right, bottom, bottom, color);
-}
-
-
-
-/*-----------------------------------------------------*/
-/* Draw a dot                                          */
-
-void disp_pset (
-	int x,		/* X position (-32768..32767) */
-	int y,		/* Y position (-32768..32767) */
-	uint16_t color	/* Pixel color */
-)
-{
-	if (x >= MaskL && x <= MaskR && y >= MaskT && y <= MaskB) {
-		CMD_WRB(DISP_TYPE ? 0x15 : 0x2A);	/* Set H position */
-		DATA_WRB(x); DATA_WRB(x);
-		CMD_WRB(DISP_TYPE ? 0x75 : 0x2B);	/* Set V position */
-		DATA_WRB(y); DATA_WRB(y);
-		CMD_WRB(DISP_TYPE ? 0x5C : 0x2C);	/* Write a pixel data */
-		DATA_WPX(color);
-	}
+	disp_rectfill(left, left, top, bottom, color);
+	disp_rectfill(right, right, top, bottom, color);
+	disp_rectfill(left, right, top, top, color);
+	disp_rectfill(left, right, bottom, bottom, color);
 }
 
 
@@ -265,13 +258,16 @@ void disp_lineto (
 	uint16_t col	/* Line color */
 )
 {
-	int32_t xr, yr, xd, yd;
+	int32_t xr, yr, xp, yp, xd, yd;
 	int ctr;
 
 
 	xd = x - LocX; xr = LocX << 16; LocX = x;
 	yd = y - LocY; yr = LocY << 16; LocY = y;
-
+	if (!xd || !yd) {
+		disp_rectfill(x - xd, x, y - yd, y, col);
+		return;
+	}
 	if ((xd < 0 ? 0 - xd : xd) >= (yd < 0 ? 0 - yd : yd)) {
 		ctr = (xd < 0 ? 0 - xd : xd) + 1;
 		yd = (yd << 16) / (xd < 0 ? 0 - xd : xd);
@@ -284,10 +280,35 @@ void disp_lineto (
 	xr += 1 << 15;
 	yr += 1 << 15;
 	do {
-		disp_pset(xr >> 16, yr >> 16, col);
+		xp = xr >> 16; yp = yr >> 16;
+		if (xp >= MaskL && xp <= MaskR && yp >= MaskT && yp <= MaskB) {
+			CMD_WRB(DISP_TYPE ? 0x15 : 0x2A);	/* Set H position */
+			DATA_WRB(xp); DATA_WRB(xp);
+			CMD_WRB(DISP_TYPE ? 0x75 : 0x2B);	/* Set V position */
+			DATA_WRB(yp); DATA_WRB(yp);
+			CMD_WRB(DISP_TYPE ? 0x5C : 0x2C);	/* Write a pixel data */
+			DATA_WPX(col);
+		}
 		xr += xd; yr += yd;
 	} while (--ctr);
 
+}
+
+
+
+/*-----------------------------------------------------*/
+/* Draw a line                                         */
+
+void disp_line (
+	int x1,		/* Start position X for the line (-32768..32767) */
+	int y1,		/* Start position Y for the line (-32768..32767) */
+	int x2,		/* End position X for the line (-32768..32767) */
+	int y2,		/* End position Y for the line (-32768..32767) */
+	uint16_t col	/* Line color */
+)
+{
+	disp_moveto(x1, y1);
+	disp_lineto(x2, y2, col);
 }
 
 
@@ -432,7 +453,7 @@ void disp_putc (
 			if (LocX < 0) LocX = 0;
 			return;
 		case '\f':	/* FF */
-			disp_fill(0, DISP_XS - 1, 0, DISP_YS - 1, 0);
+			disp_rectfill(0, DISP_XS - 1, 0, DISP_YS - 1, RGB16(0,0,0));
 			LocX = LocY = 0;
 			return;
 		}
@@ -668,7 +689,7 @@ void load_img (
 	d = LD_DWORD(buff+imDataOfs);	/* Go to data start position */
 	if (f_lseek(fp, d) || f_tell(fp) != d) return;
 
-	disp_fill(0, DISP_XS, 0, DISP_YS, 0);	/* Clear screen */
+	disp_rectfill(0, DISP_XS, 0, DISP_YS, RGB16(0,0,0));	/* Clear screen */
 	disp_setrect((DISP_XS - x) / 2, (DISP_XS - x) / 2 + x - 1, (DISP_YS - y) / 2, (DISP_YS - y) / 2 + y - 1);
 
 	nfrm = LD_DWORD(buff+imFrames);		/* Number of frames */
@@ -770,7 +791,7 @@ void load_bmp (
 	if (!bm_w || !bm_h) return;			/* Check bitmap size */
 	if (iw > sz_work) return;			/* Check if buffer size is sufficient for this file */
 
-	disp_fill(0, DISP_XS, 0, DISP_YS, 0);	/* Clear screen */
+	disp_rectfill(0, DISP_XS, 0, DISP_YS, RGB16(0,0,0));	/* Clear screen */
 	/* Determine left/right of image rectangular */
 	if (bm_w > DISP_XS) {
 		xs = 0; xe = DISP_XS - 1;	/* Full width */
@@ -895,7 +916,7 @@ void load_jpg (
 	BYTE scale;
 
 
-	disp_fill(0, DISP_XS, 0, DISP_YS, 0);	/* Clear screen */
+	disp_rectfill(0, DISP_XS, 0, DISP_YS, RGB16(0,0,0));	/* Clear screen */
 	disp_font_color(C_WHITE);
 
 	rc = jd_prepare(&jd, tjd_input, work, sz_work, fp);		/* Prepare to decompress the file */

@@ -2,7 +2,7 @@
 /* FRK-RX62N: MMCv3/SDv1/SDv2 (SPI mode) Control Module                   */
 /*------------------------------------------------------------------------*/
 /*
-/  Copyright (C) 2013, ChaN, all right reserved.
+/  Copyright (C) 2014, ChaN, all right reserved.
 /
 / * This software is a free software and there is NO WARRANTY.
 / * No restriction on use. You can use, modify and redistribute it for
@@ -236,7 +236,6 @@ int wait_ready (	/* 1:Ready, 0:Timeout */
 {
 	Timer2 = (WORD)wt;
 
-	xchg_spi(0xFF);		/* Read a byte (Force enable DO output) */
 	do {
 		if (xchg_spi(0xFF) == 0xFF) return 1;	/* Card goes ready */
 		/* This loop takes a time. Insert rot_rdq() here for multitask envilonment. */
@@ -254,8 +253,8 @@ int wait_ready (	/* 1:Ready, 0:Timeout */
 static
 void deselect (void)
 {
-	CS_HIGH();		/* CS = H */
-	xchg_spi(0xFF);	/* Dummy clock (force DO hi-z) */
+	CS_HIGH();		/* Set CS# high */
+	xchg_spi(0xFF);	/* Dummy clock (force DO hi-z for multiple slave SPI) */
 }
 
 
@@ -267,12 +266,13 @@ void deselect (void)
 static
 int select (void)	/* 1:OK, 0:Timeout */
 {
-	CS_LOW();		/* CS = H */
-	if (!wait_ready(500)) {
-		deselect();
-		return 0;	/* Failed to select the card due to timeout */
-	}
-	return 1;	/* OK */
+	CS_LOW();		/* Set CS# low */
+	xchg_spi(0xFF);	/* Dummy clock (force DO enabled) */
+
+	if (wait_ready(500)) return 1;	/* Wait for card ready */
+
+	deselect();
+	return 0;	/* Failed to select the card due to timeout */
 }
 
 
@@ -602,7 +602,7 @@ DRESULT disk_ioctl (
 		}
 		break;
 
-	case CTRL_ERASE_SECTOR :	/* Erase a block of sectors (used when _USE_ERASE == 1) */
+	case CTRL_TRIM :	/* Erase a block of sectors (used when _USE_TRIM == 1) */
 		if (!(CardType & CT_SDC)) break;				/* Check if the card is SDC */
 		if (disk_ioctl(drv, MMC_GET_CSD, csd)) break;	/* Get CSD */
 		if (!(csd[0] >> 6) && !(csd[10] & 0x40)) break;	/* Check if sector erase can be applied to the card */

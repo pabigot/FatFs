@@ -145,7 +145,6 @@ int wait_ready (void)	/* 1:OK, 0:Timeout */
 
 
 	Timer2 = 50;	/* Wait for ready in timeout of 500ms */
-	rcvr_spi();
 	do
 		if (rcvr_spi() == 0xFF) return 1;
 	while (Timer2);
@@ -162,8 +161,8 @@ int wait_ready (void)	/* 1:OK, 0:Timeout */
 static
 void deselect (void)
 {
-	CS_HIGH();
-	rcvr_spi();
+	CS_HIGH();		/* Set CS# high */
+	rcvr_spi();		/* Dummy clock (force DO hi-z for multiple slave SPI) */
 }
 
 
@@ -175,12 +174,13 @@ void deselect (void)
 static
 int select (void)	/* 1:OK, 0:Timeout */
 {
-	CS_LOW();
-	if (!wait_ready()) {
-		deselect();
-		return 0;
-	}
-	return 1;
+	CS_LOW();		/* Set CS# low */
+	rcvr_spi();		/* Dummy clock (force DO enabled) */
+
+	if (wait_ready()) return 1;	/* Wait for card ready */
+
+	deselect();
+	return 0;		/* Timeout */
 }
 
 

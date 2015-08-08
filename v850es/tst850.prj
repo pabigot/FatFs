@@ -43,13 +43,6 @@ Romp=1
 StartUp=startup.s
 StartUpOptn=0
 LinkDir=tst850.dir
-[SrcFile]
-Source1=main.c
-Source2=mmc_v850es.c
-Source3=ff.c
-Source4=uart_v850es.c
-Source5=xprintf.c
-Source6=cc932.c
 [Options.CA850]
 Version=E3.11a [27 Oct 2006]
 Sconst=1
@@ -74,6 +67,13 @@ DebugInfo=0
 DebugInfo=0
 [Options.AS850 1 RompCrt]
 DebugInfo=0
+[SrcFile]
+Source1=main.c
+Source2=mmc_v850es.c
+Source3=ff.c
+Source4=uart_v850es.c
+Source5=xprintf.c
+Source6=option\unicode.c
 [IncFile]
 Include1=integer.h
 Include2=diskio.h
@@ -85,6 +85,11 @@ Include7=..\..\..\Program Files\NEC Electronics Tools\CA850\E3.11a\inc850\stdarg
 Include8=xprintf.h
 Include9=uart_v850es.h
 Include10=v850es.h
+Include11=option\cc932.c
+Include12=option\cc936.c
+Include13=option\cc949.c
+Include14=option\cc950.c
+Include15=option\ccsbcs.c
 [ToolSet]
 ToolSetName=(ïœçX01)V850 Series Software Package V4.20
 Tool1=CA850|E3.11a
