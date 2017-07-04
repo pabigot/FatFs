@@ -2,11 +2,11 @@
 PROJECT	= fm3_mmc
 
 ### Source files and search directories
-CSRC	= main.c uart_mfs.c xprintf.c mmc_mfs.c ff.c unicode.c sound.c iic.c startup_fm3_2.c
+CSRC	= main.c uart_mfs.c xprintf.c mmc_mfs.c ff.c ffunicode.c sound.c iic.c startup_fm3_2.c
 ASRC	=
 CSRCARM	=
 ASRCARM	=
-VPATH   = option
+VPATH   =
 
 ### Optimization level (0, 1, 2, 3, 4 or s)
 OPTIMIZE = s

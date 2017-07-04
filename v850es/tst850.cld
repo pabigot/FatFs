@@ -11,7 +11,7 @@ mmc_v850es.o
 ff.o
 uart_v850es.o
 xprintf.o
-unicode.o
+ffunicode.o
 -lc
 -lr
 "C:\Program Files\NEC Electronics Tools\CA850\E3.11a\lib850\r32\rompcrt.o"

@@ -17,9 +17,6 @@ extern void disk_timerproc (void);
 DWORD AccSize;				/* Work register for fs command */
 WORD AccFiles, AccDirs;
 FILINFO Finfo;
-#if _USE_LFN
-char Lfname[256];
-#endif
 
 char Line[256];				/* Console input buffer */
 BYTE Buff[16384] __attribute__ ((aligned (4))) ;	/* Working buffer */
@@ -90,23 +87,16 @@ FRESULT scan_files (
 	DIR dirs;
 	FRESULT res;
 	BYTE i;
-	char *fn;
 
 
 	if ((res = f_opendir(&dirs, path)) == FR_OK) {
-		i = strlen(path);
 		while (((res = f_readdir(&dirs, &Finfo)) == FR_OK) && Finfo.fname[0]) {
-			if (_FS_RPATH && Finfo.fname[0] == '.') continue;
-#if _USE_LFN
-			fn = *Finfo.lfname ? Finfo.lfname : Finfo.fname;
-#else
-			fn = Finfo.fname;
-#endif
 			if (Finfo.fattrib & AM_DIR) {
 				AccDirs++;
-				*(path+i) = '/'; strcpy(path+i+1, fn);
+				i = strlen(path);
+				path[i] = '/'; strcpy(&path[i+1], Finfo.fname);
 				res = scan_files(path);
-				*(path+i) = '\0';
+				path[i] = '\0';
 				if (res != FR_OK) break;
 			} else {
 			/*	xprintf("%s/%s\n", path, fn); */
@@ -128,7 +118,7 @@ void put_rc (FRESULT rc)
 		"OK\0" "DISK_ERR\0" "INT_ERR\0" "NOT_READY\0" "NO_FILE\0" "NO_PATH\0"
 		"INVALID_NAME\0" "DENIED\0" "EXIST\0" "INVALID_OBJECT\0" "WRITE_PROTECTED\0"
 		"INVALID_DRIVE\0" "NOT_ENABLED\0" "NO_FILE_SYSTEM\0" "MKFS_ABORTED\0" "TIMEOUT\0"
-		"LOCKED\0" "NOT_ENOUGH_CORE\0" "TOO_MANY_OPEN_FILES\0";
+		"LOCKED\0" "NOT_ENOUGH_CORE\0" "TOO_MANY_OPEN_FILES\0" "INVALID_PARAMETER\0";
 	FRESULT i;
 
 	for (i = 0; i != rc && *str; i++) {
@@ -172,7 +162,7 @@ const char HelpMsg[] =
 	" fg <path> - Change current directory\n"
 	" fq - Show current directory\n"
 	" fb <name> - Set volume label\n"
-	" fm <ld#> <rule> <csize> - Create file system\n"
+	" fm <ld#> <type> <csize> - Create file system\n"
 	" fz [<len>] - Change/Show R/W length for fr/fw/fx command\n"
 	"[Misc commands]\n"
 	" p <wavfile> - Play RIFF-WAVE file\n"
@@ -206,18 +196,13 @@ int main (void)
 
 	rtc_initialize();	/* Initiazlize RTC */
 
-#if _USE_LFN	/* Initialize file info structure if in LFN cfg */
-	Finfo.lfname = Lfname;
-	Finfo.lfsize = sizeof Lfname;
-#endif
 
 	/* Initialize UART0 and attach it to xprintf module for console */
 	uart0_init();
 	xdev_out(uart0_putc);
 	xdev_in(uart0_getc);
 	xputs("LPC1768 test monitor\n");
-	xputs(_USE_LFN ? "LFN Enabled" : "LFN Disabled");
-	xprintf(", Code page: %u\n", _CODE_PAGE);
+	xprintf("LFN=%s, CP=%u\n", FF_USE_LFN ? "Enabled" : "Disabled", FF_CODE_PAGE);
 
 	for (;;) {
 		xputc('>');
@@ -413,7 +398,7 @@ int main (void)
 						ft[fs->fs_type & 3], (DWORD)fs->csize * 512, fs->n_fats,
 						fs->n_rootdir, fs->fsize, (DWORD)fs->n_fatent - 2,
 						fs->volbase, fs->fatbase, fs->dirbase, fs->database);
-#if _USE_LABEL
+#if FF_USE_LABEL
 				res = f_getlabel(ptr, (char*)Buff, (DWORD*)&p2);
 				if (res) { put_rc(res); break; }
 				xprintf(Buff[0] ? "Volume name is %s\n" : "No volume label\n", (char*)Buff);
@@ -451,12 +436,7 @@ int main (void)
 							(Finfo.fattrib & AM_ARC) ? 'A' : '-',
 							(Finfo.fdate >> 9) + 1980, (Finfo.fdate >> 5) & 15, Finfo.fdate & 31,
 							(Finfo.ftime >> 11), (Finfo.ftime >> 5) & 63,
-							Finfo.fsize,
-#if _USE_LFN
-							Lfname[0] ? Lfname : Finfo.fname);
-#else
-							Finfo.fname);
-#endif
+							(DWORD)Finfo.fsize, Finfo.fname);
 				}
 				xprintf("%4u File(s),%10lu bytes total\n%4u Dir(s)", s1, p1, s2);
 				res = f_getfree(ptr, (DWORD*)&p1, &fs);
@@ -465,7 +445,7 @@ int main (void)
 				else
 					put_rc(res);
 				break;
-#if _USE_FIND
+#if FF_USE_FIND
 			case 'L' :	/* fL <path> <pattern> - Directory search */
 				while (*ptr == ' ') ptr++;
 				ptr2 = ptr;
@@ -473,11 +453,7 @@ int main (void)
 				*ptr++ = 0;
 				res = f_findfirst(&Dir, &Finfo, ptr2, ptr);
 				while (res == FR_OK && Finfo.fname[0]) {
-#if _USE_LFN
-					xprintf("%-12s  %s\n", Finfo.fname, Finfo.lfname);
-#else
 					xprintf("%s\n", Finfo.fname);
-#endif
 					res = f_findnext(&Dir, &Finfo);
 				}
 				if (res) put_rc(res);
@@ -531,7 +507,7 @@ int main (void)
 					p2 += s2;
 					if (cnt != s2) break;
 				}
-				xprintf("%lu bytes read with %lu kB/sec.\n", p2, Timer ? (p2 / Timer) : 0);
+				xprintf("%lu bytes read at %lu kB/sec.\n", p2, Timer ? (p2 / Timer) : 0);
 				break;
 
 			case 'w' :	/* fw <len> <val> - write file */
@@ -550,7 +526,7 @@ int main (void)
 					p2 += s2;
 					if (cnt != s2) break;
 				}
-				xprintf("%lu bytes written with %lu kB/sec.\n", p2, Timer ? (p2 / Timer) : 0);
+				xprintf("%lu bytes written at %lu kB/sec.\n", p2, Timer ? (p2 / Timer) : 0);
 				break;
 
 			case 'n' :	/* fn <org.name> <new.name> - Change name of an object */
@@ -575,7 +551,7 @@ int main (void)
 				while (*ptr == ' ') ptr++;
 				put_rc(f_mkdir(ptr));
 				break;
-
+#if FF_USE_CHMOD
 			case 'a' :	/* fa <atrr> <mask> <name> - Change attribute of an object */
 				if (!xatoi(&ptr, &p1) || !xatoi(&ptr, &p2)) break;
 				while (*ptr == ' ') ptr++;
@@ -589,7 +565,7 @@ int main (void)
 				Finfo.ftime = ((p1 & 31) << 11) | ((p2 & 63) << 5) | ((p3 >> 1) & 31);
 				put_rc(f_utime(ptr, &Finfo));
 				break;
-
+#endif
 			case 'x' : /* fx <src.name> <dst.name> - Copy a file */
 				while (*ptr == ' ') ptr++;
 				ptr2 = strchr(ptr, ' ');
@@ -621,16 +597,16 @@ int main (void)
 					p1 += s2;
 					if (res || s2 < s1) break;   /* error or disk full */
 				}
-				xprintf("\n%lu bytes copied with %lu kB/sec.\n", p1, p1 / Timer);
+				xprintf("\n%lu bytes copied at %lu kB/sec.\n", p1, p1 / Timer);
 				f_close(&File[0]);
 				f_close(&File[1]);
 				break;
-#if _FS_RPATH
+#if FF_FS_RPATH
 			case 'g' :	/* fg <path> - Change current directory */
 				while (*ptr == ' ') ptr++;
 				put_rc(f_chdir(ptr));
 				break;
-#if _FS_RPATH >= 2
+#if FF_FS_RPATH >= 2
 			case 'q' :	/* fq - Show current dir path */
 				res = f_getcwd(Line, sizeof Line);
 				if (res)
@@ -640,19 +616,19 @@ int main (void)
 				break;
 #endif
 #endif
-#if _USE_LABEL
+#if FF_USE_LABEL
 			case 'b' :	/* fb <name> - Set volume label */
 				while (*ptr == ' ') ptr++;
 				put_rc(f_setlabel(ptr));
 				break;
 #endif	/* _USE_LABEL */
-#if _USE_MKFS
-			case 'm' :	/* fm <rule> <csize> - Create file system */
+#if FF_USE_MKFS
+			case 'm' :	/* fm <type> <csize> - Create file system */
 				if (!xatoi(&ptr, &p2) || !xatoi(&ptr, &p3)) break;
 				xprintf("The volume will be formatted. Are you sure? (Y/n)=");
 				xgets(Line, sizeof Line);
 				if (Line[0] == 'Y')
-					put_rc(f_mkfs("", (BYTE)p2, (WORD)p3));
+					put_rc(f_mkfs("", (BYTE)p2, (WORD)p3, Buff, sizeof Buff));
 				break;
 #endif	/* _USE_MKFS */
 			case 'z' :	/* fz [<size>] - Change/Show R/W length for fr/fw/fx command */

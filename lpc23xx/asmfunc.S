@@ -8,7 +8,7 @@
 .equ ABT_Stack_Size,	0	@ Nou used
 .equ FIQ_Stack_Size,	16	@ Used by FIQ handler
 .equ IRQ_Stack_Size,	256	@ Requires ISR nesting level * 28 bytes
-.equ USR_Stack_Size,	1024	@ Used by user mode programs
+.equ USR_Stack_Size,	2048	@ Used by user mode programs
 .equ Stack_Size,	(UND_Stack_Size + SVC_Stack_Size + ABT_Stack_Size + \
 			FIQ_Stack_Size + IRQ_Stack_Size + USR_Stack_Size)
 

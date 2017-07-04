@@ -2,7 +2,7 @@
 PROJECT	= fftest
 
 ### Source files and search directories
-CSRC	= main.c interrupt.c uart23xx.c rtc23xx.c filer.c sound.c xprintf.c diskio.c mci_23xx.c ff.c unicode.c
+CSRC	= main.c interrupt.c uart23xx.c rtc23xx.c filer.c sound.c xprintf.c diskio.c mmc_lpc23xx_mci.c ff.c ffunicode.c
 ASRC	=
 CSRCARM	= disp.c tjpgd.c nand_ftl.c
 ASRCARM	= asmfunc.S

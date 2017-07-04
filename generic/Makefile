@@ -7,7 +7,7 @@ ASRC    =
 VPATH   =
 
 ### Target device
-DEVICE  = atmega166
+DEVICE  = atmega186p
 
 ### Optimization level (0, 1, 2, 3, 4 or s)
 OPTIMIZE = s

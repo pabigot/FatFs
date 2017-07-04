@@ -11,6 +11,7 @@ extern "C" {
 
 #define _USE_WRITE	1	/* 1: Enable disk_write function */
 #define _USE_IOCTL	1	/* 1: Enable disk_ioctl fucntion */
+#define _USE_ISDIO	1	/* 1: Enable iSDIO controls via disk_ioctl */
 
 #include "integer.h"
 
@@ -27,6 +28,14 @@ typedef enum {
 	RES_PARERR		/* 4: Invalid Parameter */
 } DRESULT;
 
+/* Command structure for iSDIO ioctl command */
+typedef struct {
+	BYTE	func;	/* Function number: 0..7 */
+	WORD	ndata;	/* Number of bytes to transfer: 1..512, or mask + data */
+	DWORD	addr;	/* Register address: 0..0x1FFFF */
+	void*	data;	/* Pointer to the data (to be written | read buffer) */
+} SDIO_CTRL;
+
 
 /*---------------------------------------*/
 /* Prototypes for disk control functions */
@@ -35,12 +44,8 @@ typedef enum {
 DSTATUS disk_initialize (BYTE pdrv);
 DSTATUS disk_status (BYTE pdrv);
 DRESULT disk_read (BYTE pdrv, BYTE* buff, DWORD sector, UINT count);
-#if	_USE_WRITE
 DRESULT disk_write (BYTE pdrv, const BYTE* buff, DWORD sector, UINT count);
-#endif
-#if	_USE_IOCTL
 DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff);
-#endif
 void disk_timerproc (void);
 
 
@@ -73,6 +78,9 @@ void disk_timerproc (void);
 #define MMC_GET_CID			52	/* Get CID */
 #define MMC_GET_OCR			53	/* Get OCR */
 #define MMC_GET_SDSTAT		54	/* Get SD status */
+#define ISDIO_READ			55	/* Read data form SD iSDIO register */
+#define ISDIO_WRITE			56	/* Write data to SD iSDIO register */
+#define ISDIO_MRITE			57	/* Masked write data to SD iSDIO register */
 
 /* ATA/CF specific command (Not used by FatFs) */
 #define ATA_GET_REV			60	/* Get F/W revision */

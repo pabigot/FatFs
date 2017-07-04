@@ -26,7 +26,10 @@
 
 
 #define NBSIZE 32
+
 #define FCC(c1,c2,c3,c4)	(((DWORD)c4<<24)+((DWORD)c3<<16)+(c2<<8)+c1)	/* FourCC */
+#define	LD_WORD(ptr)		(WORD)(*(WORD*)(BYTE*)(ptr))
+#define	LD_DWORD(ptr)		(DWORD)(*(DWORD*)(BYTE*)(ptr))
 
 
 
@@ -66,14 +69,14 @@ ISR(TIMER1_COMPA_vect)
 		break;
 	default:	/* Stereo, 16bit */
 		if (ct < 4) return;
-		l = buff[1]; r = buff[3];
+		l = buff[1] + 128; r = buff[3] + 128;
 		ct -= 4; ri += 4;
 	}
 	fcb->ct = ct;
 	fcb->ri = ri & (fcb->sz_buff - 1);
 
-	OCR3B = l;
-	OCR3C = r;
+	OCR2A = l;
+	OCR2B = r;
 }
 
 
@@ -86,24 +89,23 @@ int sound_start (
 	DWORD fs		/* Sampling frequency [Hz] */
 )
 {
-	if (fs < 8000 || fs > 44100) return 0;	/* Check fs range */
+	if (fs < 16000 || fs > 48000) return 0;	/* Check fs range */
 
 	fcb->ri = 0; fcb->wi = 0; fcb->ct = 0;	/* Flush FIFO */
 	WavFifo = fcb;			/* Register FIFO control structure */
 
-	/* Configure OC3B/OC3C as audio output (Fast PWM) */
-	TCNT3 = 0;
-	TCCR3A = _BV(COM3B1) | _BV(COM3C1) | _BV(WGM10);
-	TCCR3B = _BV(WGM12) | 0b001;
-	OCR3B = 0x80; OCR3C = 0x80;		/* Center level */
-	DDRE |= _BV(4);	DDRE |= _BV(5);	/* Attach OC3B/OC3C to I/O pad */
+	/* Configure OC2A/OC2B as audio output (Fast PWM) */
+	TCCR2A = _BV(COM2A1) | _BV(COM2B1) | _BV(WGM21) | _BV(WGM20);
+	TCCR2B = 0b001;
+	OCR2A = 0x80; OCR2B = 0x80;		/* Center level */
+	DDRD |= _BV(7);	DDRD |= _BV(6);	/* Attach OC2A/OC2B to I/O pad */
 
 	/* Configure TIMER1 as sampling interval timer */
 	OCR1A = F_CPU / fs - 1;
 	TCNT1 = 0;
 	TCCR1A = 0;
 	TCCR1B = _BV(WGM12) | 0b001;
-	TIMSK |= _BV(OCIE1A);
+	TIMSK1 = _BV(OCIE1A);
 
 	return 1;
 }
@@ -115,11 +117,11 @@ int sound_start (
 
 void sound_stop (void)
 {
-	DDRE &= ~_BV(4); DDRE &= ~_BV(5);	/* Detach OC3B/OC3C from I/O pad */
-	TCCR3B = 0;			/* Stop Timer3 */
+	DDRD &= ~_BV(7); DDRD &= ~_BV(6);	/* Detach OC2A/OC2B from I/O pad */
+	TCCR2B = 0;			/* Stop Timer2 */
 
 	TCCR1B = 0;			/* Stop sampling interrupt (Timer1) */
-	TIMSK &= ~_BV(OCIE1A);
+	TIMSK1 = 0;
 
 	WavFifo = 0;		/* Unregister FIFO control structure */
 }
@@ -236,7 +238,7 @@ int load_wav (
 			fcb.ct += br;
 			sei();
 		}
-		if (uart_test()) {		/* Exit if a command arrived */
+		if (uart_test()) {		/* Exit if any key hit */
 			k = uart_getc();
 			break;
 		}

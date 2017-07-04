@@ -2,11 +2,11 @@
 PROJECT	= test1768
 
 ### Source files and search directories
-CSRC	= main.c startup176x.c uart176x.c rtc176x.c sound.c xprintf.c mmc_ssp.c ff.c unicode.c
+CSRC	= main.c startup176x.c uart176x.c rtc176x.c sound.c xprintf.c mmc_ssp.c ff.c ffunicode.c
 ASRC	=
 CSRCARM	=
 ASRCARM	=
-VPATH   = option
+VPATH   =
 
 ### Optimization level (0, 1, 2, 3, 4 or s)
 OPTIMIZE = s

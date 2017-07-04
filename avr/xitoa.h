@@ -6,6 +6,8 @@
 #ifndef XITOA
 #define XITOA
 
+#define __PROG_TYPES_COMPAT__
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <inttypes.h>
 #include <avr/pgmspace.h>
 

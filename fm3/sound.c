@@ -15,6 +15,8 @@
 #include "FM3_type2.h"
 #include "sound.h"
 
+#define	LD_WORD(ptr)		(WORD)(*(WORD*)(BYTE*)(ptr))
+#define	LD_DWORD(ptr)		(DWORD)(*(DWORD*)(BYTE*)(ptr))
 
 /* BT8,10 are used as PWM output. BT9 is used as sampling interval timer. */
 

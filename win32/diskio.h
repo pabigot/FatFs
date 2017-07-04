@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------/
-/  Low level disk interface modlue include file   (C)ChaN, 2014          /
+/  Low level disk interface modlue include file   (C)ChaN, 2016          /
 /-----------------------------------------------------------------------*/
 
 #ifndef _DISKIO_DEFINED
@@ -8,9 +8,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#define _USE_WRITE	1	/* 1: Enable disk_write function */
-#define _USE_IOCTL	1	/* 1: Enable disk_ioctl fucntion */
 
 #include "integer.h"
 
@@ -69,11 +66,15 @@ DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff);
 #define MMC_GET_CID			52	/* Get CID */
 #define MMC_GET_OCR			53	/* Get OCR */
 #define MMC_GET_SDSTAT		54	/* Get SD status */
+#define ISDIO_READ			55	/* Read data form SD iSDIO register */
+#define ISDIO_WRITE			56	/* Write data to SD iSDIO register */
+#define ISDIO_MRITE			57	/* Masked write data to SD iSDIO register */
 
 /* ATA/CF specific command (Not used by FatFs) */
 #define ATA_GET_REV			60	/* Get F/W revision */
 #define ATA_GET_MODEL		61	/* Get model name */
 #define ATA_GET_SN			62	/* Get serial number */
+
 
 
 #ifdef __cplusplus

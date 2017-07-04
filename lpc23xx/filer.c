@@ -27,8 +27,18 @@
 
 
 typedef struct {
+	DWORD fsize;
+	WORD fdate;
+	WORD ftime;
+	BYTE fattrib;
+	char fname[13];
+} ITEM;
+
+
+
+typedef struct {
 	char str[SZ_PATH];
-	FILINFO	diritems[N_MAXDIR];
+	ITEM diritems[N_MAXDIR];
 	BYTE buff[1];
 } FILER;
 
@@ -68,9 +78,9 @@ void put_size (
 
 static
 void put_item (
-	const FILINFO *item,	/* Pointer to the dir item */
-	int vpos,				/* Row position in the file area */
-	int csr					/* Cursor on the item */
+	const ITEM *item,	/* Pointer to the dir item */
+	int vpos,			/* Row position in the file area */
+	int csr				/* Cursor on the item */
 )
 {
 	uint32_t col;
@@ -99,7 +109,7 @@ void put_item (
 
 static
 void rfsh_list (	/* Draw directory items */
-	const FILINFO *diritems,	/* Pointer to directory item teble */
+	const ITEM *diritems,	/* Pointer to directory item teble */
 	int item,		/* Current item */
 	int items,		/* Number of items */
 	int ofs			/* Display offset */
@@ -130,7 +140,7 @@ void rfsh_list (	/* Draw directory items */
 
 static
 void rfsh_stat (		/* Draw status line */
-	const FILINFO *diritems,
+	const ITEM *diritems,
 	int items
 )
 {
@@ -167,7 +177,7 @@ void rfsh_base (		/* Draw title line */
 {
 	int i;
 
-#if _VOLUMES < 2
+#if FF_VOLUMES < 2
 	if (*path) path += 2;
 #endif
 	disp_font_color(C_TITLE);
@@ -180,7 +190,7 @@ void rfsh_base (		/* Draw title line */
 
 static
 int selection (
-	FILINFO *diritems,
+	ITEM *diritems,
 	int items,
 	int op			/* 0:Check, 1:Clear all, 2:Set all */
 )
@@ -208,14 +218,15 @@ int selection (
 
 static
 FRESULT load_dir (
-	char *path,			/* Pointer to the current path name buffer */
-	FILINFO *diritems,	/* Pointer to directory item table */
+	char path[],		/* Pointer to the current path name buffer */
+	ITEM diritems[],	/* Pointer to directory item table */
 	int *items
 )
 {
 	int i;
 	DIR dir;
 	FRESULT res;
+	FILINFO fno;
 
 	i = 0;
 	res = f_getcwd(path, SZ_PATH);
@@ -223,12 +234,18 @@ FRESULT load_dir (
 		res = f_opendir(&dir, "");
 		if (res == FR_OK) {
 			do {
-#if _USE_LFN
-				diritems[i].lfname = 0;
+				res = f_readdir(&dir, &fno);
+				if (res || !fno.fname[0]) break;
+				diritems[i].fsize = fno.fsize;
+				diritems[i].fdate = fno.fdate;
+				diritems[i].ftime = fno.ftime;
+				diritems[i].fattrib = fno.fattrib;
+#if FF_USE_LFN
+				strcpy(diritems[i].fname, fno.altname[0] ? fno.altname : fno.fname);
+#else
+				strcpy(diritems[i].fname, fno.fname);
 #endif
-				res = f_readdir(&dir, &diritems[i]);
-				if (res || !diritems[i].fname[0]) break;
-				if (diritems[i].fname[0] != '.') i++;
+				i++;
 			} while (i < N_MAXDIR);
 		}
 	}
@@ -336,6 +353,7 @@ FRESULT cp_file (
 	UINT sz_buf, br, bw;
 	int i;
 	FRESULT res;
+	FILINFO fno;
 
 
 	for (sz_buf = 0x8000; sz_buf > sz_work - sizeof (FILER); sz_buf >>= 1) ;
@@ -367,8 +385,11 @@ FRESULT cp_file (
 	if (res == 100) { 
 		f_unlink(fw->str);
 	} else {
-		if (res == FR_OK)
-			res = f_utime(fw->str, &fw->diritems[item]);
+		if (res == FR_OK) {
+			fno.fdate = fw->diritems[item].fdate;
+			fno.ftime = fw->diritems[item].ftime;
+			res = f_utime(fw->str, &fno);
+		}
 	}
 
 	fw->str[i] = 0;

@@ -2,12 +2,12 @@
 PROJECT	= avr_mmc
 
 ### Source files and search directory
-CSRC    = main.c uart.c ff.c mmc_avr.c rtc.c sound.c unicode_avr.c
+CSRC    = main.c uart.c diskio.c mmc_avr_usart.c rtc_ds1338.c ff.c ffunicode_avr.c
 ASRC    = xitoa.S
-VPATH   = uni_avr
+VPATH   =
 
 ### Target device
-DEVICE  = atmega64
+DEVICE  = atmega1284p
 
 ### Optimization level (0, 1, 2, 3, 4 or s)
 OPTIMIZE = s
@@ -19,7 +19,7 @@ CSTD = gnu89
 LIBS	=
 LIBDIRS	=
 INCDIRS	=
-DEFS	= F_CPU=11059200 MEDIA=\"MMC\"
+DEFS	= F_CPU=20000000 DRV_MMC=0
 ADEFS	=
 
 ### Warning contorls
@@ -129,7 +129,7 @@ size:
 %.elf:  $(AOBJ) $(COBJ)
 	@echo
 	@echo Linking...
-	$(CC) $(CFLAGS) $(AOBJ) $(COBJ) -o $@
+	$(CC) $(CFLAGS) $(LDFLAGS) $(AOBJ) $(COBJ) -o $@
 
 # Compile: create object files from C source files. ARM or Thumb(-2)
 $(COBJ) : $(OBJDIR)/%.o : %.c

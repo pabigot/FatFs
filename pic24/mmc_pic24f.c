@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------/
-/  MMCv3/SDv1/SDv2 (in SPI mode) control module
+/  MMCv3/SDv1/SDv2+ (in SPI mode) control module
 /-------------------------------------------------------------------------/
 /
 /  Copyright (C) 2014, ChaN, all right reserved.
@@ -17,14 +17,14 @@
 
 
 /* Socket controls  (Platform dependent) */
-#define CS_LOW()  _LATB15 = 0	/* MMC CS = L */
-#define CS_HIGH() _LATB15 = 1	/* MMC CS = H */
-#define CD	(!_RB11)	/* Card detected   (yes:true, no:false, default:true) */
-#define WP	(_RB10)		/* Write protected (yes:true, no:false, default:false) */
+#define CS_LOW()	_LATB15 = 0	/* MMC CS = L */
+#define CS_HIGH()	_LATB15 = 1	/* MMC CS = H */
+#define MMC_CD		(!_RB11)	/* Card detected   (yes:true, no:false, default:true) */
+#define MMC_WP		(_RB10)		/* Write protected (yes:true, no:false, default:false) */
 
 /* SPI bit rate controls */
-#define	FCLK_SLOW()			/* Set slow clock, 100k-400k (Nothing to do) */
-#define	FCLK_FAST()			/* Set fast clock, depends on the CSD (Nothing to do) */
+#define	FCLK_SLOW()			/* Set slow clock for card initialization (100k-400k) */
+#define	FCLK_FAST()			/* Set fast clock for generic read/write */
 
 
 
@@ -67,7 +67,7 @@ UINT CardType;
 
 
 /*-----------------------------------------------------------------------*/
-/* Power Control  (Platform dependent)                                   */
+/* Interface Controls (Platform dependent)                               */
 /*-----------------------------------------------------------------------*/
 /* When the target system does not support socket power control, there   */
 /* is nothing to do in these functions.                                  */
@@ -75,7 +75,7 @@ UINT CardType;
 static
 void power_on (void)
 {
-	;					/* Turn on socket power, delay >1ms (Nothing to do) */
+	;					/* Turn socket power on, delay >1ms (Nothing to do) */
 
 	SPI1CON1 = 0x013B;	/* Enable SPI1 */
 	SPI1CON2 = 0x0000;
@@ -87,28 +87,26 @@ void power_off (void)
 {
 	_SPIEN = 0;			/* Disable SPI1 */
 
-	;					/* Turn off port and socket power (Nothing to do) */
+	;					/* Turn socket power off (Nothing to do) */
 }
 
 
 
 /*-----------------------------------------------------------------------*/
-/* Transmit/Receive data to/from MMC via SPI  (Platform dependent)       */
+/* SPI Transactions (Platform dependent)                                 */
 /*-----------------------------------------------------------------------*/
 
-/* Single byte SPI transfer */
-
+/* Single byte SPI transaction */
 static
 BYTE xchg_spi (BYTE dat)
 {
-	SPI1BUF = dat;
-	while (!_SPIRBF) ;
-	return (BYTE)SPI1BUF;
+	SPI1BUF = dat;			/* Initiate an SPI transaction */
+	while (!_SPIRBF) ;		/* Wait for end of the SPI transaction */
+	return (BYTE)SPI1BUF;	/* Get received byte */
 }
 
 
-/* Block SPI transfers */
-
+/* Multi-byte SPI transaction (transmit) */
 static
 void xmit_spi_multi (
 	const BYTE* buff,	/* Data to be sent */
@@ -116,12 +114,17 @@ void xmit_spi_multi (
 )
 {
 	do {
-		SPI1BUF = *buff++; while (!_SPIRBF) ; SPI1BUF;
-		SPI1BUF = *buff++; while (!_SPIRBF) ; SPI1BUF;
+		SPI1BUF = *buff++;	/* Initiate an SPI transaction */
+		while (!_SPIRBF) ;	/* Wait for end of the SPI transaction */
+		SPI1BUF;			/* Discard received byte */
+		SPI1BUF = *buff++;
+		while (!_SPIRBF) ;
+		SPI1BUF;
 	} while (cnt -= 2);
 }
 
 
+/* Multi-byte SPI transaction (receive) */
 static
 void rcvr_spi_multi (
 	BYTE* buff,		/* Buffer to store received data */
@@ -129,8 +132,12 @@ void rcvr_spi_multi (
 )
 {
 	do {
-		SPI1BUF = 0xFF; while (!_SPIRBF) ; *buff++ = SPI1BUF;
-		SPI1BUF = 0xFF; while (!_SPIRBF) ; *buff++ = SPI1BUF;
+		SPI1BUF = 0xFF;		/* Initiate an SPI transaction */
+		while (!_SPIRBF) ;	/* Wait for end of the SPI transaction */
+		*buff++ = SPI1BUF;	/* Get received byte */
+		SPI1BUF = 0xFF;
+		while (!_SPIRBF) ;
+		*buff++ = SPI1BUF;
 	} while (cnt -= 2);
 }
 
@@ -146,9 +153,9 @@ int wait_ready (void)
 	BYTE d;
 
 	Timer2 = 500;	/* Wait for ready in timeout of 500ms */
-	do
+	do {
 		d = xchg_spi(0xFF);
-	while ((d != 0xFF) && Timer2);
+	} while ((d != 0xFF) && Timer2);
 
 	return (d == 0xFF) ? 1 : 0;
 }
@@ -163,7 +170,7 @@ static
 void deselect (void)
 {
 	CS_HIGH();			/* Set CS# high */
-	xchg_spi(0xFF);		/* Dummy clock (force MMC DO hi-z for multiple slave SPI) */
+	xchg_spi(0xFF);		/* Dummy clock (force DO hi-z for multiple slave SPI) */
 }
 
 
@@ -176,7 +183,7 @@ static
 int select (void)	/* 1:Successful, 0:Timeout */
 {
 	CS_LOW();			/* Set CS# low */
-	xchg_spi(0xFF);		/* Dummy clock (force MMC DO enabled) */
+	xchg_spi(0xFF);		/* Dummy clock (force DO enabled) */
 
 	if (wait_ready()) return 1;	/* Wait for card ready */
 
@@ -237,8 +244,7 @@ int xmit_datablock (	/* 1:OK, 0:Failed */
 		xchg_spi(0xFF);				/* CRC (Dummy) */
 		xchg_spi(0xFF);
 		resp = xchg_spi(0xFF);		/* Receive a data response */
-		if ((resp & 0x1F) != 0x05)	/* If not accepted, return with error */
-			return 0;
+		if ((resp & 0x1F) != 0x05) return 0;	/* If not accepted, return with error */
 	}
 
 	return 1;
@@ -286,9 +292,9 @@ BYTE send_cmd (
 	/* Receive command response */
 	if (cmd == CMD12) xchg_spi(0xFF);	/* Skip a stuff byte on stop to read */
 	n = 10;							/* Wait for a valid response in timeout of 10 attempts */
-	do
+	do {
 		res = xchg_spi(0xFF);
-	while ((res & 0x80) && --n);
+	} while ((res & 0x80) && --n);
 
 	return res;			/* Return with the response value */
 }
@@ -344,7 +350,7 @@ DSTATUS disk_initialize (
 				while (Timer1 && send_cmd(ACMD41, 0x40000000));	/* Wait for leaving idle state (ACMD41 with HCS bit) */
 				if (Timer1 && send_cmd(CMD58, 0) == 0) {			/* Check CCS bit in the OCR */
 					for (n = 0; n < 4; n++) ocr[n] = xchg_spi(0xFF);
-					ty = (ocr[0] & 0x40) ? CT_SD2|CT_BLOCK : CT_SD2;	/* SDv2 */
+					ty = (ocr[0] & 0x40) ? CT_SD2|CT_BLOCK : CT_SD2;	/* SDv2+ */
 				}
 			}
 		} else {							/* SDv1 or MMCv3 */
@@ -354,8 +360,7 @@ DSTATUS disk_initialize (
 				ty = CT_MMC; cmd = CMD1;	/* MMCv3 */
 			}
 			while (Timer1 && send_cmd(cmd, 0));		/* Wait for leaving idle state */
-			if (!Timer1 || send_cmd(CMD16, 512) != 0)	/* Set read/write block length to 512 */
-				ty = 0;
+			if (!Timer1 || send_cmd(CMD16, 512) != 0) ty = 0;	/* Set read/write block length to 512 */
 		}
 	}
 	CardType = ty;
@@ -391,8 +396,9 @@ DRESULT disk_read (
 
 	if (count == 1) {		/* Single block read */
 		if ((send_cmd(CMD17, sector) == 0)	/* READ_SINGLE_BLOCK */
-			&& rcvr_datablock(buff, 512))
+			&& rcvr_datablock(buff, 512)) {
 			count = 0;
+		}
 	}
 	else {				/* Multiple block read */
 		if (send_cmd(CMD18, sector) == 0) {	/* READ_MULTIPLE_BLOCK */
@@ -430,8 +436,9 @@ DRESULT disk_write (
 
 	if (count == 1) {		/* Single block write */
 		if ((send_cmd(CMD24, sector) == 0)	/* WRITE_BLOCK */
-			&& xmit_datablock(buff, 0xFE))
+			&& xmit_datablock(buff, 0xFE)) {
 			count = 0;
+		}
 	}
 	else {				/* Multiple block write */
 		if (CardType & CT_SDC) send_cmd(ACMD23, count);
@@ -440,8 +447,7 @@ DRESULT disk_write (
 				if (!xmit_datablock(buff, 0xFC)) break;
 				buff += 512;
 			} while (--count);
-			if (!xmit_datablock(0, 0xFD))	/* STOP_TRAN token */
-				count = 1;
+			if (!xmit_datablock(0, 0xFD)) count = 1;	/* STOP_TRAN token */
 		}
 	}
 	deselect();
@@ -492,7 +498,7 @@ DRESULT disk_ioctl (
 		break;
 
 	case GET_BLOCK_SIZE :	/* Get erase block size in unit of sectors (DWORD) */
-		if (CardType & CT_SD2) {	/* SDv2? */
+		if (CardType & CT_SD2) {	/* SDv2+? */
 			if (send_cmd(ACMD13, 0) == 0) {		/* Read SD status */
 				xchg_spi(0xFF);
 				if (rcvr_datablock(csd, 16)) {				/* Read partial block */
@@ -541,8 +547,7 @@ DRESULT disk_ioctl (
 	case MMC_GET_SDSTAT :	/* Receive SD statsu as a data block (64 bytes) */
 		if ((CardType & CT_SD2) && send_cmd(ACMD13, 0) == 0) {	/* SD_STATUS */
 			xchg_spi(0xFF);
-			if (rcvr_datablock(buff, 64))
-				res = RES_OK;
+			if (rcvr_datablock(buff, 64)) res = RES_OK;
 		}
 		break;
 
@@ -584,13 +589,16 @@ void disk_timerproc (void)
 	/* Update socket status */
 
 	s = Stat;
-
-	if (WP) s |= STA_PROTECT;
-	else	s &= ~STA_PROTECT;
-
-	if (CD) s &= ~STA_NODISK;
-	else	s |= (STA_NODISK | STA_NOINIT);
-
+	if (MMC_WP) {
+		s |= STA_PROTECT;
+	} else {
+		s &= ~STA_PROTECT;
+	}
+	if (MMC_CD) {
+		s &= ~STA_NODISK;
+	} else {
+		s |= (STA_NODISK | STA_NOINIT);
+	}
 	Stat = s;
 }
 

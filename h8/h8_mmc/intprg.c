@@ -23,9 +23,6 @@ void int_SCI3();
 /* 100Hz increment timer */
 volatile WORD Timer;
 
-/* Real Time Clock */
-volatile BYTE rtcYear = 114, rtcMon = 1, rtcMday = 1, rtcHour, rtcMin, rtcSec;
-
 
 
 
@@ -67,36 +64,8 @@ __interrupt(vect=17) void INT_IRQ3(void) {/* sleep(); */}
 // vector 18 WKP
 __interrupt(vect=18) void INT_WKP(void) {/* sleep(); */}
 
-
 // vector 19 Timer A Overflow
-__interrupt(vect=19) void INT_TimerA(void) 
-{ 
-	static const BYTE samurai[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-	BYTE n;
-
-
-	IRR1.BIT.IRRTA = 0;
-
-	if (++rtcSec >= 60) {
-		rtcSec = 0;
-		if (++rtcMin >= 60) {
-			rtcMin = 0;
-			if (++rtcHour >= 24) {
-				rtcHour = 0;
-				n = samurai[rtcMon - 1];
-				if ((n == 28) && !(rtcYear & 3)) n++;
-				if (++rtcMday > n) {
-					rtcMday = 1;
-					if (++rtcMon > 12) {
-						rtcMon = 1;
-						rtcYear++;
-					}
-				}
-			}
-		}
-	}
-}
-
+__interrupt(vect=19) void INT_TimerA(void) { }
 
 // vector 20 Reserved
 
@@ -106,7 +75,6 @@ __interrupt(vect=21) void INT_TimerW(void)
 	TW.TSRW.BIT.IMFA = 0;
 
 	Timer++;
-	disk_timerproc();
 }
 
 

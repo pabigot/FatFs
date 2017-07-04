@@ -1,11 +1,11 @@
 /*----------------------------------------------------------------------*/
-/* FAT file system sample project for FatFs            (C)ChaN, 2014    */
+/* FAT file system sample project for FatFs            (C)ChaN, 2016    */
 /*----------------------------------------------------------------------*/
 
 #include <string.h>
 #include "STM32F100.h"
-#include "uart_32f1.h"
-#include "rtc_32f1.h"
+#include "uart_stm32f1.h"
+#include "rtc_stm32f1.h"
 #include "xprintf.h"
 #include "ff.h"
 #include "diskio.h"
@@ -16,9 +16,6 @@ extern void disk_timerproc (void);
 DWORD AccSize;				/* Work register for fs command */
 WORD AccFiles, AccDirs;
 FILINFO Finfo;
-#if _USE_LFN
-char Lfname[512];
-#endif
 
 char Line[256];				/* Console input buffer */
 BYTE Buff[4096] __attribute__ ((aligned (4))) ;	/* Working buffer */
@@ -58,7 +55,7 @@ void SysTick_Handler (void)
 /* This is a real time clock service to be called back     */
 /* from FatFs module.                                      */
 
-#if !_FS_NORTC && !_FS_READONLY
+#if !FF_FS_NORTC && !FF_FS_READONLY
 DWORD get_fattime (void)
 {
 	RTCTIME rtc;
@@ -89,21 +86,14 @@ FRESULT scan_files (
 	DIR dirs;
 	FRESULT res;
 	BYTE i;
-	char *fn;
 
 
 	if ((res = f_opendir(&dirs, path)) == FR_OK) {
 		i = strlen(path);
 		while (((res = f_readdir(&dirs, &Finfo)) == FR_OK) && Finfo.fname[0]) {
-			if (_FS_RPATH && Finfo.fname[0] == '.') continue;
-#if _USE_LFN
-			fn = *Finfo.lfname ? Finfo.lfname : Finfo.fname;
-#else
-			fn = Finfo.fname;
-#endif
 			if (Finfo.fattrib & AM_DIR) {
 				AccDirs++;
-				*(path+i) = '/'; strcpy(path+i+1, fn);
+				*(path+i) = '/'; strcpy(path+i+1, Finfo.fname);
 				res = scan_files(path);
 				*(path+i) = '\0';
 				if (res != FR_OK) break;
@@ -127,7 +117,7 @@ void put_rc (FRESULT rc)
 		"OK\0" "DISK_ERR\0" "INT_ERR\0" "NOT_READY\0" "NO_FILE\0" "NO_PATH\0"
 		"INVALID_NAME\0" "DENIED\0" "EXIST\0" "INVALID_OBJECT\0" "WRITE_PROTECTED\0"
 		"INVALID_DRIVE\0" "NOT_ENABLED\0" "NO_FILE_SYSTEM\0" "MKFS_ABORTED\0" "TIMEOUT\0"
-		"LOCKED\0" "NOT_ENOUGH_CORE\0" "TOO_MANY_OPEN_FILES\0";
+		"LOCKED\0" "NOT_ENOUGH_CORE\0" "TOO_MANY_OPEN_FILES\0" "INVALID_PARAMETER\0";
 	FRESULT i;
 
 	for (i = 0; i != rc && *str; i++) {
@@ -169,7 +159,7 @@ const char HelpMsg[] =
 	" fg <path> - Change current directory\n"
 	" fq - Show current directory\n"
 	" fb <name> - Set volume label\n"
-	" fm <ld#> <rule> <csize> - Create file system\n"
+	" fm <ld#> <type> <csize> - Create file system\n"
 	" fz [<len>] - Change/Show R/W length for fr/fw/fx command\n"
 	"[Misc commands]\n"
 	" md[b|h|w] <addr> [<count>] - Dump memory\n"
@@ -208,8 +198,8 @@ int main (void)
 	xdev_out(uart1_putc);
 	xdev_in(uart1_getc);
 	xputs("STM32F100 test monitor\n");
-	xputs(_USE_LFN ? "LFN Enabled" : "LFN Disabled");
-	xprintf(", Code page: %u\n", _CODE_PAGE);
+	xputs(FF_USE_LFN ? "LFN Enabled" : "LFN Disabled");
+	xprintf(", Code page: %u\n", FF_CODE_PAGE);
 
 	/* Initiazlize RTC */
 	if (rtc_initialize()) {
@@ -414,7 +404,7 @@ int main (void)
 						ft[fs->fs_type & 3], (DWORD)fs->csize * 512, fs->n_fats,
 						fs->n_rootdir, fs->fsize, (DWORD)fs->n_fatent - 2,
 						fs->volbase, fs->fatbase, fs->dirbase, fs->database);
-#if _USE_LABEL
+#if FF_USE_LABEL
 				res = f_getlabel(ptr, (char*)Buff, (DWORD*)&p2);
 				if (res) { put_rc(res); break; }
 				xprintf(Buff[0] ? "Volume name is %s\n" : "No volume label\n", (char*)Buff);
@@ -444,7 +434,7 @@ int main (void)
 					} else {
 						s1++; p1 += Finfo.fsize;
 					}
-					xprintf("%c%c%c%c%c %u/%02u/%02u %02u:%02u %9lu  %-12s  %s\n",
+					xprintf("%c%c%c%c%c %u/%02u/%02u %02u:%02u %9lu  %s\n",
 							(Finfo.fattrib & AM_DIR) ? 'D' : '-',
 							(Finfo.fattrib & AM_RDO) ? 'R' : '-',
 							(Finfo.fattrib & AM_HID) ? 'H' : '-',
@@ -452,12 +442,7 @@ int main (void)
 							(Finfo.fattrib & AM_ARC) ? 'A' : '-',
 							(Finfo.fdate >> 9) + 1980, (Finfo.fdate >> 5) & 15, Finfo.fdate & 31,
 							(Finfo.ftime >> 11), (Finfo.ftime >> 5) & 63,
-							Finfo.fsize, Finfo.fname,
-#if _USE_LFN
-							Lfname);
-#else
-							"");
-#endif
+							Finfo.fsize, Finfo.fname);
 				}
 				xprintf("%4u File(s),%10lu bytes total\n%4u Dir(s)", s1, p1, s2);
 				res = f_getfree(ptr, (DWORD*)&p1, &fs);
@@ -608,12 +593,12 @@ int main (void)
 				f_close(&File[0]);
 				f_close(&File[1]);
 				break;
-#if _FS_RPATH
+#if FF_FS_RPATH
 			case 'g' :	/* fg <path> - Change current directory */
 				while (*ptr == ' ') ptr++;
 				put_rc(f_chdir(ptr));
 				break;
-#if _FS_RPATH >= 2
+#if FF_FS_RPATH >= 2
 			case 'q' :	/* fq - Show current dir path */
 				res = f_getcwd(Line, sizeof Line);
 				if (res)
@@ -623,21 +608,21 @@ int main (void)
 				break;
 #endif
 #endif
-#if _USE_LABEL
+#if FF_USE_LABEL
 			case 'b' :	/* fb <name> - Set volume label */
 				while (*ptr == ' ') ptr++;
 				put_rc(f_setlabel(ptr));
 				break;
-#endif	/* _USE_LABEL */
-#if _USE_MKFS
-			case 'm' :	/* fm <rule> <csize> - Create file system */
+#endif	/* FF_USE_LABEL */
+#if FF_USE_MKFS
+			case 'm' :	/* fm <type> <csize> - Create file system */
 				if (!xatoi(&ptr, &p2) || !xatoi(&ptr, &p3)) break;
 				xprintf("The volume will be formatted. Are you sure? (Y/n)=");
 				xgets(Line, sizeof Line);
 				if (Line[0] == 'Y')
-					put_rc(f_mkfs("", (BYTE)p2, (WORD)p3));
+					put_rc(f_mkfs("", (BYTE)p2, (DWORD)p3, Buff, sizeof Buff));
 				break;
-#endif	/* _USE_MKFS */
+#endif	/* FF_USE_MKFS */
 			case 'z' :	/* fz [<size>] - Change/Show R/W length for fr/fw/fx command */
 				if (xatoi(&ptr, &p1) && p1 >= 1 && p1 <= (long)sizeof Buff)
 					blen = p1;

@@ -2,7 +2,7 @@
 PROJECT	= ff_stm32
 
 ### Source files and search directories
-CSRC	= main.c startup_32f100.c uart_32f1.c xprintf.c rtc_32f1.c mmc_32f1.c ff.c
+CSRC	= main.c startup_stm32f100.c uart_stm32f1.c xprintf.c rtc_stm32f1.c mmc_stm32f1.c ff.c
 ASRC	=
 CSRCARM	=
 ASRCARM	=

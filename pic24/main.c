@@ -19,9 +19,6 @@ _CONFIG2(IESO_OFF & FNOSC_PRIPLL & FCKSM_CSDCMD & OSCIOFNC_OFF & IOL1WAY_OFF & I
 DWORD AccSize;			/* Work register for fs command */
 WORD AccFiles, AccDirs;
 FILINFO Finfo;
-#if _USE_LFN
-TCHAR Lfname[256];
-#endif
 
 char Line[256];			/* Console input buffer */
 
@@ -32,8 +29,8 @@ BYTE Buff[4096];		/* Working buffer */
 
 volatile UINT Timer;	/* 1kHz increment timer */
 
-volatile WORD rtcYear = 2014;
-volatile BYTE rtcMon = 4, rtcMday = 6, rtcHour, rtcMin, rtcSec;
+volatile WORD rtcYear = 2017;
+volatile BYTE rtcMon = 5, rtcMday = 14, rtcHour, rtcMin, rtcSec;
 
 
 
@@ -139,21 +136,14 @@ FRESULT scan_files (
 	DIR dirs;
 	FRESULT res;
 	int i;
-	char *fn;
 
 
 	if ((res = f_opendir(&dirs, path)) == FR_OK) {
-		i = strlen(path);
 		while (((res = f_readdir(&dirs, &Finfo)) == FR_OK) && Finfo.fname[0]) {
-			if (_FS_RPATH && Finfo.fname[0] == '.') continue;
-#if _USE_LFN
-			fn = *Finfo.lfname ? Finfo.lfname : Finfo.fname;
-#else
-			fn = Finfo.fname;
-#endif
 			if (Finfo.fattrib & AM_DIR) {
+				i = strlen(path);
 				AccDirs++;
-				path[i] = '/'; strcpy(&path[i+1], fn);
+				path[i] = '/'; strcpy(&path[i+1], Finfo.fname);
 				res = scan_files(path);
 				path[i] = 0;
 				if (res != FR_OK) break;
@@ -230,13 +220,7 @@ int main (void)
 	xdev_in(uart_getc);		/* Join UART and console */
 	xdev_out(uart_putc);
 	xputs("\nFatFs module test monitor for PIC24F\n");
-	xputs(_USE_LFN ? "LFN Enabled" : "LFN Disabled");
-	xprintf(", Code page: %u\n", _CODE_PAGE);
-
-#if _USE_LFN	/* Initialize file info structure if in LFN cfg */
-	Finfo.lfname = Lfname;
-	Finfo.lfsize = sizeof Lfname;
-#endif
+	xprintf("LFN=%s, CP= %u\n", FF_USE_LFN ? "Enabled" : "Disabled", FF_CODE_PAGE);
 
 	for (;;) {
 		xputc('>');
@@ -376,25 +360,20 @@ int main (void)
 					} else {
 						s1++; p1 += Finfo.fsize;
 					}
-					xprintf("%c%c%c%c%c %u/%02u/%02u %02u:%02u %9lu  %-12s  %s\n",
+					xprintf("%c%c%c%c%c %u/%02u/%02u %02u:%02u %9lu  %s\n",
 							(Finfo.fattrib & AM_DIR) ? 'D' : '-',
 							(Finfo.fattrib & AM_RDO) ? 'R' : '-',
 							(Finfo.fattrib & AM_HID) ? 'H' : '-',
 							(Finfo.fattrib & AM_SYS) ? 'S' : '-',
 							(Finfo.fattrib & AM_ARC) ? 'A' : '-',
 							(Finfo.fdate >> 9) + 1980, (Finfo.fdate >> 5) & 15, Finfo.fdate & 31,
-							(Finfo.ftime >> 11), (Finfo.ftime >> 5) & 63, Finfo.fsize, Finfo.fname,
-#if _USE_LFN
-							Lfname);
-#else
-							"");
-#endif
+							(Finfo.ftime >> 11), (Finfo.ftime >> 5) & 63, Finfo.fsize, Finfo.fname);
 				}
 				xprintf("%4u File(s),%10lu bytes total\n%4u Dir(s)", s1, p1, s2);
 				if (f_getfree(ptr, (DWORD*)&p1, &fs) == FR_OK)
 					xprintf(", %10lu bytes free\n", p1 * fs->csize * 512);
 				break;
-#if _USE_FIND
+#if FF_USE_FIND
 			case 'L' :	/* fL <path> <pattern> - Directory search */
 				while (*ptr == ' ') ptr++;
 				ptr2 = ptr;
@@ -402,12 +381,7 @@ int main (void)
 				*ptr++ = 0;
 				res = f_findfirst(&dir, &Finfo, ptr2, ptr);
 				while (res == FR_OK && Finfo.fname[0]) {
-					xprintf("%s", Finfo.fname);
-#if _USE_LFN
-					for (p2 = strlen(Finfo.fname); p2 < 12; p2++) xprintf(" ");
-					xprintf("  %s", Lfname); 
-#endif
-					xprintf("\n");
+					xprintf("%s\n", Finfo.fname);
 					res = f_findnext(&dir, &Finfo);
 				}
 				if (res) put_rc(res);
@@ -505,7 +479,7 @@ int main (void)
 				while (*ptr == ' ') ptr++;
 				put_rc(f_mkdir(ptr));
 				break;
-
+#if FF_USE_CHMOD
 			case 'a' :	/* fa <atrr> <mask> <name> - Change file/dir attribute */
 				if (!xatoi(&ptr, &p1) || !xatoi(&ptr, &p2)) break;
 				while (*ptr == ' ') ptr++;
@@ -519,7 +493,7 @@ int main (void)
 				Finfo.ftime = (WORD)(((p1 & 31) << 11) | ((p1 & 63) << 5) | ((p1 >> 1) & 31));
 				put_rc(f_utime(ptr, &Finfo));
 				break;
-
+#endif
 			case 'x' : /* fx <src_name> <dst_name> - Copy file */
 				while (*ptr == ' ') ptr++;
 				ptr2 = strchr(ptr, ' ');
@@ -554,12 +528,12 @@ int main (void)
 				f_close(&File[0]);
 				f_close(&File[1]);
 				break;
-#if _FS_RPATH >= 1
+#if FF_FS_RPATH
 			case 'g' :	/* fg <path> - Change current directory */
 				while (*ptr == ' ') ptr++;
 				put_rc(f_chdir(ptr));
 				break;
-#if _FS_RPATH >= 2
+#if FF_FS_RPATH >= 2
 			case 'q' :	/* fq - Show current dir path */
 				res = f_getcwd(Line, sizeof Line);
 				if (res)
@@ -569,13 +543,13 @@ int main (void)
 				break;
 #endif
 #endif
-#if _USE_MKFS
+#if FF_USE_MKFS
 			case 'm' :	/* fm <partition rule> <sect/clust> - Create file system */
 				if (!xatoi(&ptr, &p2) || !xatoi(&ptr, &p3)) break;
 				xprintf("The memory card will be formatted. Are you sure? (Y/n)=", p1);
 				xgets(Line, sizeof Line);
 				if (Line[0] == 'Y')
-					put_rc(f_mkfs("", (BYTE)p2, (WORD)p3));
+					put_rc(f_mkfs("", (BYTE)p2, (DWORD)p3, Buff, sizeof Buff));
 				break;
 #endif
 			}
@@ -583,15 +557,15 @@ int main (void)
 
 		case 't' :		/* t [<year> <mon> <mday> <hour> <min> <sec>] */
 			if (xatoi(&ptr, &p1)) {
-				rtcYear = p1-1900;
-				xatoi(&ptr, &p1); rtcMon = p1-1;
+				rtcYear = p1;
+				xatoi(&ptr, &p1); rtcMon = p1;
 				xatoi(&ptr, &p1); rtcMday = p1;
 				xatoi(&ptr, &p1); rtcHour = p1;
 				xatoi(&ptr, &p1); rtcMin = p1;
 				if(!xatoi(&ptr, &p1)) break;
 				rtcSec = p1;
 			}
-			xprintf("%u/%u/%u %02u:%02u:%02u\n", rtcYear+1900, rtcMon+1, rtcMday, rtcHour, rtcMin, rtcSec);
+			xprintf("%u/%u/%u %02u:%02u:%02u\n", rtcYear, rtcMon, rtcMday, rtcHour, rtcMin, rtcSec);
 			break;
 		}
 	}

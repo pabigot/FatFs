@@ -22,7 +22,10 @@
 #define F_PCLK_T3	25000000	/* PCLK frequency to be supplied to TIMER1 module */
 
 #define NBSIZE 64
-#define FCC(c1,c2,c3,c4)	((c4<<24)+(c3<<16)+(c2<<8)+c1)	/* FourCC */
+#define FCC(c1,c2,c3,c4)	(((DWORD)c4<<24)+((DWORD)c3<<16)+(c2<<8)+c1)	/* FourCC */
+#define	LD_WORD(ptr)		(WORD)(*(WORD*)(BYTE*)(ptr))
+#define	LD_DWORD(ptr)		(DWORD)(*(DWORD*)(BYTE*)(ptr))
+
 
 #if F_PCLK_PWM1 * 1 == F_CCLK
 #define PCLKDIV_PWM1	PCLKDIV_1

@@ -103,15 +103,15 @@ SOURCE=.\ff.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\ffsystem.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\ffunicode.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\main.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\option\syscall.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\option\unicode.c
 # End Source File
 # End Group
 # Begin Group "Header Files"

@@ -15,6 +15,7 @@
 #include "LPC2300.h"
 #include "disp.h"
 
+
 #if _USE_FILE_LOADER
 #include "xprintf.h"
 #include "ff.h"
@@ -60,6 +61,28 @@ IMPORT_BIN(".rodata", "rc/FONT24S.FNT", FontH24);			/* const uint8_t FontH24[] *
 IMPORT_BIN(".rodata", "rc/mplfont/MPLHN10X.FNT", FontH10);	/* const uint8_t FontH10[] */
 IMPORT_BIN(".rodata", "rc/mplfont/MPLZN10X.FNT", FontZ10);	/* const uint8_t FontZ10[] */
 
+
+static
+WORD ld_word (const BYTE* ptr)	/*	 Load a 2-byte little-endian word */
+{
+	WORD rv;
+
+	rv = ptr[1];
+	rv = rv << 8 | ptr[0];
+	return rv;
+}
+
+static
+DWORD ld_dword (const BYTE* ptr)	/* Load a 4-byte little-endian word */
+{
+	DWORD rv;
+
+	rv = ptr[3];
+	rv = rv << 8 | ptr[2];
+	rv = rv << 8 | ptr[1];
+	rv = rv << 8 | ptr[0];
+	return rv;
+}
 
 
 /*-----------------------------------------------------*/
@@ -630,7 +653,7 @@ int xfer_audio (
 	if (sz_audio > sz_work) return 0;
 	f_read(fp, work, sz_audio, &br);	/* Load audio data to the buffer */
 	if (sz_audio != br) return 0;
-	sz_audio = LD_WORD(rp); rp += 2;	/* Get actual size of the audio data */
+	sz_audio = ld_word(rp); rp += 2;	/* Get actual size of the audio data */
 
 	/* Push audio data to the audio stream fifo */
 	wi = pfcb->wi;
@@ -677,27 +700,27 @@ void load_img (
 	if (!memcmp(buff+imSign, "im", 2)) mode = 2;	/* Audio/Video mixed */
 	if (!mode) return;
 
-	x = LD_WORD(buff+imWidth);		/* Check frame size */
-	y = LD_WORD(buff+imHeight);
+	x = ld_word(buff+imWidth);		/* Check frame size */
+	y = ld_word(buff+imHeight);
 	if (!x || x > DISP_XS || !y || y > DISP_YS) return;
 
-	bpp = LD_WORD(buff+imBpp);		/* Check color depth */
+	bpp = ld_word(buff+imBpp);		/* Check color depth */
 	if (bpp != 16 && bpp != 8 && bpp != 4) return;
 
 	sz_pic = x * y * bpp / 8;	/* Picture size [byte] */
 
-	d = LD_DWORD(buff+imDataOfs);	/* Go to data start position */
+	d = ld_dword(buff+imDataOfs);	/* Go to data start position */
 	if (f_lseek(fp, d) || f_tell(fp) != d) return;
 
 	disp_rectfill(0, DISP_XS, 0, DISP_YS, RGB16(0,0,0));	/* Clear screen */
 	disp_setrect((DISP_XS - x) / 2, (DISP_XS - x) / 2 + x - 1, (DISP_YS - y) / 2, (DISP_YS - y) / 2 + y - 1);
 
-	nfrm = LD_DWORD(buff+imFrames);		/* Number of frames */
+	nfrm = ld_dword(buff+imFrames);		/* Number of frames */
 	cfrm = 0;
 	run = 1;
 
 	if (mode == 1) {
-		fd = LD_DWORD(buff+imFrmPeriod);	/* Frame period [us] */
+		fd = ld_dword(buff+imFrmPeriod);	/* Frame period [us] */
 		tp = TmrFrm + fd;
 		for (;;) {
 			if (run && TmrFrm >= tp) {
@@ -727,11 +750,11 @@ void load_img (
 			}
 		}
 	} else {		/* Audio/Video mixed stream */
-		fcb.mode = LD_WORD(buff+imWavFormat);
+		fcb.mode = ld_word(buff+imWavFormat);
 		fcb.buff = SndBuff;
 		fcb.sz_buff = sizeof SndBuff;
-		if (!sound_start(&fcb, LD_WORD(buff+imWavFreq))) return;	/* Open audio output stream */
-		sz_frm = LD_DWORD(buff+imFrmSize);
+		if (!sound_start(&fcb, ld_word(buff+imWavFreq))) return;	/* Open audio output stream */
+		sz_frm = ld_dword(buff+imFrmSize);
 
 		for (;;) {
 			if (run) {
@@ -781,12 +804,12 @@ void load_bmp (
 
 	f_read(fp, buff, 128, &bx);
 	if (bx != 128 || memcmp(buff, "BM", 2)) return;
-	biofs = LD_DWORD(buff+10);			/* bfOffBits */
-	if (LD_WORD(buff+26) != 1) return;	/* biPlanes */
-	if (LD_WORD(buff+28) != 24) return;	/* biBitCount */
-	if (LD_DWORD(buff+30) != 0) return;	/* biCompression */
-	bm_w = LD_DWORD(buff+18);			/* biWidth */
-	bm_h = LD_DWORD(buff+22);			/* biHeight */
+	biofs = ld_dword(buff+10);			/* bfOffBits */
+	if (ld_word(buff+26) != 1) return;	/* biPlanes */
+	if (ld_word(buff+28) != 24) return;	/* biBitCount */
+	if (ld_dword(buff+30) != 0) return;	/* biCompression */
+	bm_w = ld_dword(buff+18);			/* biWidth */
+	bm_h = ld_dword(buff+22);			/* biHeight */
 	iw = ((bm_w * 3) + 3) & ~3;			/* Bitmap line stride [byte] */
 	if (!bm_w || !bm_h) return;			/* Check bitmap size */
 	if (iw > sz_work) return;			/* Check if buffer size is sufficient for this file */

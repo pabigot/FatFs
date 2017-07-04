@@ -32,7 +32,7 @@ OBJS = main.o  \
 	ff.o  \
 	uart_v850es.o  \
 	xprintf.o  \
-	unicode.o 
+	ffunicode.o 
 
 DEP_main_c = "C:\Program Files\NEC Electronics Tools\CA850\E3.11a\inc850\string.h" \
 	"C:\Program Files\NEC Electronics Tools\CA850\E3.11a\inc850\stddef.h" \
@@ -61,14 +61,9 @@ DEP_uart_v850es_c = C:\user\Prj_V850\ff_v850\uart_v850es.h \
 DEP_xprintf_c = C:\user\Prj_V850\ff_v850\xprintf.h \
 	"C:\Program Files\NEC Electronics Tools\CA850\E3.11a\inc850\stdarg.h"
 
-DEP_option_unicode_c = C:\user\Prj_V850\ff_v850\ff.h \
+DEP_ffunicode_c = C:\user\Prj_V850\ff_v850\ff.h \
 	C:\user\Prj_V850\ff_v850\integer.h \
-	C:\user\Prj_V850\ff_v850\ffconf.h \
-	C:\user\Prj_V850\ff_v850\option\cc932.c \
-	C:\user\Prj_V850\ff_v850\option\cc936.c \
-	C:\user\Prj_V850\ff_v850\option\cc949.c \
-	C:\user\Prj_V850\ff_v850\option\cc950.c \
-	C:\user\Prj_V850\ff_v850\option\ccsbcs.c
+	C:\user\Prj_V850\ff_v850\ffconf.h
 
 GOAL : C:\user\Prj_V850\ff_v850\romp.out
 
@@ -101,8 +96,8 @@ uart_v850es.o : uart_v850es.c $(DEP_uart_v850es_c)
 xprintf.o : xprintf.c $(DEP_xprintf_c)
 	$(CC) $(CFLAGS) -Os -c xprintf.c
 
-unicode.o : option\unicode.c $(DEP_option_unicode_c)
-	$(CC) $(CFLAGS) -Os -c option\unicode.c
+ffunicode.o : ffunicode.c $(DEP_ffunicode_c)
+	$(CC) $(CFLAGS) -Os -c ffunicode.c
 
 startup.o : startup.s $(DEP_STARTUP)
 	$(AS) $(ASFLAGS) startup.s

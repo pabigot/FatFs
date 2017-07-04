@@ -1,5 +1,5 @@
 /*----------------------------------------------------------------------*/
-/* FatFs Module Sample Program / Renesas H8/300H       (C)ChaN, 2015    */
+/* FatFs Module Sample Program / Renesas H8/300H       (C)ChaN, 2016    */
 /*----------------------------------------------------------------------*/
 /* Ev.Board: AKI-H8/3694F from Akizuki Denshi Tsusho Co.,Ltd            */
 /* Console: SCI3 (N81 38400bps)                                         */
@@ -33,37 +33,6 @@ DIR Dir;
 /* 100Hz increment timer */
 extern volatile WORD Timer;
 
-/* Real Time Clock */
-extern volatile BYTE rtcYear, rtcMon, rtcMday, rtcHour, rtcMin, rtcSec;
-
-
-
-
-
-/*---------------------------------------------------------*/
-/* User Provided Timer Function for FatFs module           */
-/*---------------------------------------------------------*/
-/* This is a real time clock service to be called from     */
-/* FatFs module. Any valid time must be returned even if   */
-/* the system does not support a real time clock.          */
-
-
-DWORD get_fattime ()
-{
-	DWORD tmr;
-
-
-	set_imask_ccr(1);
-	tmr =	  (((DWORD)rtcYear - 80) << 25)
-			| ((DWORD)rtcMon << 21)
-			| ((DWORD)rtcMday << 16)
-			| (WORD)(rtcHour << 11)
-			| (WORD)(rtcMin << 5)
-			| (WORD)(rtcSec >> 1);
-	set_imask_ccr(0);
-
-	return tmr;
-}
 
 
 /*--------------------------------------------------------------------------*/
@@ -78,7 +47,7 @@ void put_rc (FRESULT rc)
 		"OK\0" "DISK_ERR\0" "INT_ERR\0" "NOT_READY\0" "NO_FILE\0" "NO_PATH\0"
 		"INVALID_NAME\0" "DENIED\0" "EXIST\0" "INVALID_OBJECT\0" "WRITE_PROTECTED\0"
 		"INVALID_DRIVE\0" "NOT_ENABLED\0" "NO_FILE_SYSTEM\0" "MKFS_ABORTED\0" "TIMEOUT\0"
-		"LOCKED\0" "NOT_ENOUGH_CORE\0" "TOO_MANY_OPEN_FILES\0";
+		"LOCKED\0" "NOT_ENOUGH_CORE\0" "TOO_MANY_OPEN_FILES\0" "INVALID_NAME\n";
 	FRESULT i;
 
 	for (i = 0; i != rc && *str; i++) {
@@ -255,7 +224,7 @@ int main (void)
 						fs->n_rootdir, fs->fsize, fs->n_fatent - 2,
 						fs->fatbase, fs->dirbase, fs->database
 				);
-#if _USE_LABEL
+#if FF_USE_LABEL
 				res = f_getlabel(ptr, (char*)Buff, (DWORD*)&p1);
 				if (res) { put_rc(res); break; }
 				xprintf("Volume S/N is %04X-%04X\n", (WORD)((DWORD)p1 >> 16), (WORD)(p1 & 0xFFFF));
@@ -389,7 +358,7 @@ int main (void)
 				while (*ptr == ' ') ptr++;
 				put_rc(f_mkdir(ptr));
 				break;
-
+#if FF_USE_CHMOD
 			case 'a' :	/* fa <atrr> <mask> <name> - Change file/dir attribute */
 				if (!xatoi(&ptr, &p1) || !xatoi(&ptr, &p2)) break;
 				while (*ptr == ' ') ptr++;
@@ -403,7 +372,7 @@ int main (void)
 				Finfo.ftime = ((p1 & 31) << 11) | ((p2 & 63) << 5) | ((p3 >> 1) & 31);
 				put_rc(f_utime(ptr, &Finfo));
 				break;
-
+#endif
 			case 'x' : /* fx <src_name> <dst_name> - Copy file */
 				while (*ptr == ' ') ptr++;
 				ptr2 = strchr(ptr, ' ');
@@ -436,12 +405,12 @@ int main (void)
 				f_close(&File[0]);
 				f_close(&File[1]);
 				break;
-#if _FS_RPATH >= 1
+#if FF_FS_RPATH >= 1
 			case 'g' :	/* fg <path> - Change current directory */
 				while (*ptr == ' ') ptr++;
 				put_rc(f_chdir(ptr));
 				break;
-#if _FS_RPATH >= 2
+#if FF_FS_RPATH >= 2
 			case 'q' :	/* fq - Show current dir path */
 				res = f_getcwd(Line, sizeof Line);
 				if (res)
@@ -451,35 +420,23 @@ int main (void)
 				break;
 #endif
 #endif
-#if _USE_LABEL
+#if FF_USE_LABEL
 			case 'b' :	/* fb <name> - Set volume label */
 				while (*ptr == ' ') ptr++;
 				put_rc(f_setlabel(ptr));
 				break;
 #endif
-#if _USE_MKFS
-			case 'm' :	/* fm <partition rule> <bytes/clust> - Create file system */
+#if FF_USE_MKFS
+			case 'm' :	/* fm <type> <bytes/clust> - Create file system */
 				if (!xatoi(&ptr, &p2) || !xatoi(&ptr, &p3)) break;
 				xprintf("The volume will be formatted. Are you sure? (Y/n)=");
 				xgets(Line, sizeof Line);
 				if (Line[0] == 'Y') {
-					put_rc(f_mkfs("", (BYTE)p2, (UINT)p3));
+					put_rc(f_mkfs("", (BYTE)p2, (DWORD)p3, Buff, sizeof Buff));
 				}
 				break;
 #endif
 			}
-			break;
-
-		case 't' :	/* t [<year> <mon> <mday> <hour> <min> <sec>] */
-			if (xatoi(&ptr, &p1)) {
-				rtcYear = p1 - 1900;
-				xatoi(&ptr, &p1); rtcMon = p1;
-				xatoi(&ptr, &p1); rtcMday = p1;
-				xatoi(&ptr, &p1); rtcHour = p1;
-				xatoi(&ptr, &p1); rtcMin = p1;
-				xatoi(&ptr, &p1); rtcSec = p1;
-			}
-			xprintf("%u/%u/%u %02u:%02u:%02u\n", (WORD)rtcYear+1900, rtcMon, rtcMday, rtcHour, rtcMin, rtcSec);
 			break;
 
 		case '?' :	/* Show Command List */
@@ -513,9 +470,7 @@ int main (void)
 				" fx <src file> <dst file> - Copy a file\n"
 				" fg <path> - Change current directory\n"
 				" fq - Show current directory\n"
-				" fm <rule> <cluster size> - Create file system\n"
-				"[Misc commands]\n"
-				" t [<year> <month> <mday> <hour> <min> <sec>] - Set/Show current time\n"
+				" fm <rule> <au> - Create file system\n"
 				"\n"
 			);
 		}

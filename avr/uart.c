@@ -7,7 +7,6 @@
 #include <avr/interrupt.h>
 #include "uart.h"
 
-#define	UART_BPS		115200
 #define	UART_BUFF		64
 
 
@@ -24,16 +23,17 @@ volatile FIFO TxFifo, RxFifo;
 
 void uart_init (uint32_t bps)
 {
-	UCSR0B = 0;
+	uint16_t n;
 
-	PORTE |= _BV(1); DDRE |= _BV(1);	/* Set TXD as output */
-	DDRE &= ~_BV(0); PORTE &= ~_BV(0); 	/* Set RXD as input */
+
+	UCSR0B = 0;
 
 	RxFifo.ct = 0; RxFifo.ri = 0; RxFifo.wi = 0;
 	TxFifo.ct = 0; TxFifo.ri = 0; TxFifo.wi = 0;
 
-	UBRR0L = F_CPU / bps / 16 - 1;
-	UCSR0B = _BV(RXEN0) | _BV(RXCIE0) | _BV(TXEN0);
+	n = F_CPU / bps / 8;
+	UBRR0L = (n >> 1) + (n & 1) - 1;
+	UCSR0B = _BV(RXEN0)|_BV(RXCIE0)|_BV(TXEN0);
 }
 
 
@@ -76,7 +76,7 @@ void uart_putc (uint8_t d)
 	TxFifo.buff[i] = d;
 	cli();
 	TxFifo.ct++;
-	UCSR0B = _BV(RXEN0) | _BV(RXCIE0) | _BV(TXEN0) | _BV(UDRIE0);
+	UCSR0B = _BV(RXEN0)|_BV(RXCIE0)|_BV(TXEN0)|_BV(UDRIE0);
 	sei();
 	TxFifo.wi = (i + 1) % sizeof TxFifo.buff;
 }
@@ -114,6 +114,6 @@ ISR(USART0_UDRE_vect)
 		UDR0 = TxFifo.buff[i];
 		TxFifo.ri = (i + 1) % sizeof TxFifo.buff;
 	}
-	if (n == 0) UCSR0B = _BV(RXEN0) | _BV(RXCIE0) | _BV(TXEN0);
+	if (n == 0) UCSR0B = _BV(RXEN0)|_BV(RXCIE0)|_BV(TXEN0);
 }
 

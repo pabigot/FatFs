@@ -235,7 +235,7 @@ void put_dump (
 	const unsigned long *lp;
 
 
-	xprintf("%08lX ", addr);		/* address */
+	xprintf("%08lX:", addr);		/* address */
 
 	switch (width) {
 	case DW_CHAR:
@@ -260,6 +260,9 @@ void put_dump (
 		break;
 	}
 
+#if !_LF_CRLF
+	xputc('\r');
+#endif
 	xputc('\n');
 }
 
@@ -291,16 +294,25 @@ int xgets (		/* 0:End of stream, 1:A line arrived */
 		if (c == '\r') break;		/* End of line? */
 		if (c == '\b' && i) {		/* Back space? */
 			i--;
-			if (_LINE_ECHO) xputc(c);
+#if _LINE_ECHO
+			xputc(c);
+#endif
 			continue;
 		}
 		if (c >= ' ' && i < len - 1) {	/* Visible chars */
 			buff[i++] = c;
-			if (_LINE_ECHO) xputc(c);
+#if _LINE_ECHO
+			xputc(c);
+#endif
 		}
 	}
 	buff[i] = 0;	/* Terminate with a \0 */
-	if (_LINE_ECHO) xputc('\n');
+#if _LINE_ECHO
+#if !_LF_CRLF
+		xputc('\r');
+#endif
+		xputc('\n');
+#endif
 	return 1;
 }
 

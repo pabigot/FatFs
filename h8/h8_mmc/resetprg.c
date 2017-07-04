@@ -29,10 +29,6 @@ void HardwareSetup()
 	TW.TIERW.BYTE = 0x01;
 	TW.TIOR0.BYTE = 0x03;
 	TW.TMRW.BYTE = 0x80;
-
-	TA.TMA.BYTE = 0x08;		// Start Timer A as 1Hz IVT (RTC)
-	IENR1.BIT.IENTA = 1;
-
 }
 
 

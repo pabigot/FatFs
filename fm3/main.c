@@ -26,9 +26,6 @@ extern void disk_timerproc (void);
 DWORD AccSize;				/* Work register for fs command */
 WORD AccFiles, AccDirs;
 FILINFO Finfo;
-#if _USE_LFN
-char Lfname[512];
-#endif
 
 char Line[256];				/* Console input buffer */
 BYTE Buff[32768] __attribute__ ((aligned (4))) ;	/* Working buffer */
@@ -93,21 +90,14 @@ FRESULT scan_files (
 	DIR dir;
 	FRESULT res;
 	BYTE i;
-	char *fn;
 
 
 	if ((res = f_opendir(&dir, path)) == FR_OK) {
-		i = strlen(path);
 		while (((res = f_readdir(&dir, &Finfo)) == FR_OK) && Finfo.fname[0]) {
-			if (_FS_RPATH && Finfo.fname[0] == '.') continue;
-#if _USE_LFN
-			fn = *Finfo.lfname ? Finfo.lfname : Finfo.fname;
-#else
-			fn = Finfo.fname;
-#endif
 			if (Finfo.fattrib & AM_DIR) {
 				AccDirs++;
-				*(path+i) = '/'; strcpy(path+i+1, fn);
+				i = strlen(path);
+				*(path+i) = '/'; strcpy(path+i+1, Finfo.fname);
 				res = scan_files(path);
 				*(path+i) = '\0';
 				if (res != FR_OK) break;
@@ -131,7 +121,7 @@ void put_rc (FRESULT rc)
 		"OK\0" "DISK_ERR\0" "INT_ERR\0" "NOT_READY\0" "NO_FILE\0" "NO_PATH\0"
 		"INVALID_NAME\0" "DENIED\0" "EXIST\0" "INVALID_OBJECT\0" "WRITE_PROTECTED\0"
 		"INVALID_DRIVE\0" "NOT_ENABLED\0" "NO_FILE_SYSTEM\0" "MKFS_ABORTED\0" "TIMEOUT\0"
-		"LOCKED\0" "NOT_ENOUGH_CORE\0" "TOO_MANY_OPEN_FILES\0";
+		"LOCKED\0" "NOT_ENOUGH_CORE\0" "TOO_MANY_OPEN_FILES\0" "INVALID_PARAMETER\0";
 	FRESULT i;
 
 	for (i = 0; i != rc && *str; i++) {
@@ -174,7 +164,7 @@ const char HelpMsg[] =
 	" fg <path> - Change current directory\n"
 	" fq - Show current directory\n"
 	" fb <name> - Set volume label\n"
-	" fm <rule> <csize> - Create file system\n"
+	" fm <type> <csize> - Create file system\n"
 	" fz [<len>] - Change/Show R/W length for fr/fw/fx command\n"
 	"[Misc commands]\n"
 	" p <wavfile> - Play RIFF-WAVE file\n"
@@ -223,10 +213,6 @@ int main (void)
 	/* Start Debug Monitor */
 	xputs("\nFatFs test monitor for FRK-FM3 evaluation board (?:help)\n");
 	xprintf("LFN=%s, CP=%u\n", _USE_LFN ? "Enabled" : "Disabled", _CODE_PAGE);
-#if _USE_LFN
-	Finfo.lfname = Lfname;
-	Finfo.lfsize = sizeof Lfname;
-#endif
 
 	for (;;) {
 		xputc('>');
@@ -423,7 +409,7 @@ int main (void)
 						fs->n_rootdir, fs->fsize, (DWORD)fs->n_fatent - 2,
 						fs->volbase, fs->fatbase, fs->dirbase, fs->database
 				);
-#if _USE_LABEL
+#if FF_USE_LABEL
 		if (f_getlabel(ptr, (char*)Buff, (DWORD*)&p2) == FR_OK) {
 			xprintf(Buff[0] ? "Volume name is %s\n" : "No volume label\n", (char*)Buff);
 			xprintf("Volume S/N is %04X-%04X\n", (DWORD)p2 >> 16, (DWORD)p2 & 0xFFFF);
@@ -453,7 +439,7 @@ int main (void)
 					} else {
 						s1++; p1 += Finfo.fsize;
 					}
-					xprintf("%c%c%c%c%c %u/%02u/%02u %02u:%02u %9lu  %-12s  %s\n",
+					xprintf("%c%c%c%c%c %u/%02u/%02u %02u:%02u %9lu  %s\n",
 							(Finfo.fattrib & AM_DIR) ? 'D' : '-',
 							(Finfo.fattrib & AM_RDO) ? 'R' : '-',
 							(Finfo.fattrib & AM_HID) ? 'H' : '-',
@@ -461,12 +447,7 @@ int main (void)
 							(Finfo.fattrib & AM_ARC) ? 'A' : '-',
 							(Finfo.fdate >> 9) + 1980, (Finfo.fdate >> 5) & 15, Finfo.fdate & 31,
 							(Finfo.ftime >> 11), (Finfo.ftime >> 5) & 63,
-							Finfo.fsize, Finfo.fname,
-#if _USE_LFN
-							Lfname);
-#else
-							"");
-#endif
+							Finfo.fsize, Finfo.fname);
 				}
 				xprintf("%4u File(s),%10lu bytes total\n%4u Dir(s)", s1, p1, s2);
 				res = f_getfree(ptr, (DWORD*)&p1, &fs);
@@ -617,12 +598,12 @@ int main (void)
 				f_close(&File[0]);
 				f_close(&File[1]);
 				break;
-#if _FS_RPATH
+#if FF_FS_RPATH
 			case 'g' :	/* fg <path> - Change current directory */
 				while (*ptr == ' ') ptr++;
 				put_rc(f_chdir(ptr));
 				break;
-#if _FS_RPATH >= 2
+#if FF_FS_RPATH >= 2
 			case 'q' :	/* fq - Show current dir path */
 				res = f_getcwd(Line, sizeof Line);
 				if (res)
@@ -632,19 +613,19 @@ int main (void)
 				break;
 #endif
 #endif
-#if _USE_LABEL
+#if FF_USE_LABEL
 			case 'b' :	/* fb <name> - Set volume label */
 				while (*ptr == ' ') ptr++;
 				put_rc(f_setlabel(ptr));
 				break;
 #endif
-#if _USE_MKFS
+#if FF_USE_MKFS
 			case 'm' :	/* fm <rule> <csize> - Create file system */
 				if (!xatoi(&ptr, &p2) || !xatoi(&ptr, &p3)) break;
 				xprintf("The volume will be formatted. Are you sure? (Y/n)=");
 				xgets(Line, sizeof Line);
 				if (Line[0] == 'Y')
-					put_rc(f_mkfs("", (BYTE)p2, (UINT)p3));
+					put_rc(f_mkfs("", (BYTE)p2, (DWORD)p3, Buff, sizeof Buff));
 				break;
 #endif
 			case 'z' :	/* fz [<size>] - Change/Show R/W length for fr/fw/fx command */

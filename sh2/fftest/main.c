@@ -1,5 +1,5 @@
 /*----------------------------------------------------------------------*/
-/* FatFs Module Sample Program / Renesas SH7262        (C)ChaN, 2014    */
+/* FatFs Module Sample Program / Renesas SH7262        (C)ChaN, 2016    */
 /*----------------------------------------------------------------------*/
 /* Ev.Board: FRK-SH2A from CQ Publishing                                */
 /* Console: SCI2 (N81 38400bps)                                         */
@@ -8,6 +8,7 @@
 
 
 #include <machine.h>
+#include <string.h>
 #include "iodefine.h"
 #include "vect.h"
 #include "integer.h"
@@ -24,22 +25,19 @@
 /* Work Area                                               */
 /*---------------------------------------------------------*/
 
-FATFS FatFs[_VOLUMES];	/* File system object */
-FIL File[2];			/* File objects */
-DIR Dir;				/* Directory object */
+FATFS FatFs[FF_VOLUMES];	/* File system object */
+FIL File[2];				/* File objects */
+DIR Dir;					/* Directory object */
 
-DWORD AccSize;			/* Working variables (fs command) */
+DWORD AccSize;				/* Working variables (fs command) */
 WORD AccFiles, AccDirs;
 
-FILINFO Finfo;			/* Working variables (fs/fl command) */
-#if _USE_LFN
-char Lfname[_MAX_LFN + 1];
-#endif
+FILINFO Finfo;				/* Working variables (fs/fl command) */
 
-char Line[256];			/* Console input buffer */
-BYTE Buff[32768];		/* Disk I/O working buffer */
+char Line[256];				/* Console input buffer */
+BYTE Buff[32768];			/* Disk I/O working buffer */
 
-volatile UINT Timer;	/* Performance timer (1kHz) */
+volatile UINT Timer;		/* Performance timer (1kHz) */
 
 
 
@@ -127,7 +125,7 @@ void IoInit (void)
 /* the system does not support a real time clock.          */
 /* This is not required in read-only configuration.        */
 
-#if !_FS_NORTC
+#if !FF_FS_NORTC
 DWORD get_fattime (void)
 {
 	/* Return a fixed value 2010/4/26 0:00:00 */
@@ -146,50 +144,6 @@ DWORD get_fattime (void)
 /* Monitor                                                                  */
 /*--------------------------------------------------------------------------*/
 
-static
-int xstrlen (const char *str)
-{
-	int n = 0;
-
-	while (*str++) n++;
-	return n;
-}
-
-
-static
-char *xstrcpy (char* dst, const char* src)
-{
-	char c, *d = dst;
-
-	do {
-		c = *src++;
-		*d++ = c;
-	} while (c);
-
-	return dst;
-}
-
-
-static
-void *xmemset (void *p, int c, int sz)
-{
-	char *pf = (char*)p;
-
-	while (sz--) *pf++ = (char)c;
-	return p;
-}
-
-
-static
-char *xstrchr (const char *str, int c)
-{
-	while (*str) {
-		if (*str == (char)c) return (char*)str;
-		str++;
-	}
-	return 0;
-}
-
 
 static
 FRESULT scan_files (	/* Scan directory in recursive */
@@ -199,27 +153,19 @@ FRESULT scan_files (	/* Scan directory in recursive */
 	DIR dirs;
 	FRESULT res;
 	int i;
-	char *fn;
 
 
 	res = f_opendir(&dirs, path);	/* Open the directory */
 	if (res == FR_OK) {
-		i = xstrlen(path);
+		i = strlen(path);
 		while (((res = f_readdir(&dirs, &Finfo)) == FR_OK) && Finfo.fname[0]) {	/* Get an entry from the dir */
-			if (_FS_RPATH && Finfo.fname[0] == '.') continue;	/* Ignore dot entry */
-#if _USE_LFN
-			fn = *Finfo.lfname ? Finfo.lfname : Finfo.fname;	/* Use LFN if available */
-#else
-			fn = Finfo.fname;	/* Always use SFN under non-LFN cgf. */
-#endif
 			if (Finfo.fattrib & AM_DIR) {	/* It is a directory */
 				AccDirs++;
-				path[i] = '/'; xstrcpy(path+i+1, fn);	/* Scan the directory */
+				path[i] = '/'; strcpy(path+i+1, Finfo.fname);	/* Scan the directory */
 				res = scan_files(path);
 				path[i] = '\0';
 				if (res != FR_OK) break;
 			} else {						/* It is a file  */
-			/*	xprintf("%s/%s\n", path, fn); */
 				AccFiles++;
 				AccSize += Finfo.fsize;				/* Accumulate the file size in unit of byte */
 			}
@@ -240,7 +186,7 @@ void put_rc (		/* Put FatFs result code with defined symbol */
 		"OK\0" "DISK_ERR\0" "INT_ERR\0" "NOT_READY\0" "NO_FILE\0" "NO_PATH\0"
 		"INVALID_NAME\0" "DENIED\0" "EXIST\0" "INVALID_OBJECT\0" "WRITE_PROTECTED\0"
 		"INVALID_DRIVE\0" "NOT_ENABLED\0" "NO_FILE_SYSTEM\0" "MKFS_ABORTED\0" "TIMEOUT\0"
-		"LOCKED\0" "NOT_ENOUGH_CORE\0" "TOO_MANY_OPEN_FILES\0";
+		"LOCKED\0" "NOT_ENOUGH_CORE\0" "TOO_MANY_OPEN_FILES\0" "INVALID_NAME\0";
 	FRESULT i;
 
 	for (i = FR_OK; i != rc && *str; i++) {
@@ -283,7 +229,7 @@ const char HelpMsg[] =
 	" fg <path> - Change current directory\n"
 	" fq - Show current directory\n"
 	" fb <name> - Set volume label\n"
-	" fm <ld#> <rule> <csize> - Create file system\n"
+	" fm <ld#> <type> <csize> - Create file system\n"
 	" fz [<len>] - Change/Show R/W length for fr/fw/fx command\n"
 	"[Misc commands]\n"
 	" md[b|h|w] <addr> [<count>] - Dump memory\n"
@@ -316,13 +262,7 @@ int main (void)
 
 	delay_ms(10);
 	xputs("\nFatFs module test monitor for FRK-RN62N evaluation board\n");
-	xputs(_USE_LFN ? "LFN Enabled" : "LFN Disabled");
-	xprintf(", Code page: %u/ANSI\n", _CODE_PAGE);
-
-#if _USE_LFN
-	Finfo.lfname = Lfname;
-	Finfo.lfsize = sizeof Lfname;
-#endif
+	xprintf("LFN=%s, CP=%u\n", FF_USE_LFN ? "Enabled" : "Disabled", FF_CODE_PAGE);
 
 	for (;;) {
 		xputc('>');
@@ -508,7 +448,7 @@ int main (void)
 						ft[fs->fs_type & 3], (DWORD)fs->csize * 512, fs->n_fats,
 						fs->n_rootdir, fs->fsize, (DWORD)fs->n_fatent - 2,
 						fs->volbase, fs->fatbase, fs->dirbase, fs->database);
-#if _USE_LABEL
+#if FF_USE_LABEL
 				res = f_getlabel(ptr, (char*)Buff, (DWORD*)&p2);
 				if (res) { put_rc(res); break; }
 				xprintf(Buff[0] ? "Volume name is %s\n" : "No volume label\n", (char*)Buff);
@@ -546,12 +486,7 @@ int main (void)
 							(Finfo.fattrib & AM_ARC) ? 'A' : '-',
 							(Finfo.fdate >> 9) + 1980, (Finfo.fdate >> 5) & 15, Finfo.fdate & 31,
 							(Finfo.ftime >> 11), (Finfo.ftime >> 5) & 63,
-							Finfo.fsize,
-#if _USE_LFN
-							Lfname[0] ? Lfname : Finfo.fname);
-#else
-							Finfo.fname);
-#endif
+							Finfo.fsize, Finfo.fname);
 				}
 				xprintf("%4u File(s),%10lu bytes total\n%4u Dir(s)", s1, p1, s2);
 				res = f_getfree(ptr, (DWORD*)&p1, &fs);
@@ -632,7 +567,7 @@ int main (void)
 
 			case 'n' :	/* fn <org.name> <new.name> - Change name of an object */
 				while (*ptr == ' ') ptr++;
-				ptr2 = xstrchr(ptr, ' ');
+				ptr2 = strchr(ptr, ' ');
 				if (!ptr2) break;
 				*ptr2++ = 0;
 				while (*ptr2 == ' ') ptr2++;
@@ -652,7 +587,7 @@ int main (void)
 				while (*ptr == ' ') ptr++;
 				put_rc(f_mkdir(ptr));
 				break;
-
+#if FF_USE_CHMOD
 			case 'a' :	/* fa <atrr> <mask> <name> - Change attribute of an object */
 				if (!xatoi(&ptr, &p1) || !xatoi(&ptr, &p2)) break;
 				while (*ptr == ' ') ptr++;
@@ -666,10 +601,10 @@ int main (void)
 				Finfo.ftime = ((p1 & 31) << 11) | ((p2 & 63) << 5) | ((p3 >> 1) & 31);
 				put_rc(f_utime(ptr, &Finfo));
 				break;
-
+#endif
 			case 'x' : /* fx <src.name> <dst.name> - Copy a file */
 				while (*ptr == ' ') ptr++;
-				ptr2 = xstrchr(ptr, ' ');
+				ptr2 = strchr(ptr, ' ');
 				if (!ptr2) break;
 				*ptr2++ = 0;
 				while (*ptr2 == ' ') ptr2++;
@@ -702,12 +637,12 @@ int main (void)
 				f_close(&File[0]);
 				f_close(&File[1]);
 				break;
-#if _FS_RPATH
+#if FF_FS_RPATH
 			case 'g' :	/* fg <path> - Change current directory */
 				while (*ptr == ' ') ptr++;
 				put_rc(f_chdir(ptr));
 				break;
-#if _FS_RPATH >= 2
+#if FF_FS_RPATH >= 2
 			case 'q' :	/* fq - Show current dir path */
 				res = f_getcwd(Line, sizeof Line);
 				if (res)
@@ -717,22 +652,22 @@ int main (void)
 				break;
 #endif
 #endif
-#if _USE_LABEL
+#if FF_USE_LABEL
 			case 'b' :	/* fb <name> - Set volume label */
 				while (*ptr == ' ') ptr++;
 				put_rc(f_setlabel(ptr));
 				break;
-#endif	/* _USE_LABEL */
-#if _USE_MKFS
-			case 'm' :	/* fm <ld#> <rule> <csize> - Create file system */
+#endif	/* FF_USE_LABEL */
+#if FF_USE_MKFS
+			case 'm' :	/* fm <ld#> <type> <csize> - Create file system */
 				if (!xatoi(&ptr, &p1) || (UINT)p1 > 9 || !xatoi(&ptr, &p2) || !xatoi(&ptr, &p3)) break;
 				xprintf("The volume will be formatted. Are you sure? (Y/n)=");
 				xgets(Line, sizeof Line);
 				if (*ptr == 'Y') {
 					xsprintf(Line, "%u:", (UINT)p1);
-					put_rc(f_mkfs(Line, (BYTE)p2, (UINT)p3));
+					put_rc(f_mkfs(Line, (BYTE)p2, (DWORD)p3, Buff, sizeof Buff));
 				}
-#endif	/* _USE_MKFS */
+#endif	/* FF_USE_MKFS */
 			case 'z' :	/* fz [<size>] - Change/Show R/W length for fr/fw/fx command */
 				if (xatoi(&ptr, &p1) && p1 >= 1 && p1 <= (long)sizeof Buff)
 					blen = p1;

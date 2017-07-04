@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------
-/  Low level disk interface modlue include file   (C)ChaN, 2014
+/  Low level disk interface modlue include file   (C)ChaN, 2015
 /-----------------------------------------------------------------------*/
 
 #ifndef _DISKIO_DEFINED
@@ -9,8 +9,9 @@
 extern "C" {
 #endif
 
-#define _USE_WRITE	1	/* 1: Enable disk_write function */
-#define _USE_IOCTL	1	/* 1: Enable disk_ioctl fucntion */
+#define _DISKIO_WRITE	1	/* 1: Enable disk_write function */
+#define _DISKIO_IOCTL	1	/* 1: Enable disk_ioctl fucntion */
+#define _DISKIO_ISDIO	0	/* 1: Enable iSDIO control fucntion */
 
 #include "integer.h"
 
@@ -28,6 +29,17 @@ typedef enum {
 } DRESULT;
 
 
+#if	_DISKIO_ISDIO
+/* Command structure for iSDIO ioctl command */
+typedef struct {
+	BYTE	func;	/* Function number: 0..7 */
+	WORD	ndata;	/* Number of bytes to transfer: 1..512, or mask + data */
+	DWORD	addr;	/* Register address: 0..0x1FFFF */
+	void*	data;	/* Pointer to the data (to be written | read buffer) */
+} SDIO_CMD;
+#endif
+
+
 /*---------------------------------------*/
 /* Prototypes for disk control functions */
 
@@ -35,10 +47,10 @@ typedef enum {
 DSTATUS disk_initialize (BYTE pdrv);
 DSTATUS disk_status (BYTE pdrv);
 DRESULT disk_read (BYTE pdrv, BYTE* buff, DWORD sector, UINT count);
-#if	_USE_WRITE
+#if	_DISKIO_WRITE
 DRESULT disk_write (BYTE pdrv, const BYTE* buff, DWORD sector, UINT count);
 #endif
-#if	_USE_IOCTL
+#if	_DISKIO_IOCTL
 DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff);
 #endif
 
@@ -72,6 +84,9 @@ DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff);
 #define MMC_GET_CID			52	/* Get CID */
 #define MMC_GET_OCR			53	/* Get OCR */
 #define MMC_GET_SDSTAT		54	/* Get SD status */
+#define ISDIO_READ			55	/* Read data form SD iSDIO register */
+#define ISDIO_WRITE			56	/* Write data to SD iSDIO register */
+#define ISDIO_MRITE			57	/* Masked write data to SD iSDIO register */
 
 /* ATA/CF specific ioctl command (Not used by FatFs) */
 #define ATA_GET_REV			60	/* Get F/W revision */
