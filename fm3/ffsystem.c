@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------*/
-/* Sample Code of OS Dependent Functions for FatFs                        */
+/* Sample code of OS dependent controls for FatFs                         */
 /* (C)ChaN, 2017                                                          */
 /*------------------------------------------------------------------------*/
 
@@ -27,7 +27,7 @@ void* ff_memalloc (	/* Returns pointer to the allocated memory block (null on no
 /*------------------------------------------------------------------------*/
 
 void ff_memfree (
-	void* mblock	/* Pointer to the memory block to free (nothing to do for null) */
+	void* mblock	/* Pointer to the memory block to free */
 )
 {
 	free(mblock);	/* Free the memory block with POSIX API */
@@ -40,7 +40,7 @@ void ff_memfree (
 #if FF_FS_REENTRANT	/* Mutal exclusion */
 
 /*------------------------------------------------------------------------*/
-/* Create a Synchronization Object                                        */
+/* Create a Synchronization Object
 /*------------------------------------------------------------------------*/
 /* This function is called in f_mount() function to create a new
 /  synchronization object for the volume, such as semaphore and mutex.

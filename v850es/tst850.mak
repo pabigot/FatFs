@@ -8,12 +8,12 @@ TOOLDIR = C:\Program Files\NEC Electronics Tools\PM+\V6.11\BIN
 WORKDIR = C:\user\Prj_V850\ff_v850
 DEBUG = 
 
-CC	= "C:\Program Files\NEC Electronics Tools\CA850\E3.11a\bin\ca850.exe"
-CFLAGS	= -cpu F3716 -ansi -w2 -Xsconst=512 -Xcxxcom -Xkt=s -Xr -Wp,-S
-AS	= "C:\Program Files\NEC Electronics Tools\CA850\E3.11a\bin\as850.exe"
+CC	= "C:\Program Files\NEC Electronics Tools\CA850\V3.50\bin\ca850.exe"
+CFLAGS	= -cpu F3716 -ansi -w2 -Xsconst=512 -Xcxxcom -Xkt=s -Xr -Wp,-S -woff=2782 -Wa,-woff=3029
+AS	= "C:\Program Files\NEC Electronics Tools\CA850\V3.50\bin\as850.exe"
 ASFLAGS	= -cpu F3716
-LD	= "C:\Program Files\NEC Electronics Tools\CA850\E3.11a\bin\ld850.exe"
-LIBDIR	= C:\Program Files\NEC Electronics Tools\CA850\E3.11a\lib850\r32
+LD	= "C:\Program Files\NEC Electronics Tools\CA850\V3.50\bin\ld850.exe"
+LIBDIR	= C:\Program Files\NEC Electronics Tools\CA850\V3.50\lib850\r32
 STARTUP	= startup.o
 DEP_STARTUP = 
 LINKDIR	= tst850.dir
@@ -22,9 +22,9 @@ LIBRARY	= "$(LIBDIR)\libc.a" \
 	  "$(LIBDIR)\libr.a"
 ROMPCRT	= "$(LIBDIR)\rompcrt.o"
 LDLIBS	= -lc -lr $(ROMPCRT)
-ROMP	= "C:\Program Files\NEC Electronics Tools\CA850\E3.11a\bin\romp850.exe"
+ROMP	= "C:\Program Files\NEC Electronics Tools\CA850\V3.50\bin\romp850.exe"
 RPFLAGS	= 
-HX	= "C:\Program Files\NEC Electronics Tools\CA850\E3.11a\bin\hx850.exe"
+HX	= "C:\Program Files\NEC Electronics Tools\CA850\V3.50\bin\hx850.exe"
 HXFLAGS	= -o tst850.hex -fS
 
 OBJS = main.o  \
@@ -52,7 +52,7 @@ DEP_ff_c = C:\user\Prj_V850\ff_v850\ff.h \
 	C:\user\Prj_V850\ff_v850\integer.h \
 	C:\user\Prj_V850\ff_v850\ffconf.h \
 	C:\user\Prj_V850\ff_v850\diskio.h \
-	"C:\Program Files\NEC Electronics Tools\CA850\E3.11a\inc850\stdarg.h"
+	"C:\Program Files\NEC Electronics Tools\CA850\V3.50\inc850\stdarg.h"
 
 DEP_uart_v850es_c = C:\user\Prj_V850\ff_v850\uart_v850es.h \
 	C:\user\Prj_V850\ff_v850\v850es.h \

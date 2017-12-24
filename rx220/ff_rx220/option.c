@@ -1,10 +1,9 @@
 /* MDE register (Single Chip Mode) */
 #pragma address _MDEreg=0xFFFFFF80
-const unsigned long _MDEreg =
 #ifdef __BIG
-0xFFFFFFF8;
+const unsigned long _MDEreg = 0xFFFFFFF8;
 #else
-0xFFFFFFFF;
+const unsigned long _MDEreg = 0xFFFFFFFF;
 #endif
 
 /* OFS1 register */

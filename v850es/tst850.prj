@@ -14,7 +14,7 @@ DebCpuReset=1
 DebSymReset=0
 MuitiLoad=0
 LoadPrjNum=0
-CheckVersion=CA850|E3.11a
+CheckVersion=CA850|V3.50
 [Options.AR850]
 Version=W1.60  [11 Dec 2003]
 [Options.LD850]
@@ -61,8 +61,9 @@ Include7=diskio.h
 Include8=ff.h
 Include9=ffconf.h
 Include10=..\..\..\Program Files\NEC Electronics Tools\CA850\E3.11a\inc850\stdarg.h
+Include11=..\..\..\Program Files\NEC Electronics Tools\CA850\V3.50\inc850\stdarg.h
 [Options.CA850]
-Version=E3.11a [27 Oct 2006]
+Version=V3.50  [18 Feb 2011]
 Sconst=1
 Optimize=d
 BuildMode=1
@@ -72,13 +73,14 @@ Warning=2
 CxxCom=1
 OutCodeSet=s
 InlStatic=1
+AnyOption0=-woff=2782 -Wa,-woff=3029
 Sconst=1
 SconstEqual=1
 SconstNum=512
 Optimize=s
 DebugInfo=0
 [Options.AS850]
-Version=E3.50b [23 Jul 2004]
+Version=V4.20  [14 Jul 2010]
 [Options.AS850 1]
 DebugInfo=0
 [Options.AS850 1 StartUp]
@@ -87,6 +89,6 @@ DebugInfo=0
 DebugInfo=0
 [ToolSet]
 ToolSetName=(ïœçX01)V850 Series Software Package V4.20
-Tool1=CA850|E3.11a
+Tool1=CA850|V3.50
 Tool2=STK850|V2.11
 Tool3=LDG|V1.20

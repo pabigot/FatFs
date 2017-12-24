@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------/
-/  Display control module for SSD1339/SSD1355
+/  Display control module for SSD1351
 /-------------------------------------------------------------------------/
 /
 /  Copyright (C) 2011, ChaN, all right reserved.
@@ -26,8 +26,6 @@
 #endif
 
 #define USE_DBCS	1	/* 0:ANK only, 1:Enable kanji chars */
-
-#define	DISP_TYPE	(FIO4PIN1 & _BV(7))	/* P4.15(Module type): H=SSD1339, L=SSD1355 */
 
 #define DISP_DAT	FIO4PIN0
 #define DISP_WR_L()	FIO4CLR1 = _BV(1)
@@ -96,13 +94,13 @@ void disp_setrect (
 	int bottom		/* Bottom end (0..127, >= top) */
 )
 {
-	CMD_WRB(DISP_TYPE ? 0x15 : 0x2A);	/* Set H range */
+	CMD_WRB(0x15);	/* Set H range */
 	DATA_WRB(left); DATA_WRB(right); 
 
-	CMD_WRB(DISP_TYPE ? 0x75 : 0x2B);	/* Set V range */
+	CMD_WRB(0x75);	/* Set V range */
 	DATA_WRB(top); DATA_WRB(bottom); 
 
-	CMD_WRB(DISP_TYPE ? 0x5C : 0x2C);	/* Ready to receive pixel data */
+	CMD_WRB(0x5C);	/* Ready to receive pixel data */
 }
 
 
@@ -112,42 +110,29 @@ void disp_setrect (
 
 void disp_init (void)
 {
-	static const BYTE ssd1339[] = {
-		2, 0xA0, 0x74,		// Set Re-map / Color Depth (64K color, COM split, COM remap, 8-bit, Color remap, Non column address remap, Hotizontal increment)
-		2, 0xA1, 0x00,		// Set display start line (0)
-		2, 0xA2, 0x80,		// Set display offset (128)
-		1, 0xA6,			// Normal display
-		2, 0xAD, 0x8E,		// Set Master Configuration (DC-DC off & external VcomH voltage & external pre-charge voltage)
-		2, 0xB0, 0x05,		// Power saving mode
-		2, 0xB1, 0x11, 		// Set pre & dis_charge (pre=1h dis=1h)
-		2, 0xB3, 0x61,		// clock & frequency (clock=Divser+2 frequency=6)
-		4, 0xBB, 0x1C, 0x1C, 0x1C,	// Set pre-charge voltage of color A B C
-		2, 0xBE, 0x1F,		// Set VcomH
-	//	4, 0xC1, 0xAA, 0xB4, 0xC8,	// Set contrast current for A B C
-	//	2, 0xC7, 0x0F,		// Set master contrast
-		2, 0xCA, 0x7F,		// Duty
-		0,
-		0xAF				// Display on
-	};
-	 static const BYTE ssd1355[] = {
-		2, 0xFD, 0xB3,		// Unlock all commands
-		1, 0x11,			// Sleep out
-		2, 0x3A, 0x05,		// Interface Pixel Format (64K color)
-		2, 0xD2, 0xA1,		// Set display clock divider (Fosc=10, Dclkdiv=2)
-		2, 0xC8, 0x00,		// Set display offset
-		3, 0x36, 0x88, 0x01,// MADCTRL
-		2, 0xD3, 0x04,		// Set VcomH (0.8 Vcc)
-		2, 0xCA, 0x7F,		// Set MUX ratio (128 mux)
-		2, 0xCD, 0x74,		// Set precharge length (9 DCLK + 7 DCLK)
-		2, 0xCE, 0x07,		// Set second precharge period (7 DCLK)
-		2, 0xCF, 0x02,		// Set second precharge speed (Normal)
-		2, 0xBA, 0x40,		// Set contrast current for A (R = 0x40)
-		2, 0xBB, 0x48,		// Set contrast current for B (G = 0x50)
-		2, 0xBC, 0x46,		// Set contrast current for C (B = 0x4E)
-		2, 0xBD, 0x08,		// Set first precharge voltage
-		97, 0xBE, 0, 0, 0, 1, 3, 4, 6, 8, 10, 13, 15, 18, 21, 25, 28, 32, 36, 40, 45, 50, 54, 59, 65, 70, 76, 82, 88, 94, 100, 107, 113, 120, 0, 0, 0, 1, 3, 4, 6, 8, 10, 13, 15, 18, 21, 25, 28, 32, 36, 40, 45, 50, 54, 59, 65, 70, 76, 82, 88, 94, 100, 107, 113, 120, 0, 0, 0, 1, 3, 4, 6, 8, 10, 13, 15, 18, 21, 25, 28, 32, 36, 40, 45, 50, 54, 59, 65, 70, 76, 82, 88, 94, 100, 107, 113, 120, // Set gamma table
-		0,
-		0x13,			// Display on
+	static const BYTE initdata[] = {	/* UG-2828GDEDF11 initialization data */
+		1, 0xA4,		/* All OFF */
+		2, 0xFD, 0x12,	/* Unlock command */
+		2, 0xFD, 0xB1,	/* Unlock command */
+		1, 0xAE,		/* Sleep mode ON */
+		2, 0xB3, 0xE1,	/* Freeuqncy = 0xE, Divider = 0x1 */
+		2, 0xCA, 0x7F,	/* Mux ratio = 127 */
+		2, 0xA2, 0x00,	/* Display offset = 0 */
+		2, 0xA1, 0x00,	/* Display start line = 0 */
+		2, 0xA0, 0x74,	/* 65k color, COM split, Reverse scan, Color seq = C-B-A */
+		2, 0xB5, 0x00,	/* GPIO0,1 disabled */
+		2, 0xAB, 0x01,	/* Enable internal regurator */
+		4, 0xB4, 0xA0, 0xB5, 0x55,	/* External VSL */
+		4, 0xC1, 0xC8, 0x98, 0xC8,	/* Contrast for A, B, C */
+		2, 0xC7, 0x0A,	/* Master contrast = 10 */
+		64, 0xB8, 1, 2, 2, 3, 4, 4, 5, 6, 7, 9, 10, 11, 13, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 37, 39, 42, 44, 47, 50, 53, 56, 59, 62, 65, 68, 71, 75, 78, 82, 85, 89, 93, 96, 100, 104, 108, 112, 116, 121, 125, 129, 134, 138, 143, 147, 152, 156, 161, 166, 171, 176, 181,  /* Gamma 1.6 */
+		2, 0xB1, 0x32,	/* OLED driving phase length */
+		4, 0xB2, 0xA4, 0x00, 0x00,
+		2, 0xBB, 0x17,	/* Pre-charge voltage */
+		2, 0xB6, 0x01,	/* 2nd pre-charge period */
+		2, 0xBE, 0x05,	/* COM deselect voltage */
+		1, 0xA6,		/* Reset to normal display */
+		0
 	};
 	const BYTE *p;
 	BYTE cmd;
@@ -168,7 +153,7 @@ void disp_init (void)
 	for (TmrFrm = 0; TmrFrm < 20000; ) ;	/* 20ms */
 
 	/* Send initialization data */
-	p = DISP_TYPE ? ssd1339 : ssd1355;
+	p = initdata;
 	while ((n = *p++) != 0) {
 		cmd = *p++; n--;
 		CMD_WRB(cmd);
@@ -178,7 +163,7 @@ void disp_init (void)
 	/* Clear screen and Display ON */
 	disp_setmask(0, DISP_XS - 1, 0, DISP_YS - 1);
 	disp_rectfill(0, DISP_XS - 1, 0, DISP_YS - 1, 0x0000);
-	CMD_WRB(*p);	/* Display ON */
+	CMD_WRB(0xAF);		/* Display ON */
 
 	/* Register text fonts */
 	disp_font_face(FontH10);	/* ANK font */
@@ -305,11 +290,11 @@ void disp_lineto (
 	do {
 		xp = xr >> 16; yp = yr >> 16;
 		if (xp >= MaskL && xp <= MaskR && yp >= MaskT && yp <= MaskB) {
-			CMD_WRB(DISP_TYPE ? 0x15 : 0x2A);	/* Set H position */
+			CMD_WRB(0x15);	/* Set H position */
 			DATA_WRB(xp); DATA_WRB(xp);
-			CMD_WRB(DISP_TYPE ? 0x75 : 0x2B);	/* Set V position */
+			CMD_WRB(0x75);	/* Set V position */
 			DATA_WRB(yp); DATA_WRB(yp);
-			CMD_WRB(DISP_TYPE ? 0x5C : 0x2C);	/* Write a pixel data */
+			CMD_WRB(0x5C);	/* Write a pixel data */
 			DATA_WPX(col);
 		}
 		xr += xd; yr += yd;

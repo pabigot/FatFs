@@ -14,4 +14,4 @@ xprintf.o
 ffunicode.o
 -lc
 -lr
-"C:\Program Files\NEC Electronics Tools\CA850\E3.11a\lib850\r32\rompcrt.o"
+"C:\Program Files\NEC Electronics Tools\CA850\V3.50\lib850\r32\rompcrt.o"

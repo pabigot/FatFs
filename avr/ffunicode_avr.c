@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------*/
-/* Unicode handling functions for FatFs R0.13+                            */
+/* Unicode handling functions for FatFs R0.13a                            */
 /*------------------------------------------------------------------------*/
 /* Optimized for AVR devices.                                             */
 /* This file contains only SBCS and shrinked version of CP932.            */
@@ -1947,47 +1947,92 @@ const WCHAR Tbl[] PROGMEM = {	/*  CP869(0x80-0xFF) to Unicode conversion table *
 
 #if TBLDEF == 1	/* Code conversion functions for SBCS */
 
-WCHAR ff_oem2uni(	/* Returns converted character, zero on error */
-	WCHAR	chr,	/* Character code to be converted */
+WCHAR ff_uni2oem(	/* Returns converted character, zero on error */
+	DWORD	uni,	/* Character code to be converted */
 	WORD	cp		/* OEM code page */
 )
 {
-	WCHAR c = 0;
+	WCHAR uc, c = 0;
 
-	if (chr < 0x80) {	/* ASCII */
-		c = chr;
+
+	if (uni < 0x80) {	/* ASCII? */
+		c = (WCHAR)uni;
+
 	} else {
-		if (cp == FF_CODE_PAGE) {
-			c = (chr >= 0x100) ? 0 : (WCHAR)pgm_read_word(&Tbl[chr - 0x80]);
+		if (uni < 0x10000) { /* Is it in BMP? */
+			if (cp == FF_CODE_PAGE) {
+				uc = (WCHAR)uni;
+				for (c = 0; c < 0x80; c++) {
+					if (uc == (WCHAR)pgm_read_word(&Tbl[c])) break;
+				}
+				c = (c + 0x80) & 0xFF;
+			}
 		}
 	}
+
 	return c;
 }
 
-WCHAR ff_uni2oem(	/* Returns converted character, zero on error */
-	WCHAR	chr,	/* Character code to be converted */
+WCHAR ff_oem2uni(	/* Returns converted character, zero on error */
+	WCHAR	oem,	/* Character code to be converted */
 	WORD	cp		/* OEM code page */
 )
 {
 	WCHAR c = 0;
 
-	if (chr < 0x80) {	/* ASCII */
-		c = chr;
+
+	if (oem < 0x80) {	/* ASCII */
+		c = oem;
+
 	} else {
 		if (cp == FF_CODE_PAGE) {
-			for (c = 0; c < 0x80; c++) {
-				if (chr == (WCHAR)pgm_read_word(&Tbl[c])) break;
-			}
-			c = (c + 0x80) & 0xFF;
+			c = (oem < 0x100) ? (WCHAR)pgm_read_word(&Tbl[oem - 0x80]) : 0;
 		}
 	}
+
 	return c;
 }
 
 #elif TBLDEF == 2	/* Code conversion functions for CP932 */
 
+WCHAR ff_uni2oem(	/* Returns converted character, zero on error */
+	DWORD	uni,	/* Character code to be converted */
+	WORD	cp		/* OEM code page */
+)
+{
+	WCHAR c = 0;
+	WCHAR d, uc;
+	int i, n, li, hi;
+
+
+	if (uni < 0x80) {	/* ASCII? */
+		c = (WCHAR)uni;
+
+	} else {			/* Unicode to CP932 */
+		if (uni < 0x10000) { /* Is it in BMP? */
+			uc = (WCHAR)uni;
+			if (cp == FF_CODE_PAGE) {
+				li = 0; hi = sizeof uni2sjis / 4 - 1;
+				for (n = 16; n; n--) {
+					i = li + (hi - li) / 2;
+					d = (WCHAR)pgm_read_word(&uni2sjis[i * 2]);
+					if (uc == d) break;
+					if (uc > d) {
+						li = i;
+					} else {
+						hi = i;
+					}
+				}
+				c = n ? (WCHAR)pgm_read_word(&uni2sjis[i * 2 + 1]) : 0;
+			}
+		}
+	}
+
+	return c;
+}
+
 WCHAR ff_oem2uni(	/* Returns converted character, zero on error */
-	WCHAR	chr,	/* Character code to be converted */
+	WCHAR	oem,	/* Character code to be converted */
 	WORD	cp		/* OEM code page */
 )
 {
@@ -1995,50 +2040,17 @@ WCHAR ff_oem2uni(	/* Returns converted character, zero on error */
 	WCHAR c = 0;
 
 
-	if (chr <= 0x80) {	/* ASCII */
-		c = chr;
+	if (oem < 0x80) {	/* ASCII? */
+		c = oem;
 
 	} else {			/* CP932 to unicode (in incremental search) */
 		if (cp == FF_CODE_PAGE) {
 			p = &uni2sjis[1];
 			do {
-				c = pgm_read_word(p);
+				c = (WCHAR)pgm_read_word(p);
 				p += 2;
-			} while (c && c != chr);
-			c = pgm_read_word(p - 3);
-		}
-	}
-
-	return c;
-}
-
-WCHAR ff_uni2oem(	/* Returns converted character, zero on error */
-	WCHAR	chr,	/* Character code to be converted */
-	WORD	cp		/* OEM code page */
-)
-{
-	WCHAR c = 0;
-	WCHAR d;
-	int i, n, li, hi;
-
-
-	if (chr <= 0x80) {	/* ASCII */
-		c = chr;
-
-	} else {			/* Unicode to CP932 */
-		if (cp == FF_CODE_PAGE) {
-			li = 0; hi = sizeof uni2sjis / 4 - 1;
-			for (n = 16; n; n--) {
-				i = li + (hi - li) / 2;
-				d = pgm_read_word(&uni2sjis[i * 2]);
-				if (chr == d) break;
-				if (chr > d) {
-					li = i;
-				} else {
-					hi = i;
-				}
-			}
-			c = n ? pgm_read_word(&uni2sjis[i * 2 + 1]) : 0;
+			} while (c && c != oem);
+			c = (WCHAR)pgm_read_word(p - 3);
 		}
 	}
 
@@ -2049,12 +2061,12 @@ WCHAR ff_uni2oem(	/* Returns converted character, zero on error */
 
 
 
-WCHAR ff_wtoupper (	/* Returns upper converted character */
-	WCHAR chr		/* Unicode character to be upper converted (BMP only) */
+DWORD ff_wtoupper (	/* Returns upper converted character */
+	DWORD uni		/* Unicode character to be upper converted (BMP only) */
 )
 {
 	/* Compressed upper conversion table */
-	static const WCHAR cvt1[] PROGMEM = {	/* U+0000 - U+0FFF */
+	static const WORD cvt1[] PROGMEM = {	/* U+0000 - U+0FFF */
 		/* Basic Latin */
 		0x0061,0x031A,
 		/* Latin-1 Supplement */
@@ -2078,7 +2090,7 @@ WCHAR ff_wtoupper (	/* Returns upper converted character */
 
 		0x0000
 	};
-	static const WCHAR cvt2[] PROGMEM = {	/* U+1000 - U+FFFF */
+	static const WORD cvt2[] PROGMEM = {	/* U+1000 - U+FFFF */
 		/* Phonetic Extensions */
 		0x1D7D,0x0001,0x2C63,
 		/* Latin Extended Additional */
@@ -2107,32 +2119,36 @@ WCHAR ff_wtoupper (	/* Returns upper converted character */
 		0x0000
 	};
 	const WCHAR *p;
-	WCHAR bc, nc, cmd;
+	WORD uc, bc, nc, cmd;
 
 
-	p = chr < 0x1000 ? cvt1 : cvt2;
-	for (;;) {
-		bc = pgm_read_word(p++);					/* Get block base */
-		if (!bc || chr < bc) break;
-		nc = pgm_read_word(p++); cmd = nc >> 8; nc &= 0xFF;	/* Get processing command and block size */
-		if (chr < bc + nc) {	/* In the block? */
-			switch (cmd) {
-			case 0:	chr = pgm_read_word(&p[chr - bc]); break;	/* Table conversion */
-			case 1:	chr -= (chr - bc) & 1; break;	/* Case pairs */
-			case 2: chr -= 16; break;				/* Shift -16 */
-			case 3:	chr -= 32; break;				/* Shift -32 */
-			case 4:	chr -= 48; break;				/* Shift -48 */
-			case 5:	chr -= 26; break;				/* Shift -26 */
-			case 6:	chr += 8; break;				/* Shift +8 */
-			case 7: chr -= 80; break;				/* Shift -80 */
-			case 8:	chr -= 0x1C60; break;			/* Shift -0x1C60 */
+	if (uni < 0x10000) {	/* Is it in BMP? */
+		uc = (WORD)uni;
+		p = uc < 0x1000 ? cvt1 : cvt2;
+		for (;;) {
+			bc = pgm_read_word(p++);							/* Get block base */
+			if (!bc || uc < bc) break;
+			nc = pgm_read_word(p++); cmd = nc >> 8; nc &= 0xFF;	/* Get processing command and block size */
+			if (uc < bc + nc) {	/* In the block? */
+				switch (cmd) {
+				case 0:	uc = p[uc - bc]; break;		/* Table conversion */
+				case 1:	uc -= (uc - bc) & 1; break;	/* Case pairs */
+				case 2: uc -= 16; break;			/* Shift -16 */
+				case 3:	uc -= 32; break;			/* Shift -32 */
+				case 4:	uc -= 48; break;			/* Shift -48 */
+				case 5:	uc -= 26; break;			/* Shift -26 */
+				case 6:	uc += 8; break;				/* Shift +8 */
+				case 7: uc -= 80; break;			/* Shift -80 */
+				case 8:	uc -= 0x1C60; break;		/* Shift -0x1C60 */
+				}
+				break;
 			}
-			break;
+			if (!cmd) p += nc;
 		}
-		if (!cmd) p += nc;
+		uni = uc;
 	}
 
-	return chr;
+	return uni;
 }
 
 
