@@ -1,5 +1,5 @@
 /*----------------------------------------------------------------------*/
-/* FAT file system sample project for FatFs            (C)ChaN, 2013    */
+/* FAT file system sample project for FatFs            (C)ChaN, 2018    */
 /*----------------------------------------------------------------------*/
 /* Ev.Board: FRK-FM3 from CQ Publishing                                 */
 /* Console: N81 115200bps (port is defined in uart.c)                   */

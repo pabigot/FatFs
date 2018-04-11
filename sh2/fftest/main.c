@@ -1,5 +1,5 @@
 /*----------------------------------------------------------------------*/
-/* FatFs Module Sample Program / Renesas SH7262        (C)ChaN, 2016    */
+/* FatFs Module Sample Program / Renesas SH7262        (C)ChaN, 2018    */
 /*----------------------------------------------------------------------*/
 /* Ev.Board: FRK-SH2A from CQ Publishing                                */
 /* Console: SCI2 (N81 38400bps)                                         */

@@ -11,14 +11,12 @@
 
 
 /* CRC calculation unit */
-#define CRC			( (volatile uint32_t*)0x40023000)
 #define CRC_DR		(*(volatile uint32_t*)0x40023000)
 #define CRC_IDR		(*(volatile uint32_t*)0x40023004)
 #define CRC_CR		(*(volatile uint32_t*)0x40023008)
 
 
 /* Reset and clock control RCC */
-#define RCC				( (volatile uint32_t*)0x40021000)
 #define RCC_CR			(*(volatile uint32_t*)0x40021000)
 #define RCC_CFGR		(*(volatile uint32_t*)0x40021004)
 #define RCC_CIR			(*(volatile uint32_t*)0x40021008)
@@ -33,7 +31,6 @@
 
 
 /* DMA1 */
-#define DMA1			( (volatile uint32_t*)0x40020000)
 #define DMA1_ISR		(*(volatile uint32_t*)0x40020000)
 #define DMA1_IFCR		(*(volatile uint32_t*)0x40020004)
 #define DMA1_CCR1		(*(volatile uint32_t*)0x40020008)
@@ -67,7 +64,6 @@
 
 
 /* DMA2 */
-#define DMA2			( (volatile uint32_t*)0x40020400)
 #define DMA2_ISR		(*(volatile uint32_t*)0x40020400)
 #define DMA2_IFCR		(*(volatile uint32_t*)0x40020404)
 #define DMA2_CCR1		(*(volatile uint32_t*)0x40020408)
@@ -93,7 +89,6 @@
 
 
 /* TIM1 */
-#define TIM1		( (volatile uint16_t*)0x40012C00)
 #define TIM1_CR1	(*(volatile uint16_t*)0x40012C00)
 #define TIM1_CR2	(*(volatile uint16_t*)0x40012C04)
 #define TIM1_SMCR	(*(volatile uint16_t*)0x40012C08)
@@ -117,7 +112,6 @@
 
 
 /* TIM2 */
-#define TIM2		( (volatile uint16_t*)0x40000000)
 #define TIM2_CR1	(*(volatile uint16_t*)0x40000000)
 #define TIM2_CR2	(*(volatile uint16_t*)0x40000004)
 #define TIM2_SMCR	(*(volatile uint16_t*)0x40000008)
@@ -139,7 +133,6 @@
 
 
 /* TIM3 */
-#define TIM3		( (volatile uint16_t*)0x40000400)
 #define TIM3_CR1	(*(volatile uint16_t*)0x40000400)
 #define TIM3_CR2	(*(volatile uint16_t*)0x40000404)
 #define TIM3_SMCR	(*(volatile uint16_t*)0x40000408)
@@ -161,7 +154,6 @@
 
 
 /* TIM4 */
-#define TIM4		( (volatile uint16_t*)0x40000800)
 #define TIM4_CR1	(*(volatile uint16_t*)0x40000800)
 #define TIM4_CR2	(*(volatile uint16_t*)0x40000804)
 #define TIM4_SMCR	(*(volatile uint16_t*)0x40000808)
@@ -183,7 +175,6 @@
 
 
 /* TIM5 */
-#define TIM5		( (volatile uint16_t*)0x40000C00)
 #define TIM5_CR1	(*(volatile uint16_t*)0x40000C00)
 #define TIM5_CR2	(*(volatile uint16_t*)0x40000C04)
 #define TIM5_SMCR	(*(volatile uint16_t*)0x40000C08)
@@ -205,7 +196,6 @@
 
 
 /* TIM6 */
-#define TIM6		( (volatile uint16_t*)0x40001000)
 #define TIM6_CR1	(*(volatile uint16_t*)0x40001000)
 #define TIM6_CR2	(*(volatile uint16_t*)0x40001004)
 #define TIM6_DIER	(*(volatile uint16_t*)0x4000100C)
@@ -223,7 +213,6 @@
 
 
 /* TIM7 */
-#define TIM7		( (volatile uint16_t*)0x40001400)
 #define TIM7_CR1	(*(volatile uint16_t*)0x40001400)
 #define TIM7_CR2	(*(volatile uint16_t*)0x40001404)
 #define TIM7_DIER	(*(volatile uint16_t*)0x4000140C)
@@ -241,7 +230,6 @@
 
 
 /* TIM12 */
-#define TIM12		( (volatile uint16_t*)0x40001800)
 #define TIM12_CR1	(*(volatile uint16_t*)0x40001800)
 #define TIM12_CR2	(*(volatile uint16_t*)0x40001804)
 #define TIM12_SMCR	(*(volatile uint16_t*)0x40001808)
@@ -258,7 +246,6 @@
 
 
 /* TIM13 */
-#define TIM13		( (volatile uint16_t*)0x40001C00)
 #define TIM13_CR1	(*(volatile uint16_t*)0x40001C00)
 #define TIM13_DIER	(*(volatile uint16_t*)0x40001C0C)
 #define TIM13_SR	(*(volatile uint16_t*)0x40001C10)
@@ -272,7 +259,6 @@
 
 
 /* TIM14 */
-#define TIM14		( (volatile uint16_t*)0x40002000)
 #define TIM14_CR1	(*(volatile uint16_t*)0x40002000)
 #define TIM14_DIER	(*(volatile uint16_t*)0x4000200C)
 #define TIM14_SR	(*(volatile uint16_t*)0x40002010)
@@ -286,7 +272,6 @@
 
 
 /* TIM15 */
-#define TIM15		( (volatile uint16_t*)0x40014000)
 #define TIM15_CR1	(*(volatile uint16_t*)0x40014000)
 #define TIM15_CR2	(*(volatile uint16_t*)0x40014004)
 #define TIM15_SMCR	(*(volatile uint16_t*)0x40014008)
@@ -306,7 +291,6 @@
 
 
 /* TIM16 */
-#define TIM16		( (volatile uint16_t*)0x40014400)
 #define TIM16_CR1	(*(volatile uint16_t*)0x40014400)
 #define TIM16_CR2	(*(volatile uint16_t*)0x40014404)
 #define TIM16_SMCR	(*(volatile uint16_t*)0x40014408)
@@ -326,7 +310,6 @@
 
 
 /* TIM17 */
-#define TIM17		((volatile uint16_t*)0x40014800)
 #define TIM17_CR1	(*(volatile uint16_t*)0x40014800)
 #define TIM17_CR2	(*(volatile uint16_t*)0x40014804)
 #define TIM17_SMCR	(*(volatile uint16_t*)0x40014808)
@@ -346,7 +329,6 @@
 
 
 /* RTC */
-#define RTC			( (volatile uint16_t*)0x40002800)
 #define RTC_CRH		(*(volatile uint16_t*)0x40002800)
 #define RTC_CRL		(*(volatile uint16_t*)0x40002804)
 #define RTC_PRLH	(*(volatile uint16_t*)0x40002808)
@@ -360,14 +342,12 @@
 
 
 /* Window watchdog */
-#define WWDG		( (volatile uint16_t*)0x40002C00)
 #define WWDG_CR		(*(volatile uint16_t*)0x40002C00)
 #define WWDG_CFR	(*(volatile uint16_t*)0x40002C04)
 #define WWDG_SR		(*(volatile uint16_t*)0x40002C08)
 
 
 /* Independent watchdog */
-#define IWDG		( (volatile uint16_t*)0x40003000)
 #define IWDG_KR		(*(volatile uint16_t*)0x40003000)
 #define IWDG_PR		(*(volatile uint16_t*)0x40003004)
 #define IWDG_RLR	(*(volatile uint16_t*)0x40003008)
@@ -375,7 +355,6 @@
 
 
 /* USART1 */
-#define USART1		( (volatile uint16_t*)0x40013800)
 #define USART1_SR	(*(volatile uint16_t*)0x40013800)
 #define USART1_DR	(*(volatile uint16_t*)0x40013804)
 #define USART1_BRR	(*(volatile uint16_t*)0x40013808)
@@ -386,7 +365,6 @@
 
 
 /* USART2 */
-#define USART2		( (volatile uint16_t*)0x40004400)
 #define USART2_SR	(*(volatile uint16_t*)0x40004400)
 #define USART2_DR	(*(volatile uint16_t*)0x40004404)
 #define USART2_BRR	(*(volatile uint16_t*)0x40004408)
@@ -397,7 +375,6 @@
 
 
 /* USART3 */
-#define USART3		( (volatile uint16_t*)0x40004800)
 #define USART3_SR	(*(volatile uint16_t*)0x40004800)
 #define USART3_DR	(*(volatile uint16_t*)0x40004804)
 #define USART3_BRR	(*(volatile uint16_t*)0x40004808)
@@ -408,7 +385,6 @@
 
 
 /* UART4 */
-#define UART4		( (volatile uint16_t*)0x40004C00)
 #define UART4_SR	(*(volatile uint16_t*)0x40004C00)
 #define UART4_DR	(*(volatile uint16_t*)0x40004C04)
 #define UART4_BRR	(*(volatile uint16_t*)0x40004C08)
@@ -419,7 +395,6 @@
 
 
 /* UART5 */
-#define UART5		( (volatile uint16_t*)0x40005000)
 #define UART5_SR	(*(volatile uint16_t*)0x40005000)
 #define UART5_DR	(*(volatile uint16_t*)0x40005004)
 #define UART5_BRR	(*(volatile uint16_t*)0x40005008)
@@ -430,7 +405,6 @@
 
 
 /* I2C1 */
-#define I2C1		( (volatile uint16_t*)0x40005400)
 #define I2C1_CR1	(*(volatile uint16_t*)0x40005400)
 #define I2C1_CR2	(*(volatile uint16_t*)0x40005404)
 #define I2C1_OAR1	(*(volatile uint16_t*)0x40005408)
@@ -443,7 +417,6 @@
 
 
 /* I2C2 */
-#define I2C2		( (volatile uint16_t*)0x40005800)
 #define I2C2_CR1	(*(volatile uint16_t*)0x40005800)
 #define I2C2_CR2	(*(volatile uint16_t*)0x40005804)
 #define I2C2_OAR1	(*(volatile uint16_t*)0x40005808)
@@ -456,7 +429,6 @@
 
 
 /* SPI1 */
-#define SPI1		( (volatile uint16_t*)0x40013000)
 #define SPI1_CR1	(*(volatile uint16_t*)0x40013000)
 #define SPI1_CR2	(*(volatile uint16_t*)0x40013004)
 #define SPI1_SR		(*(volatile uint16_t*)0x40013008)
@@ -467,7 +439,6 @@
 
 
 /* SPI2 */
-#define SPI2		( (volatile uint16_t*)0x40003800)
 #define SPI2_CR1	(*(volatile uint16_t*)0x40003800)
 #define SPI2_CR2	(*(volatile uint16_t*)0x40003804)
 #define SPI2_SR		(*(volatile uint16_t*)0x40003808)
@@ -478,7 +449,6 @@
 
 
 /* SPI3 */
-#define SPI3		( (volatile uint16_t*)0x40003C00)
 #define SPI3_CR1	(*(volatile uint16_t*)0x40003C00)
 #define SPI3_CR2	(*(volatile uint16_t*)0x40003C04)
 #define SPI3_SR		(*(volatile uint16_t*)0x40003C08)
@@ -489,7 +459,6 @@
 
 
 /* ADC1 */
-#define ADC1		( (volatile uint32_t*)0x40012400)
 #define ADC1_SR		(*(volatile uint32_t*)0x40012400)
 #define ADC1_CR1	(*(volatile uint32_t*)0x40012404)
 #define ADC1_CR2	(*(volatile uint32_t*)0x40012408)
@@ -513,7 +482,6 @@
 
 
 /* DAC */
-#define DAC			( (volatile uint32_t*)0x40007400)
 #define DAC_CR		(*(volatile uint32_t*)0x40007400)
 #define DAC_SWTRIGR	(*(volatile uint32_t*)0x40007404)
 #define DAC_DHR12R1	(*(volatile uint32_t*)0x40007408)
@@ -531,13 +499,11 @@
 
 
 /* PWR */
-#define PWR			( (volatile uint32_t*)0x40007000)
 #define PWR_CR		(*(volatile uint32_t*)0x40007000)
 #define PWR_CSR		(*(volatile uint32_t*)0x40007004)
 
 
 /* Backup register */
-#define BKP			( (volatile uint16_t*)0x40006C04)
 #define BKP_DR1		(*(volatile uint16_t*)0x40006C04)
 #define BKP_DR2		(*(volatile uint16_t*)0x40006C08)
 #define BKP_DR3		(*(volatile uint16_t*)0x40006C0C)
@@ -554,7 +520,6 @@
 
 
 /* CEC */
-#define CEC			( (volatile uint16_t*)0x40007800)
 #define CEC_CFGR	(*(volatile uint16_t*)0x40007800)
 #define CEC_OAR		(*(volatile uint16_t*)0x40007804)
 #define CEC_PRE		(*(volatile uint16_t*)0x40007808)
@@ -565,7 +530,6 @@
 
 
 /* AFIO */
-#define AFIO			( (volatile uint32_t*)0x40010000)
 #define AFIO_MAPR		(*(volatile uint32_t*)0x40010004)
 #define AFIO_EXTICR1	(*(volatile uint32_t*)0x40010008)
 #define AFIO_EXTICR2	(*(volatile uint32_t*)0x4001000C)
@@ -575,7 +539,6 @@
 
 
 /* EXTI */
-#define EXTI		( (volatile uint32_t*)0x40010400)
 #define EXTI_IMR	(*(volatile uint32_t*)0x40010400)
 #define EXTI_EMR	(*(volatile uint32_t*)0x40010400)
 #define EXTI_RTSR	(*(volatile uint32_t*)0x40010400)
@@ -662,7 +625,6 @@
 
 
 /* Flash Interface */
-#define FLASH			( (volatile uint32_t*)0x40022000)
 #define FLASH_ACR		(*(volatile uint32_t*)0x40022000)
 #define FLASH_KEYR		(*(volatile uint32_t*)0x40022004)
 #define FLASH_OPTKEYR	(*(volatile uint32_t*)0x40022008)

@@ -1,5 +1,5 @@
 /*----------------------------------------------------------------------*/
-/* FatFs Module Sample Program / Renesas H8/300H       (C)ChaN, 2016    */
+/* FatFs Module Sample Program / Renesas H8/300H       (C)ChaN, 2018    */
 /*----------------------------------------------------------------------*/
 /* Ev.Board: AKI-H8/3694F from Akizuki Denshi Tsusho Co.,Ltd            */
 /* Console: SCI3 (N81 38400bps)                                         */

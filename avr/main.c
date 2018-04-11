@@ -1,5 +1,5 @@
 /*----------------------------------------------------------------------*/
-/* FatFs sample project for Atmel AVR                (C)ChaN, 2017      */
+/* FatFs sample project for Atmel AVR                (C)ChaN, 2018      */
 /*----------------------------------------------------------------------*/
 
 
@@ -209,6 +209,7 @@ int main (void)
 	BYTE b1, *bp;
 	UINT s1, s2, cnt, blen = sizeof Buff;
 	DWORD ofs, sect = 0;
+	static const char* const fst[] = {"", "FAT12", "FAT16", "FAT32", "exFAT"};
 	FATFS *fs;
 	RTC rtc;
 
@@ -373,12 +374,12 @@ int main (void)
 				if (fr) { 
 					put_rc(fr); break;
 				}
-				xprintf(PSTR("FAT type = %u\nBytes/Cluster = %lu\nNumber of FATs = %u\n"
+				xprintf(PSTR("FAT type = %s\nBytes/Cluster = %lu\nNumber of FATs = %u\n"
 							 "Root DIR entries = %u\nSectors/FAT = %lu\nNumber of clusters = %lu\n"
-							 "FAT start (lba) = %lu\nDIR start (lba,clustor) = %lu\nData start (lba) = %lu\n\n"),
-						fs->fs_type, (DWORD)fs->csize * 512, fs->n_fats,
+							 "Volume start (lba) = %lu\nFAT start (lba) = %lu\nDIR start (lba,clustor) = %lu\nData start (lba) = %lu\n\n"),
+						fst[fs->fs_type], (DWORD)fs->csize * 512, fs->n_fats,
 						fs->n_rootdir, fs->fsize, fs->n_fatent - 2,
-						fs->fatbase, fs->dirbase, fs->database
+						fs->volbase, fs->fatbase, fs->dirbase, fs->database
 				);
 #if FF_USE_LABEL
 				fr = f_getlabel(ptr2, (char*)Buff, (DWORD*)&p1);

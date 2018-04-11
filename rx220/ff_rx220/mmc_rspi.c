@@ -308,7 +308,7 @@ int rcvr_datablock (	/* 1:OK, 0:Error */
 /* Send a data packet to the MMC                                         */
 /*-----------------------------------------------------------------------*/
 
-#if _USE_WRITE
+#if DISK_USE_WRITE
 static
 int xmit_datablock (	/* 1:OK, 0:Failed */
 	const BYTE *buff,	/* Ponter to 512 byte data to be sent */
@@ -332,7 +332,7 @@ int xmit_datablock (	/* 1:OK, 0:Failed */
 
 	/* Busy check is done at next transmission */
 }
-#endif /* _USE_WRITE */
+#endif /* DISK_USE_WRITE */
 
 
 
@@ -502,7 +502,7 @@ DRESULT disk_read (
 /* Write sector(s)                                                       */
 /*-----------------------------------------------------------------------*/
 
-#if _USE_WRITE
+#if DISK_USE_WRITE
 DRESULT disk_write (
 	BYTE drv,			/* Physical drive number (0) */
 	const BYTE *buff,	/* Ponter to the data to write */
@@ -536,7 +536,7 @@ DRESULT disk_write (
 
 	return count ? RES_ERROR : RES_OK;	/* Return result */
 }
-#endif /* _USE_WRITE */
+#endif /* DISK_USE_WRITE */
 
 
 
@@ -544,7 +544,7 @@ DRESULT disk_write (
 /* Miscellaneous drive controls other than data read/write               */
 /*-----------------------------------------------------------------------*/
 
-#if _USE_IOCTL
+#if DISK_USE_IOCTL
 DRESULT disk_ioctl (
 	BYTE drv,		/* Physical drive number (0) */
 	BYTE ctrl,		/* Control command code */
@@ -601,8 +601,8 @@ DRESULT disk_ioctl (
 			}
 		}
 		break;
-
-	case CTRL_TRIM :	/* Erase a block of sectors (used when _USE_TRIM == 1) */
+#if DISK_USE_WRITE
+	case CTRL_TRIM :	/* Erase a block of sectors (used when FF_USE_TRIM == 1) */
 		if (!(CardType & CT_SDC)) break;				/* Check if the card is SDC */
 		if (disk_ioctl(drv, MMC_GET_CSD, csd)) break;	/* Get CSD */
 		if (!(csd[0] >> 6) && !(csd[10] & 0x40)) break;	/* Check if sector erase can be applied to the card */
@@ -614,7 +614,7 @@ DRESULT disk_ioctl (
 			res = RES_OK;
 		}
 		break;
-
+#endif
 	/* Following command are not used by FatFs module */
 
 	case MMC_GET_TYPE :		/* Get MMC/SDC type (BYTE) */
@@ -656,7 +656,7 @@ DRESULT disk_ioctl (
 
 	return res;
 }
-#endif /* _USE_IOCTL */
+#endif /* DISK_USE_IOCTL */
 
 
 /*-----------------------------------------------------------------------*/

@@ -14,15 +14,14 @@
 #include "uart23xx.h"
 #include "interrupt.h"
 
+#define	F_CCLK		72000000	/* cclk frequency */
+#define F_PCLK		18000000	/* pclk frequency for the UART modules from F_CCLK divided by 1, 2, 4 or 8 */
+#define	DIVADD		5			/* See below */
+#define	MULVAL		8
 /* F_PCLK    8/16M  9/18M 10/20M 12/24M 12.5/25M 15/30M */
 /* DIVADD       1     5      1      1      1       5    */
 /* MULVAL      12     8     12     12      8       8    */
 /* Error[%]   0.15  0.16   0.15   0.15   0.47    0.16   */
-
-#define	F_CCLK		72000000	/* cclk frequency */
-#define F_PCLK		18000000	/* pclk frequency for the UART modules */
-#define	DIVADD		5			/* See below */
-#define	MULVAL		8
 
 #define	DLVAL0		((uint32_t)((double)F_PCLK / UART0_BPS / 16 / (1 + (double)DIVADD / MULVAL)))
 #define	DLVAL1		((uint32_t)((double)F_PCLK / UART1_BPS / 16 / (1 + (double)DIVADD / MULVAL)))
@@ -156,7 +155,7 @@ void uart0_init (void)
 	__set_PCONP(PCUART0);
 	__set_PCLKSEL(PCLK_UART0, PCLKDIV);
 
-	/* Initialize UART */
+	/* Initialize UART0 */
 	U0IER = 0x00;			/* Disable interrupt */
 	U0LCR = 0x83;			/* Select baud rate divisor latch */
 	U0DLM = DLVAL0 / 256;	/* Set BRG dividers */
@@ -296,7 +295,7 @@ void uart1_init (void)
 	__set_PCONP(PCUART1);
 	__set_PCLKSEL(PCLK_UART1, PCLKDIV);
 
-	/* Initialize UART */
+	/* Initialize UART1 */
 	U1IER = 0x00;			/* Disable interrupt */
 	U1LCR = 0x83;			/* Select baud rate divisor latch */
 	U1DLM = DLVAL1 / 256;	/* Set BRG dividers */
@@ -436,7 +435,7 @@ void uart2_init (void)
 	__set_PCONP(PCUART2);
 	__set_PCLKSEL(PCLK_UART2, PCLKDIV);
 
-	/* Initialize UART */
+	/* Initialize UART2 */
 	U2IER = 0x00;			/* Disable interrupt */
 	U2LCR = 0x83;			/* Select baud rate divisor latch */
 	U2DLM = DLVAL2 / 256;	/* Set BRG dividers */
@@ -576,7 +575,7 @@ void uart3_init (void)
 	__set_PCONP(PCUART3);
 	__set_PCLKSEL(PCLK_UART3, PCLKDIV);
 
-	/* Initialize UART */
+	/* Initialize UART3 */
 	U3IER = 0x00;			/* Disable interrupt */
 	U3LCR = 0x83;			/* Select baud rate divisor latch */
 	U3DLM = DLVAL3 / 256;	/* Set BRG dividers */

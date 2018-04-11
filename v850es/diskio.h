@@ -65,13 +65,17 @@ DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff);
 #define CTRL_LOCK			8	/* Lock media removal */
 #define CTRL_UNLOCK			9	/* Unlock media removal */
 #define CTRL_EJECT			10	/* Eject media */
+#define CTRL_GET_SMART		11	/* Read SMART information */
 
 /* MMC/SDC specific command (Not used by FatFs) */
 #define MMC_GET_TYPE		50	/* Get card type */
-#define MMC_GET_CSD			51	/* Get CSD */
-#define MMC_GET_CID			52	/* Get CID */
-#define MMC_GET_OCR			53	/* Get OCR */
-#define MMC_GET_SDSTAT		54	/* Get SD status */
+#define MMC_GET_CSD			51	/* Read CSD */
+#define MMC_GET_CID			52	/* Read CID */
+#define MMC_GET_OCR			53	/* Read OCR */
+#define MMC_GET_SDSTAT		54	/* Read SD status */
+#define ISDIO_READ			55	/* Read data form SD iSDIO register */
+#define ISDIO_WRITE			56	/* Write data to SD iSDIO register */
+#define ISDIO_MRITE			57	/* Masked write data to SD iSDIO register */
 
 /* ATA/CF specific command (Not used by FatFs) */
 #define ATA_GET_REV			60	/* Get F/W revision */

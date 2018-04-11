@@ -2,7 +2,7 @@
 /  The Main Development Bench of FatFs Module
 /-------------------------------------------------------------------------/
 /
-/  Copyright (C) 2017, ChaN, all right reserved.
+/  Copyright (C) 2018, ChaN, all right reserved.
 /
 / * This software is a free software and there is NO WARRANTY.
 / * No restriction on use. You can use, modify and redistribute it for
@@ -15,37 +15,26 @@
 #include <string.h>
 #include <stdio.h>
 #include <locale.h>
-#include "diskio.h"
 #include "ff.h"
+#include "diskio.h"
 
 int assign_drives (void);	/* Initialization of low level I/O module */
 
 
 #if FF_MULTI_PARTITION
 
-This is an example of volume - partition resolution table.
+/* This is an example of volume - partition resolution table */
 
-PARTITION VolToPart[] = {
-	{0, 0},	/* "0:" <== PD# 0, auto detect */
-	{1, 0},	/* "1:" <== PD# 1, auto detect */
-	{2, 0},	/* "2:" <== PD# 2, auto detect */
-	{3, 1},	/* "3:" <== PD# 3, 1st partition */
-	{3, 2},	/* "4:" <== PD# 3, 2nd partition */
-	{3, 3},	/* "5:" <== PD# 3, 3rd partition */
-	{4, 0},	/* "6:" <== PD# 4, auto detect */
-	{5, 0}	/* "7:" <== PD# 5, auto detect */
+PARTITION VolToPart[FF_VOLUMES] = {
+	{0, 1},	/* "0:" <== PD# 0, 1st partition */
+	{0, 2},	/* "1:" <== PD# 0, 2nd partition */
+	{0, 3},	/* "2:" <== PD# 0, 3rd partition */
+	{0, 4},	/* "3:" <== PD# 0, 4th partition */
+	{1, 0},	/* "4:" <== PD# 1, auto detect */
+	{2, 0},	/* "5:" <== PD# 2, auto detect */
+	{3, 0},	/* "6:" <== PD# 3, auto detect */
+	{4, 0}	/* "7:" <== PD# 4, auto detect */
 };
-#endif
-
-
-#ifdef UNICODE
-#if FF_LFN_UNICODE != 1
-#error FF_LFN_UNICODE must be 1 in this build configuration UTF16.
-#endif
-#else
-#if FF_USE_LFN && FF_LFN_UNICODE == 1
-#error FF_LFN_UNICODE must be 0 or 2 in this build configuration ANSI_UTF8.
-#endif
 #endif
 
 
@@ -298,15 +287,29 @@ WCHAR* ts2ws (const TCHAR* str)
 {
 	static WCHAR rstr[2][512];
 	static int ri;
-
+#if FF_USE_LFN && FF_LFN_UNICODE == 3
+	int di;
+	TCHAR dc;
+#endif
 
 	ri = (ri + 1) % 2;
 	rstr[ri][0] = 0;
-#if FF_USE_LFN && FF_LFN_UNICODE == 1
+#if FF_USE_LFN && FF_LFN_UNICODE == 1	/* UTF16 to UTF16 */
 	wcscpy(rstr[ri], str);
-#elif FF_USE_LFN && FF_LFN_UNICODE == 2
+#elif FF_USE_LFN && FF_LFN_UNICODE == 2	/* UTF8 to UTF16 */
 	MultiByteToWideChar(CP_UTF8, 0, str, -1, rstr[ri], 512);
-#else
+#elif FF_USE_LFN && FF_LFN_UNICODE == 3	/* UTF32 to UTF16 */
+	for (di = 0; *str && di < 512 - 2; ) {
+		dc = *str++;
+		if (dc >= 0x10000) {
+			dc -= 0x10000;
+			rstr[ri][di++] = (WCHAR)((dc >> 10) + 0xD800);
+			dc = (dc & 0x3FF) + 0xDC00;
+		}
+		rstr[ri][di++] = (WCHAR)dc;
+	}
+	rstr[ri][di] = 0;
+#else	/* ANSI/OEM to UTF16 */
 	MultiByteToWideChar(CodePage, 0, str, -1, rstr[ri], 512);
 #endif
 	return rstr[ri];
@@ -317,15 +320,33 @@ TCHAR* ws2ts (const WCHAR* str)
 {
 	static TCHAR rstr[2][1024];
 	static int ri;
-
+#if FF_USE_LFN && FF_LFN_UNICODE == 3
+	int di;
+	TCHAR dc, ls;
+#endif
 
 	ri = (ri + 1) % 2;
 	rstr[ri][0] = 0;
-#if FF_USE_LFN && FF_LFN_UNICODE == 1
+#if FF_USE_LFN && FF_LFN_UNICODE == 1	/* UTF16 to UTF16 */
 	wcscpy(rstr[ri], str);
-#elif FF_USE_LFN && FF_LFN_UNICODE == 2
+#elif FF_USE_LFN && FF_LFN_UNICODE == 2	/* UTF16 to UTF8 */
 	WideCharToMultiByte(CP_UTF8, 0, str, -1, rstr[ri], 512, 0, 0);
-#else
+#elif FF_USE_LFN && FF_LFN_UNICODE == 3	/* UTF16 to UTF32 */
+	for (di = 0; *str && di < 512 - 1; ) {
+		dc = *str++;
+		if (dc >= 0xD800 && dc <= 0xDBFF) {
+			ls = *str;
+			if (ls >= 0xDC00 && ls <= 0xDFFF) {
+				str++;
+				dc = ((dc - 0xD800) << 10) + (ls - 0xDC00) + 0x10000;
+			} else {
+				continue;
+			}
+		}
+		rstr[ri][di++] = dc;
+	}
+	rstr[ri][di] = 0;
+#else	/* UTF16 to ANSI/OEM */
 	WideCharToMultiByte(CodePage, WC_NO_BEST_FIT_CHARS, str, -1, rstr[ri], 512, 0, 0);
 #endif
 	return rstr[ri];
@@ -480,12 +501,14 @@ int set_console_size (
 	int bline
 )
 {
-	COORD dim = {width, bline};
-	SMALL_RECT rect = {0, 0, width - 1, height - 1};
+	COORD dim;
+	SMALL_RECT rect;
 
 
-	if (SetConsoleScreenBufferSize(hConOut, dim) &&
-		SetConsoleWindowInfo(hConOut, TRUE, &rect) ) return 1;
+	dim.X = (SHORT)width; dim.Y = (SHORT)bline;
+	rect.Top = rect.Left = 0; rect.Right = (SHORT)(width - 1); rect.Bottom = (SHORT)(height - 1);
+
+	if (SetConsoleScreenBufferSize(hcon, dim) && SetConsoleWindowInfo(hcon, TRUE, &rect) ) return 1;
 
 	return 0;
 }
@@ -498,10 +521,10 @@ int set_console_size (
 /*-----------------------------------------------------------------------*/
 
 
-int _tmain (int argc, TCHAR *argv[])
+int main (void)
 {
 	WCHAR *ptr, *ptr2, pool[64];
-	TCHAR tpool[64];
+	TCHAR tpool[128];
 	DWORD p1, p2, p3;
 	QWORD px;
 	BYTE *buf;
@@ -509,6 +532,7 @@ int _tmain (int argc, TCHAR *argv[])
 	WORD w;
 	DWORD dw, ofs = 0, sect = 0, drv = 0;
 	const WCHAR *ft[] = {L"", L"FAT12", L"FAT16", L"FAT32", L"exFAT"};
+	const WCHAR *uni[] = {L"ANSI/OEM", L"UTF-16", L"UTF-8", L"UTF-32"};
 	HANDLE h;
 	FRESULT fr;
 	DRESULT dr;
@@ -533,15 +557,9 @@ int _tmain (int argc, TCHAR *argv[])
 	put_rc(f_setcp(w));
 #endif
 
-	zprintf(L"FatFs module test monitor (%s, CP:%u/%s)\n\n",
-			FF_USE_LFN ? L"LFN" : L"SFN",
-			FF_CODE_PAGE,
-			FF_LFN_UNICODE ? L"Unicode" : L"ANSI");
+	zprintf(L"FatFs module test monitor (%s, CP%u, %s)\n\n", FF_USE_LFN ? L"LFN" : L"SFN", FF_CODE_PAGE, uni[FF_LFN_UNICODE]);
 
-	swprintf(pool, 64, L"FatFs debug console (%s, CP:%u/%s)",
-			FF_USE_LFN ? L"LFN" : L"SFN",
-			FF_CODE_PAGE,
-			FF_LFN_UNICODE ? L"Unicode" : L"ANSI");
+	swprintf(pool, 64, L"FatFs debug console (%s, CP%u, %s)", FF_USE_LFN ? L"LFN" : L"SFN", FF_CODE_PAGE, uni[FF_LFN_UNICODE]);
 	SetConsoleTitleW(pool);
 
 	assign_drives();	/* Find physical drives on the PC */
@@ -549,7 +567,7 @@ int _tmain (int argc, TCHAR *argv[])
 #if FF_MULTI_PARTITION
 	zprintf(L"\nMultiple partition is enabled. Each logical drive is tied to the patition as follows:\n");
 	for (cnt = 0; cnt < sizeof VolToPart / sizeof (PARTITION); cnt++) {
-		const TCHAR *pn[] = {L"auto detect", L"1st partition", L"2nd partition", L"3rd partition", L"4th partition"};
+		const WCHAR *pn[] = {L"auto detect", L"1st partition", L"2nd partition", L"3rd partition", L"4th partition"};
 
 		zprintf(L"\"%u:\" <== Disk# %u, %s\n", cnt, VolToPart[cnt].pd, pn[VolToPart[cnt].pt]);
 	}
@@ -589,7 +607,7 @@ int _tmain (int argc, TCHAR *argv[])
 				}
 				dr = disk_read((BYTE)p1, Buff, p2, 1);
 				if (dr) { zprintf(L"rc=%d\n", (WORD)dr); break; }
-				zprintf(L"Drive:%u Sector:%lu\n", p1, p2);
+				zprintf(L"PD#:%u LBA:%lu\n", p1, p2);
 				if (disk_ioctl((BYTE)p1, GET_SECTOR_SIZE, &w) != RES_OK) break;
 				sect = p2 + 1; drv = p1;
 				for (buf = Buff, ofs = 0; ofs < w; buf += 16, ofs += 16) {
@@ -681,7 +699,7 @@ int _tmain (int argc, TCHAR *argv[])
 		case L'f' :	/* FatFs test command */
 			switch (*ptr++) {	/* Branch by secondary command character */
 
-			case L'i' :	/* fi <ld#> [<mount>] - Force initialized the logical drive */
+			case L'i' :	/* fi <pd#> <opt> <path> - Force initialized the logical drive */
 				if (!xatoi(&ptr, &p1) || (UINT)p1 > 9) break;
 				if (!xatoi(&ptr, &p2)) p2 = 0;
 				swprintf(ptr, LINE_LEN, L"%d:", p1);
@@ -762,18 +780,23 @@ int _tmain (int argc, TCHAR *argv[])
 							(Finfo.fdate >> 9) + 1980, (Finfo.fdate >> 5) & 15, Finfo.fdate & 31,
 							(Finfo.ftime >> 11), (Finfo.ftime >> 5) & 63, (QWORD)Finfo.fsize);
 #if FF_USE_LFN && FF_USE_FIND == 2
-					zprintf(L"%-12s  ", ts2ws(Finfo.altname));
+					zprintf(L"%-14s", ts2ws(Finfo.altname));
 #endif
 					zprintf(L"%s\n", ts2ws(Finfo.fname));
 				}
 				f_closedir(&dir);
-				zprintf(L"%4u File(s),%11llu bytes total\n%4u Dir(s)", s1, AccSize, s2);
+				if (fr == FR_OK) {
+					zprintf(L"%4u File(s),%11llu bytes total\n%4u Dir(s)", s1, AccSize, s2);
 #if !FF_FS_READONLY
-				if (f_getfree(ws2ts(ptr), (DWORD*)&p1, &fs) == FR_OK) {
-					zprintf(L",%12llu bytes free", (QWORD)p1 * fs->csize * 512);
-				}
+					fr = f_getfree(ws2ts(ptr), (DWORD*)&p1, &fs);
+					if (fr == FR_OK) {
+						zprintf(L",%12llu bytes free", (QWORD)p1 * fs->csize * 512);
+					}
 #endif
-				zprintf(L"\n");
+					zprintf(L"\n");
+				} else {
+					put_rc(fr);
+				}
 				break;
 #if FF_USE_FIND
 			case L'L' :	/* fL <path> <pattern> - Directory search */
@@ -865,19 +888,17 @@ int _tmain (int argc, TCHAR *argv[])
 				while (*ptr == L' ') ptr++;
 				put_rc(f_chdir(ws2ts(ptr)));
 				break;
-#if FF_VOLUMES >= 2
 			case L'j' :	/* fj <path> - Change current drive */
 				while (*ptr == L' ') ptr++;
 				put_rc(f_chdrive(ws2ts(ptr)));
 				break;
-#endif
 #if FF_FS_RPATH >= 2
 			case L'q' :	/* fq - Show current dir path */
-				fr = f_getcwd((TCHAR*)Line, 256);
+				fr = f_getcwd(tpool, sizeof tpool / sizeof tpool[0]);
 				if (fr) {
 					put_rc(fr);
 				} else {
-					zprintf(L"%s\n", ws2ts(Line));
+					zprintf(L"%s\n", ts2ws(tpool));
 				}
 				break;
 #endif
@@ -1017,7 +1038,7 @@ int _tmain (int argc, TCHAR *argv[])
 					zprintf(L"The physical drive %u will be re-partitioned. Are you sure? (Y/n)=", p1);
 					get_line(ptr, 256);
 					if (*ptr != L'Y') break;
-					put_rc(f_fdisk(p1, pts, Buff));
+					put_rc(f_fdisk((BYTE)p1, pts, Buff));
 				}
 				break;
 #endif	/* FF_MULTI_PARTITION */

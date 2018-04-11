@@ -3,22 +3,22 @@
 
 #include "LPC2300.h"
 
-#define USE_UART0	1		/* Enable UART0 function */
+#define USE_UART0	1		/* Use UART0 function */
 #define UART0_BPS 	230400	/* UART0 bit rate */
 #define UART0_TXB	128		/* Size of Tx buffer */
 #define UART0_RXB	128		/* Size of Rx buffer */
 
-#define USE_UART1	0		/* Enable UART1 function */
+#define USE_UART1	0		/* Use UART1 function */
 #define UART1_BPS 	38400
 #define UART1_TXB	128
 #define UART1_RXB	128
 
-#define USE_UART2	0		/* Enable UART2 function */
+#define USE_UART2	0		/* Use UART2 function */
 #define UART2_BPS 	38400
 #define UART2_TXB	128
 #define UART2_RXB	128
 
-#define USE_UART3	0		/* Enable UART3 function */
+#define USE_UART3	0		/* Use UART3 function */
 #define UART3_BPS 	38400
 #define UART3_TXB	128
 #define UART3_RXB	128

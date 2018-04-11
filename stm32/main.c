@@ -1,5 +1,5 @@
 /*----------------------------------------------------------------------*/
-/* FAT file system sample project for FatFs            (C)ChaN, 2016    */
+/* FAT file system sample project for FatFs            (C)ChaN, 2018    */
 /*----------------------------------------------------------------------*/
 
 #include <string.h>
@@ -406,7 +406,7 @@ int main (void)
 				xprintf("Number of clusters = %lu\n", (DWORD)fs->n_fatent - 2);
 				xprintf("Volume start (lba) = %lu\n", fs->volbase);
 				xprintf("FAT start (lba) = %lu\n", fs->fatbase);
-				xprintf("FDIR start (lba,clustor) = %lu\n", fs->dirbase);
+				xprintf("DIR start (lba,clustor) = %lu\n", fs->dirbase);
 				xprintf("Data start (lba) = %lu\n\n", fs->database);
 #if FF_USE_LABEL
 				res = f_getlabel(ptr, (char*)Buff, (DWORD*)&p2);

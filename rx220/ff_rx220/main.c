@@ -248,8 +248,9 @@ int main (void)
 				}
 				if (!xatoi(&ptr, &p1)) break;
 				if (!xatoi(&ptr, &p2)) p2 = 128 / p3;
-				for (ptr = (char*)p1; p2 >= 16 / p3; ptr += 16, p2 -= 16 / p3)
+				for (ptr = (char*)p1; p2 >= 16 / p3; ptr += 16, p2 -= 16 / p3) {
 					put_dump(ptr, (DWORD)ptr, 16 / p3, p3);
+				}
 				if (p2) put_dump((BYTE*)ptr, (UINT)ptr, p2, p3);
 				break;
 			case 'f' :	/* mf <address> <value> <count> - Fill memory */
@@ -311,8 +312,9 @@ int main (void)
 				dr = disk_read(drv, Buff, sect, 1);
 				if (dr) { xprintf("rc=%d\n", (WORD)dr); break; }
 				xprintf("PD#:%u LBA:%lu\n", drv, sect++);
-				for (ptr=(char*)Buff, ofs = 0; ofs < 0x200; ptr += 16, ofs += 16)
+				for (ptr=(char*)Buff, ofs = 0; ofs < 0x200; ptr += 16, ofs += 16) {
 					put_dump((BYTE*)ptr, ofs, 16, DW_CHAR);
+				}
 				break;
 
 			case 'i' :	/* di <pd#> - Initialize disk */
@@ -347,8 +349,9 @@ int main (void)
 			switch (*ptr++) {
 			case 'd' :	/* bd <ofs> - Dump R/W buffer */
 				if (!xatoi(&ptr, &p1)) break;
-				for (ptr=(char*)&Buff[p1], ofs = p1, cnt = 32; cnt; cnt--, ptr+=16, ofs+=16)
+				for (ptr=(char*)&Buff[p1], ofs = p1, cnt = 32; cnt; cnt--, ptr+=16, ofs+=16) {
 					put_dump((BYTE*)ptr, ofs, 16, DW_CHAR);
+				}
 				break;
 
 			case 'e' :	/* be <ofs> [<data>] ... - Edit R/W buffer */
@@ -365,10 +368,11 @@ int main (void)
 					ptr = Line;
 					if (*ptr == '.') break;
 					if (*ptr < ' ') { p1++; continue; }
-					if (xatoi(&ptr, &p2))
+					if (xatoi(&ptr, &p2)) {
 						Buff[p1++] = (BYTE)p2;
-					else
+					} else {
 						xputs("???\n");
+					}
 				}
 				break;
 
@@ -414,7 +418,7 @@ int main (void)
 				xprintf("Number of clusters = %lu\n", (DWORD)fs->n_fatent - 2);
 				xprintf("Volume start (lba) = %lu\n", fs->volbase);
 				xprintf("FAT start (lba) = %lu\n", fs->fatbase);
-				xprintf("FDIR start (lba,clustor) = %lu\n", fs->dirbase);
+				xprintf("DIR start (lba,clustor) = %lu\n", fs->dirbase);
 				xprintf("Data start (lba) = %lu\n\n", fs->database);
 #if FF_USE_LABEL
 				res = f_getlabel(ptr, (char*)Buff, (DWORD*)&p2);
@@ -456,12 +460,15 @@ int main (void)
 							(Fno.ftime >> 11), (Fno.ftime >> 5) & 63,
 							(DWORD)Fno.fsize, Fno.fname);
 				}
-				xprintf("%4u File(s),%10lu KiB total\n%4u Dir(s)", s1, p1, s2);
-				res = f_getfree(ptr, (DWORD*)&p1, &fs);
-				if (res == FR_OK)
+				if (res == FR_OK) {
+					xprintf("%4u File(s),%10lu KiB total\n%4u Dir(s)", s1, p1, s2);
+					res = f_getfree(ptr, (DWORD*)&p1, &fs);
+				}
+				if (res == FR_OK) {
 					xprintf(", %10lu KiB free\n", p1 * fs->csize / 2);
-				else
+				} else {
 					put_rc(res);
+				}
 				break;
 #if FF_USE_FIND
 			case 'L' :	/* fL <path> <pattern> - Directory search */
@@ -496,8 +503,9 @@ int main (void)
 				if (!xatoi(&ptr, &p1)) break;
 				res = f_lseek(&File[0], p1);
 				put_rc(res);
-				if (res == FR_OK)
+				if (res == FR_OK) {
 					xprintf("fptr=%lu(0x%lX)\n", File[0].fptr, File[0].fptr);
+				}
 				break;
 
 			case 'd' :	/* fd <len> - read and dump file from current fp */
@@ -656,8 +664,9 @@ int main (void)
 				break;
 #endif	/* _USE_MKFS */
 			case 'z' :	/* fz [<size>] - Change/Show R/W length for fr/fw/fx command */
-				if (xatoi(&ptr, &p1) && p1 >= 1 && p1 <= (long)sizeof Buff)
+				if (xatoi(&ptr, &p1) && p1 >= 1 && p1 <= (long)sizeof Buff) {
 					blen = p1;
+				}
 				xprintf("blen=%u\n", blen);
 				break;
 			}

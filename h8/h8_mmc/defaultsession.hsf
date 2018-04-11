@@ -60,6 +60,7 @@
 [WINDOW_Z_ORDER]
 "C:\user\Prj_Renesas\h8_mmc\h8_mmc\ffconf.h" 
 "C:\user\Prj_Renesas\h8_mmc\h8_mmc\main.c" 
+"C:\user\Prj_Renesas\h8_mmc\h8_mmc\integer.h" 
 [TARGET_NAME]
 "" "" 0 
 [STATUSBAR_STATEINFO_VD1]

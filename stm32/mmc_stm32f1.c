@@ -2,7 +2,7 @@
 /* STM32F100: MMCv3/SDv1/SDv2 (SPI mode) control module                   */
 /*------------------------------------------------------------------------*/
 /*
-/  Copyright (C) 2014, ChaN, all right reserved.
+/  Copyright (C) 2018, ChaN, all right reserved.
 /
 / * This software is a free software and there is NO WARRANTY.
 / * No restriction on use. You can use, modify and redistribute it for
@@ -147,9 +147,9 @@ BYTE xchg_spi (
 	BYTE dat	/* Data to send */
 )
 {
-	SPIx_DR = dat;
-	while (SPIx_SR & _BV(7)) ;
-	return (BYTE)SPIx_DR;
+	SPIx_DR = dat;				/* Start an SPI transaction */
+	while ((SPIx_SR & 0x83) != 0x03) ;	/* Wait for end of the transaction */
+	return (BYTE)SPIx_DR;		/* Return received byte */
 }
 
 
@@ -164,22 +164,22 @@ void rcvr_spi_multi (
 
 
 	SPIx_CR1 &= ~_BV(6);
-	SPIx_CR1 |= (_BV(6) | _BV(11));	/* Set SPI to 16-bit mode */
+	SPIx_CR1 |= (_BV(6) | _BV(11));	/* Put SPI into 16-bit mode */
 
-	SPIx_DR = 0xFFFF;
+	SPIx_DR = 0xFFFF;		/* Start the first SPI transaction */
 	btr -= 2;
 	do {					/* Receive the data block into buffer */
-		while (SPIx_SR & _BV(7)) ;
-		d = SPIx_DR;
-		SPIx_DR = 0xFFFF;
-		buff[1] = d; buff[0] = d >> 8; 
+		while ((SPIx_SR & 0x83) != 0x03) ;	/* Wait for end of the SPI transaction */
+		d = SPIx_DR;						/* Get received word */
+		SPIx_DR = 0xFFFF;					/* Start next transaction */
+		buff[1] = d; buff[0] = d >> 8; 		/* Store received data */
 		buff += 2;
 	} while (btr -= 2);
-	while (SPIx_SR & _BV(7)) ;
-	d = SPIx_DR;
-	buff[1] = d; buff[0] = d >> 8;
+	while ((SPIx_SR & 0x83) != 0x03) ;		/* Wait for end of the SPI transaction */
+	d = SPIx_DR;							/* Get last word received */
+	buff[1] = d; buff[0] = d >> 8;			/* Store it */
 
-	SPIx_CR1 &= ~(_BV(6) | _BV(11));	/* Set SPI to 8-bit mode */
+	SPIx_CR1 &= ~(_BV(6) | _BV(11));	/* Put SPI into 8-bit mode */
 	SPIx_CR1 |= _BV(6);
 }
 
@@ -196,23 +196,21 @@ void xmit_spi_multi (
 
 
 	SPIx_CR1 &= ~_BV(6);
-	SPIx_CR1 |= (_BV(6) | _BV(11));		/* Set SPI to 16-bit mode */
+	SPIx_CR1 |= (_BV(6) | _BV(11));		/* Put SPI into 16-bit mode */
 
-	d = buff[0] << 8 | buff[1];
-	SPIx_DR = d;
-	buff += 2;
+	d = buff[0] << 8 | buff[1]; buff += 2;
+	SPIx_DR = d;	/* Send the first word */
 	btx -= 2;
-	do {					/* Receive the data block into buffer */
-		d = buff[0] << 8 | buff[1];
-		while (SPIx_SR & _BV(7)) ;
-		SPIx_DR;
-		SPIx_DR = d;
-		buff += 2;
+	do {
+		d = buff[0] << 8 | buff[1]; buff += 2;	/* Word to send next */
+		while ((SPIx_SR & 0x83) != 0x03) ;	/* Wait for end of the SPI transaction */
+		SPIx_DR;							/* Discard received word */
+		SPIx_DR = d;						/* Start next transaction */
 	} while (btx -= 2);
-	while (SPIx_SR & _BV(7)) ;
-	SPIx_DR;
+	while ((SPIx_SR & 0x83) != 0x03) ;	/* Wait for end of the SPI transaction */
+	SPIx_DR;							/* Discard received word */
 
-	SPIx_CR1 &= ~(_BV(6) | _BV(11));	/* Set SPI to 8-bit mode */
+	SPIx_CR1 &= ~(_BV(6) | _BV(11));	/* Put SPI into 8-bit mode */
 	SPIx_CR1 |= _BV(6);
 }
 #endif

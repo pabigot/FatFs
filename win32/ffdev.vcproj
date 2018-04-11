@@ -15,99 +15,9 @@
 	</ToolFiles>
 	<Configurations>
 		<Configuration
-			Name="UTF16|Win32"
-			OutputDirectory=".\UTF16"
-			IntermediateDirectory=".\UTF16"
-			ConfigurationType="1"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
-			UseOfMFC="0"
-			ATLMinimizesCRunTimeLibraryUsage="false"
-			CharacterSet="1"
-			>
-			<Tool
-				Name="VCPreBuildEventTool"
-			/>
-			<Tool
-				Name="VCCustomBuildTool"
-			/>
-			<Tool
-				Name="VCXMLDataGeneratorTool"
-			/>
-			<Tool
-				Name="VCWebServiceProxyGeneratorTool"
-			/>
-			<Tool
-				Name="VCMIDLTool"
-				TypeLibraryName=".\Debug_Unicode/ffdev.tlb"
-				HeaderFileName=""
-			/>
-			<Tool
-				Name="VCCLCompilerTool"
-				Optimization="0"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;UNICODE;_CRT_SECURE_NO_WARNINGS;"
-				MinimalRebuild="true"
-				BasicRuntimeChecks="3"
-				RuntimeLibrary="1"
-				PrecompiledHeaderFile=".\UTF16/ffdev.pch"
-				AssemblerListingLocation=".\UTF16/"
-				ObjectFile=".\UTF16/"
-				ProgramDataBaseFileName=".\UTF16/"
-				WarningLevel="3"
-				SuppressStartupBanner="true"
-				DebugInformationFormat="4"
-			/>
-			<Tool
-				Name="VCManagedResourceCompilerTool"
-			/>
-			<Tool
-				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="_DEBUG"
-				Culture="1041"
-			/>
-			<Tool
-				Name="VCPreLinkEventTool"
-			/>
-			<Tool
-				Name="VCLinkerTool"
-				OutputFile=".\UTF16/ffdev.exe"
-				LinkIncremental="2"
-				SuppressStartupBanner="true"
-				GenerateManifest="false"
-				GenerateDebugInformation="true"
-				ProgramDatabaseFile=".\UTF16/ffdev.pdb"
-				SubSystem="1"
-				RandomizedBaseAddress="1"
-				DataExecutionPrevention="0"
-				TargetMachine="1"
-			/>
-			<Tool
-				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCManifestTool"
-			/>
-			<Tool
-				Name="VCXDCMakeTool"
-			/>
-			<Tool
-				Name="VCBscMakeTool"
-				SuppressStartupBanner="true"
-				OutputFile=".\UTF16/ffdev.bsc"
-			/>
-			<Tool
-				Name="VCFxCopTool"
-			/>
-			<Tool
-				Name="VCAppVerifierTool"
-			/>
-			<Tool
-				Name="VCPostBuildEventTool"
-			/>
-		</Configuration>
-		<Configuration
-			Name="ANSI_UTF8|Win32"
-			OutputDirectory=".\ANSI_UTF8"
-			IntermediateDirectory=".\ANSI_UTF8"
+			Name="Debug|Win32"
+			OutputDirectory=".\Debug"
+			IntermediateDirectory=".\Debug"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
 			UseOfMFC="0"
@@ -128,20 +38,21 @@
 			/>
 			<Tool
 				Name="VCMIDLTool"
-				TypeLibraryName=".\Debug_ANSI/ffdev.tlb"
+				TypeLibraryName=".\Debug/ffdev.tlb"
 				HeaderFileName=""
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				AdditionalOptions="/wd4127"
 				Optimization="0"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_TCHAR_DEFINED"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
-				PrecompiledHeaderFile=".\ANSI_UTF8/ffdev.pch"
-				AssemblerListingLocation=".\ANSI_UTF8/"
-				ObjectFile=".\ANSI_UTF8/"
-				ProgramDataBaseFileName=".\ANSI_UTF8/"
-				WarningLevel="3"
+				PrecompiledHeaderFile=".\Debug/ffdev.pch"
+				AssemblerListingLocation=".\Debug/"
+				ObjectFile=".\Debug/"
+				ProgramDataBaseFileName=".\Debug/"
+				WarningLevel="4"
 				SuppressStartupBanner="true"
 				DebugInformationFormat="1"
 			/>
@@ -158,12 +69,12 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile=".\ANSI_UTF8/ffdev.exe"
+				OutputFile=".\Debug/ffdev.exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				GenerateManifest="false"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile=".\ANSI_UTF8/ffdev.pdb"
+				ProgramDatabaseFile=".\Debug/ffdev.pdb"
 				SubSystem="1"
 				RandomizedBaseAddress="1"
 				DataExecutionPrevention="0"
@@ -181,7 +92,7 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\ANSI_UTF8/ffdev.bsc"
+				OutputFile=".\Debug/ffdev.bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -205,15 +116,7 @@
 				RelativePath="diskio.c"
 				>
 				<FileConfiguration
-					Name="UTF16|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="ANSI_UTF8|Win32"
+					Name="Debug|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -225,15 +128,7 @@
 				RelativePath="ff.c"
 				>
 				<FileConfiguration
-					Name="UTF16|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="ANSI_UTF8|Win32"
+					Name="Debug|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -246,15 +141,7 @@
 				RelativePath="ffsystem.c"
 				>
 				<FileConfiguration
-					Name="UTF16|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="ANSI_UTF8|Win32"
+					Name="Debug|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -266,15 +153,7 @@
 				RelativePath="ffunicode.c"
 				>
 				<FileConfiguration
-					Name="UTF16|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="ANSI_UTF8|Win32"
+					Name="Debug|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -286,15 +165,7 @@
 				RelativePath="main.c"
 				>
 				<FileConfiguration
-					Name="UTF16|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="ANSI_UTF8|Win32"
+					Name="Debug|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"

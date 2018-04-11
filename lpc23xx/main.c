@@ -1,5 +1,5 @@
 /*----------------------------------------------------------------------*/
-/* FAT file system sample project for FatFs            (C)ChaN, 2013    */
+/* FAT file system sample project for FatFs            (C)ChaN, 2010    */
 /*----------------------------------------------------------------------*/
 
 #include <string.h>
@@ -15,7 +15,7 @@
 
 
 
-DWORD AccSize;				/* Work register for fs command */
+QWORD AccSize;				/* Work register for fs command */
 WORD AccFiles, AccDirs;
 FILINFO Finfo;
 
@@ -574,7 +574,7 @@ int main (void)
 				xprintf("...");
 				res = scan_files(ptr);
 				if (res) { put_rc(res); break; }
-				xprintf("\r%u files, %lu bytes.\n%u folders.\n"
+				xprintf("\r%u files, %llu bytes.\n%u folders.\n"
 						"%lu KiB total disk space.\n%lu KiB available.\n",
 						AccFiles, AccSize, AccDirs,
 						(fs->n_fatent - 2) * (fs->csize / 2), (DWORD)p1 * (fs->csize / 2)

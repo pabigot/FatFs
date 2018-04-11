@@ -2,12 +2,11 @@
 /* Low level disk control module for Win32              (C)ChaN, 2013    */
 /*-----------------------------------------------------------------------*/
 
-#include <windows.h>
-#include <tchar.h>
-#include <winioctl.h>
-#include <stdio.h>
 #include "diskio.h"
 #include "ff.h"
+#include <windows.h>
+#include <winioctl.h>
+#include <stdio.h>
 
 
 #define MAX_DRIVES	10		/* Max number of physical drives to be used */
@@ -290,7 +289,7 @@ DRESULT disk_write (
 	UINT count			/* Number of sectors to write */
 )
 {
-	DWORD nc, rnc;
+	DWORD nc = 0, rnc;
 	LARGE_INTEGER ofs;
 	DRESULT res;
 
@@ -378,7 +377,7 @@ DRESULT disk_ioctl (
 			DWORD br;
 
 			if (pdrv == 0) {
-				h = CreateFile((TCHAR*)buff, GENERIC_READ, 0, 0, OPEN_EXISTING, 0, 0);
+				h = CreateFileW(buff, GENERIC_READ, 0, 0, OPEN_EXISTING, 0, 0);
 				if (h != INVALID_HANDLE_VALUE) {
 					if (ReadFile(h, RamDisk, SZ_RAMDISK * 1024 * 1024, &br, 0)) {
 						res = RES_OK;
