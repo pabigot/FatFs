@@ -3,15 +3,14 @@
 /*----------------------------------------------------------------------*/
 
 #include <string.h>
-#include "integer.h"
 #include "interrupt.h"
 #include "rtc23xx.h"
 #include "uart23xx.h"
 #include "disp.h"
 #include "filer.h"
 #include "xprintf.h"
-#include "diskio.h"
 #include "ff.h"
+#include "diskio.h"
 
 
 

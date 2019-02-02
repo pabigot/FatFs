@@ -3,12 +3,12 @@
 [DATABASE_VERSION]
 "11.0" 
 [WORKSPACE_DETAILS]
-"fftest" "C:\user\Prj_Renesas\ff_sh7262" "C:\user\Prj_Renesas\ff_sh7262\fftest.hws" "SuperH RISC engine" "Renesas SuperH Standard" 
+"fftest" "C:\user\elm-chan\fsw\ff\ffsample\sh2" "C:\user\elm-chan\fsw\ff\ffsample\sh2\fftest.hws" "SuperH RISC engine" "Renesas SuperH Standard" 
 [SHARED_WORKSPACE_CONTROL_STATUS]
 "" "" "" 
 "" "" "" 
 [PROJECTS]
-"fftest" "C:\user\Prj_Renesas\ff_sh7262\fftest" "C:\user\Prj_Renesas\ff_sh7262\fftest\fftest.hwp" 0 
+"fftest" "C:\user\elm-chan\fsw\ff\ffsample\sh2\fftest" "C:\user\elm-chan\fsw\ff\ffsample\sh2\fftest\fftest.hwp" 0 
 [INFORMATION]
 "ワークスペース情報がありません" 
 [SCRAP]

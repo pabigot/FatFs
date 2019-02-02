@@ -6,9 +6,7 @@ FrameCX=960
 FrameCY=750
 OpenFile1=ProjectWindow
 PrjPos=0,1,579,0,268
-OpenFile2=ffconf.h,0,360,319,1268,1075,0,270,24,0
-OpenFile3=main.c,0,128,286,1009,1042,0,343,0,0
-OpenFile4=OutputWindow
+OpenFile2=OutputWindow
 OutputPos=0,14,522,858,1556
 ActivePRJ=tst850.prj
 [ProjectWindow]

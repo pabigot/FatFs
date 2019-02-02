@@ -1,12 +1,10 @@
 #ifndef _COMMFUNC
 #define _COMMFUNC
 
-#include "integer.h"
-
-void uart_init (DWORD bps);
+void uart_init (unsigned long bps);
 int uart_test (void);
-void uart_putc (BYTE d);
-BYTE uart_getc (void);
+void uart_putc (unsigned char d);
+unsigned char uart_getc (void);
 
 #endif
 

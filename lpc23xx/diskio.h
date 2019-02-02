@@ -2,15 +2,13 @@
 /  Low level disk interface modlue include file   (C)ChaN, 2014
 /-----------------------------------------------------------------------*/
 
+#include "ff.h"
 #ifndef _DISKIO_DEFINED
 #define _DISKIO_DEFINED
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-
-#include "integer.h"
 
 
 /* Status of Disk Functions */

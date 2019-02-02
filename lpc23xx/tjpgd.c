@@ -27,7 +27,7 @@
 #define ZIG(n)	Zig[n]
 
 static
-const BYTE Zig[64] = {	/* Zigzag-order to raster-order conversion table */
+const uint8_t Zig[64] = {	/* Zigzag-order to raster-order conversion table */
 	 0,  1,  8, 16,  9,  2,  3, 10, 17, 24, 32, 25, 18, 11,  4,  5,
 	12, 19, 26, 33, 40, 48, 41, 34, 27, 20, 13,  6,  7, 14, 21, 28,
 	35, 42, 49, 56, 57, 50, 43, 36, 29, 22, 15, 23, 30, 37, 44, 51,
@@ -44,15 +44,15 @@ const BYTE Zig[64] = {	/* Zigzag-order to raster-order conversion table */
 #define IPSF(n)	Ipsf[n]
 
 static
-const WORD Ipsf[64] = {	/* See also aa_idct.png */
-	(WORD)(1.00000*8192), (WORD)(1.38704*8192), (WORD)(1.30656*8192), (WORD)(1.17588*8192), (WORD)(1.00000*8192), (WORD)(0.78570*8192), (WORD)(0.54120*8192), (WORD)(0.27590*8192),
-	(WORD)(1.38704*8192), (WORD)(1.92388*8192), (WORD)(1.81226*8192), (WORD)(1.63099*8192), (WORD)(1.38704*8192), (WORD)(1.08979*8192), (WORD)(0.75066*8192), (WORD)(0.38268*8192),
-	(WORD)(1.30656*8192), (WORD)(1.81226*8192), (WORD)(1.70711*8192), (WORD)(1.53636*8192), (WORD)(1.30656*8192), (WORD)(1.02656*8192), (WORD)(0.70711*8192), (WORD)(0.36048*8192),
-	(WORD)(1.17588*8192), (WORD)(1.63099*8192), (WORD)(1.53636*8192), (WORD)(1.38268*8192), (WORD)(1.17588*8192), (WORD)(0.92388*8192), (WORD)(0.63638*8192), (WORD)(0.32442*8192),
-	(WORD)(1.00000*8192), (WORD)(1.38704*8192), (WORD)(1.30656*8192), (WORD)(1.17588*8192), (WORD)(1.00000*8192), (WORD)(0.78570*8192), (WORD)(0.54120*8192), (WORD)(0.27590*8192),
-	(WORD)(0.78570*8192), (WORD)(1.08979*8192), (WORD)(1.02656*8192), (WORD)(0.92388*8192), (WORD)(0.78570*8192), (WORD)(0.61732*8192), (WORD)(0.42522*8192), (WORD)(0.21677*8192),
-	(WORD)(0.54120*8192), (WORD)(0.75066*8192), (WORD)(0.70711*8192), (WORD)(0.63638*8192), (WORD)(0.54120*8192), (WORD)(0.42522*8192), (WORD)(0.29290*8192), (WORD)(0.14932*8192),
-	(WORD)(0.27590*8192), (WORD)(0.38268*8192), (WORD)(0.36048*8192), (WORD)(0.32442*8192), (WORD)(0.27590*8192), (WORD)(0.21678*8192), (WORD)(0.14932*8192), (WORD)(0.07612*8192)
+const uint16_t Ipsf[64] = {	/* See also aa_idct.png */
+	(uint16_t)(1.00000*8192), (uint16_t)(1.38704*8192), (uint16_t)(1.30656*8192), (uint16_t)(1.17588*8192), (uint16_t)(1.00000*8192), (uint16_t)(0.78570*8192), (uint16_t)(0.54120*8192), (uint16_t)(0.27590*8192),
+	(uint16_t)(1.38704*8192), (uint16_t)(1.92388*8192), (uint16_t)(1.81226*8192), (uint16_t)(1.63099*8192), (uint16_t)(1.38704*8192), (uint16_t)(1.08979*8192), (uint16_t)(0.75066*8192), (uint16_t)(0.38268*8192),
+	(uint16_t)(1.30656*8192), (uint16_t)(1.81226*8192), (uint16_t)(1.70711*8192), (uint16_t)(1.53636*8192), (uint16_t)(1.30656*8192), (uint16_t)(1.02656*8192), (uint16_t)(0.70711*8192), (uint16_t)(0.36048*8192),
+	(uint16_t)(1.17588*8192), (uint16_t)(1.63099*8192), (uint16_t)(1.53636*8192), (uint16_t)(1.38268*8192), (uint16_t)(1.17588*8192), (uint16_t)(0.92388*8192), (uint16_t)(0.63638*8192), (uint16_t)(0.32442*8192),
+	(uint16_t)(1.00000*8192), (uint16_t)(1.38704*8192), (uint16_t)(1.30656*8192), (uint16_t)(1.17588*8192), (uint16_t)(1.00000*8192), (uint16_t)(0.78570*8192), (uint16_t)(0.54120*8192), (uint16_t)(0.27590*8192),
+	(uint16_t)(0.78570*8192), (uint16_t)(1.08979*8192), (uint16_t)(1.02656*8192), (uint16_t)(0.92388*8192), (uint16_t)(0.78570*8192), (uint16_t)(0.61732*8192), (uint16_t)(0.42522*8192), (uint16_t)(0.21677*8192),
+	(uint16_t)(0.54120*8192), (uint16_t)(0.75066*8192), (uint16_t)(0.70711*8192), (uint16_t)(0.63638*8192), (uint16_t)(0.54120*8192), (uint16_t)(0.42522*8192), (uint16_t)(0.29290*8192), (uint16_t)(0.14932*8192),
+	(uint16_t)(0.27590*8192), (uint16_t)(0.38268*8192), (uint16_t)(0.36048*8192), (uint16_t)(0.32442*8192), (uint16_t)(0.27590*8192), (uint16_t)(0.21678*8192), (uint16_t)(0.14932*8192), (uint16_t)(0.07612*8192)
 };
 
 
@@ -61,10 +61,10 @@ const WORD Ipsf[64] = {	/* See also aa_idct.png */
 /* Conversion table for fast clipping process  */
 /*---------------------------------------------*/
 
-#define BYTECLIP(v) Clip8[(UINT)(v) & 0x3FF]
+#define uint8_tCLIP(v) Clip8[(uint16_t)(v) & 0x3FF]
 
 static
-const BYTE Clip8[1024] = {
+const uint8_t Clip8[1024] = {
 	/* 0..255 */
 	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
 	32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63,
@@ -113,7 +113,7 @@ const BYTE Clip8[1024] = {
 static
 void* alloc_pool (	/* Pointer to allocated memory block (NULL:no memory available) */
 	JDEC* jd,		/* Pointer to the decompressor object */
-	UINT nd			/* Number of bytes to allocate */
+	uint16_t nd			/* Number of bytes to allocate */
 )
 {
 	char *rp = 0;
@@ -138,15 +138,15 @@ void* alloc_pool (	/* Pointer to allocated memory block (NULL:no memory availabl
 /*-----------------------------------------------------------------------*/
 
 static
-UINT create_qt_tbl (	/* 0:OK, !0:Failed */
+uint16_t create_qt_tbl (	/* 0:OK, !0:Failed */
 	JDEC* jd,			/* Pointer to the decompressor object */
-	const BYTE* data,	/* Pointer to the quantizer tables */
-	UINT ndata			/* Size of input data */
+	const uint8_t* data,	/* Pointer to the quantizer tables */
+	uint16_t ndata			/* Size of input data */
 )
 {
-	UINT i;
-	BYTE d, z;
-	LONG *pb;
+	uint16_t i;
+	uint8_t d, z;
+	int32_t *pb;
 
 
 	while (ndata) {	/* Process all tables in the segment */
@@ -155,12 +155,12 @@ UINT create_qt_tbl (	/* 0:OK, !0:Failed */
 		d = *data++;							/* Get table property */
 		if (d & 0xF0) return JDR_FMT1;			/* Err: not 8-bit resolution */
 		i = d & 3;								/* Get table ID */
-		pb = alloc_pool(jd, 64 * sizeof (LONG));/* Allocate a memory block for the table */
+		pb = alloc_pool(jd, 64 * sizeof (int32_t));/* Allocate a memory block for the table */
 		if (!pb) return JDR_MEM1;				/* Err: not enough memory */
 		jd->qttbl[i] = pb;						/* Register the table */
 		for (i = 0; i < 64; i++) {				/* Load the table */
 			z = ZIG(i);							/* Zigzag-order to raster-order conversion */
-			pb[z] = (LONG)((DWORD)*data++ * IPSF(z));	/* Apply scale factor of Arai algorithm to the de-quantizers */
+			pb[z] = (int32_t)((uint32_t)*data++ * IPSF(z));	/* Apply scale factor of Arai algorithm to the de-quantizers */
 		}
 	}
 
@@ -175,15 +175,15 @@ UINT create_qt_tbl (	/* 0:OK, !0:Failed */
 /*-----------------------------------------------------------------------*/
 
 static
-UINT create_huffman_tbl (	/* 0:OK, !0:Failed */
+uint16_t create_huffman_tbl (	/* 0:OK, !0:Failed */
 	JDEC* jd,				/* Pointer to the decompressor object */
-	const BYTE* data,		/* Pointer to the packed huffman tables */
-	UINT ndata				/* Size of input data */
+	const uint8_t* data,		/* Pointer to the packed huffman tables */
+	uint16_t ndata				/* Size of input data */
 )
 {
-	UINT i, j, b, np, cls, num;
-	BYTE d, *pb, *pd;
-	WORD hc, *ph;
+	uint16_t i, j, b, np, cls, num;
+	uint8_t d, *pb, *pd;
+	uint16_t hc, *ph;
 
 
 	while (ndata) {	/* Process all tables in the segment */
@@ -200,7 +200,7 @@ UINT create_huffman_tbl (	/* 0:OK, !0:Failed */
 			np += b;	/* Get sum of code words for each code */
 		}
 
-		ph = alloc_pool(jd, np * sizeof (WORD));/* Allocate a memory block for the code word table */
+		ph = alloc_pool(jd, np * sizeof (uint16_t));/* Allocate a memory block for the code word table */
 		if (!ph) return JDR_MEM1;			/* Err: not enough memory */
 		jd->huffcode[num][cls] = ph;
 		hc = 0;
@@ -233,13 +233,13 @@ UINT create_huffman_tbl (	/* 0:OK, !0:Failed */
 /*-----------------------------------------------------------------------*/
 
 static
-INT bitext (	/* >=0: extracted data, <0: error code */
+int16_t bitext (	/* >=0: extracted data, <0: error code */
 	JDEC* jd,	/* Pointer to the decompressor object */
-	UINT nbit	/* Number of bits to extract (1 to 11) */
+	uint16_t nbit	/* Number of bits to extract (1 to 11) */
 )
 {
-	BYTE msk, s, *dp;
-	UINT dc, v, f;
+	uint8_t msk, s, *dp;
+	uint16_t dc, v, f;
 
 
 	msk = jd->dmsk; dc = jd->dctr; dp = jd->dptr;	/* Bit mask, number of data available, read ptr */
@@ -273,7 +273,7 @@ INT bitext (	/* >=0: extracted data, <0: error code */
 	} while (nbit);
 	jd->dmsk = msk; jd->dctr = dc; jd->dptr = dp;
 
-	return (INT)v;
+	return (int16_t)v;
 }
 
 
@@ -284,15 +284,15 @@ INT bitext (	/* >=0: extracted data, <0: error code */
 /*-----------------------------------------------------------------------*/
 
 static
-INT huffext (			/* >=0: decoded data, <0: error code */
+int16_t huffext (			/* >=0: decoded data, <0: error code */
 	JDEC* jd,			/* Pointer to the decompressor object */
-	const BYTE* hbits,	/* Pointer to the bit distribution table */
-	const WORD* hcode,	/* Pointer to the code word table */
-	const BYTE* hdata	/* Pointer to the data table */
+	const uint8_t* hbits,	/* Pointer to the bit distribution table */
+	const uint16_t* hcode,	/* Pointer to the code word table */
+	const uint8_t* hdata	/* Pointer to the data table */
 )
 {
-	BYTE msk, s, *dp;
-	UINT dc, v, f, bl, nd;
+	uint8_t msk, s, *dp;
+	uint16_t dc, v, f, bl, nd;
 
 
 	msk = jd->dmsk; dc = jd->dctr; dp = jd->dptr;	/* Bit mask, number of data available, read ptr */
@@ -347,14 +347,14 @@ INT huffext (			/* >=0: decoded data, <0: error code */
 
 static
 void block_idct (
-	LONG* src,	/* Input block data (de-quantized and pre-scaled for Arai Algorithm) */
-	BYTE* dst	/* Pointer to the destination to store the block as byte array */
+	int32_t* src,	/* Input block data (de-quantized and pre-scaled for Arai Algorithm) */
+	uint8_t* dst	/* Pointer to the destination to store the block as byte array */
 )
 {
-	const LONG M13 = (LONG)(1.41421*4096), M2 = (LONG)(1.08239*4096), M4 = (LONG)(2.61313*4096), M5 = (LONG)(1.84776*4096);
-	LONG v0, v1, v2, v3, v4, v5, v6, v7;
-	LONG t10, t11, t12, t13;
-	UINT i;
+	const int32_t M13 = (int32_t)(1.41421*4096), M2 = (int32_t)(1.08239*4096), M4 = (int32_t)(2.61313*4096), M5 = (int32_t)(1.84776*4096);
+	int32_t v0, v1, v2, v3, v4, v5, v6, v7;
+	int32_t t10, t11, t12, t13;
+	uint16_t i;
 
 	/* Process columns */
 	for (i = 0; i < 8; i++) {
@@ -437,14 +437,14 @@ void block_idct (
 		v5 -= v6;
 		v4 -= v5;
 
-		dst[0] = BYTECLIP((v0 + v7) >> 8);	/* Descale the transformed values 8 bits and output */
-		dst[7] = BYTECLIP((v0 - v7) >> 8);
-		dst[1] = BYTECLIP((v1 + v6) >> 8);
-		dst[6] = BYTECLIP((v1 - v6) >> 8);
-		dst[2] = BYTECLIP((v2 + v5) >> 8);
-		dst[5] = BYTECLIP((v2 - v5) >> 8);
-		dst[3] = BYTECLIP((v3 + v4) >> 8);
-		dst[4] = BYTECLIP((v3 - v4) >> 8);
+		dst[0] = uint8_tCLIP((v0 + v7) >> 8);	/* Descale the transformed values 8 bits and output */
+		dst[7] = uint8_tCLIP((v0 - v7) >> 8);
+		dst[1] = uint8_tCLIP((v1 + v6) >> 8);
+		dst[6] = uint8_tCLIP((v1 - v6) >> 8);
+		dst[2] = uint8_tCLIP((v2 + v5) >> 8);
+		dst[5] = uint8_tCLIP((v2 - v5) >> 8);
+		dst[3] = uint8_tCLIP((v3 + v4) >> 8);
+		dst[4] = uint8_tCLIP((v3 - v4) >> 8);
 		dst += 8;
 
 		src += 8;	/* Next row */
@@ -463,13 +463,13 @@ JRESULT mcu_load (
 	JDEC* jd		/* Pointer to the decompressor object */
 )
 {
-	LONG *tmp = (LONG*)jd->workbuf;	/* Block working buffer for de-quantize and IDCT */
-	UINT blk, nby, nbc, i, z, id, cmp;
-	INT b, d, e;
-	BYTE *bp;
-	const BYTE *hb, *hd;
-	const WORD *hc;
-	const LONG *dqf;
+	int32_t *tmp = (int32_t*)jd->workbuf;	/* Block working buffer for de-quantize and IDCT */
+	uint16_t blk, nby, nbc, i, z, id, cmp;
+	int16_t b, d, e;
+	uint8_t *bp;
+	const uint8_t *hb, *hd;
+	const uint16_t *hc;
+	const int32_t *dqf;
 
 
 	nby = jd->msx * jd->msy;	/* Number of Y blocks (1, 2 or 4) */
@@ -493,7 +493,7 @@ JRESULT mcu_load (
 			b = 1 << (b - 1);					/* MSB position */
 			if (!(e & b)) e -= (b << 1) - 1;	/* Restore sign if needed */
 			d += e;								/* Get current value */
-			jd->dcv[cmp] = (SHORT)d;			/* Save current DC value for next block */
+			jd->dcv[cmp] = (int16_t)d;			/* Save current DC value for next block */
 		}
 		dqf = jd->qttbl[jd->qtid[cmp]];			/* De-quantizer table ID for this component */
 		tmp[0] = d * dqf[0] >> 8;				/* De-quantize, apply scale factor of Arai algorithm and descale 8 bits */
@@ -508,7 +508,7 @@ JRESULT mcu_load (
 			b = huffext(jd, hb, hc, hd);		/* Extract a huffman coded value (zero runs and bit length) */
 			if (b == 0) break;					/* EOB? */
 			if (b < 0) return 0 - b;			/* Err: invalid code or input error */
-			z = (UINT)b >> 4;					/* Number of leading zero elements */
+			z = (uint16_t)b >> 4;					/* Number of leading zero elements */
 			if (z) {
 				i += z;							/* Skip zero elements */
 				if (i >= 64) return JDR_FMT1;	/* Too long zero run */
@@ -544,15 +544,15 @@ JRESULT mcu_load (
 static
 JRESULT mcu_output (
 	JDEC* jd,	/* Pointer to the decompressor object */
-	UINT (*outfunc)(JDEC*, void*, JRECT*),	/* RGB output function */
-	UINT x,		/* MCU position in the image (left of the MCU) */
-	UINT y		/* MCU position in the image (top of the MCU) */
+	uint16_t (*outfunc)(JDEC*, void*, JRECT*),	/* RGB output function */
+	uint16_t x,		/* MCU position in the image (left of the MCU) */
+	uint16_t y		/* MCU position in the image (top of the MCU) */
 )
 {
-	const INT CVACC = (sizeof (INT) > 2) ? 1024 : 128;
-	UINT ix, iy, mx, my, rx, ry;
-	INT yy, cb, cr;
-	BYTE *py, *pc, *rgb24;
+	const int16_t CVACC = (sizeof (int16_t) > 2) ? 1024 : 128;
+	uint16_t ix, iy, mx, my, rx, ry;
+	int16_t yy, cb, cr;
+	uint8_t *py, *pc, *rgb24;
 	JRECT rect;
 
 
@@ -571,7 +571,7 @@ JRESULT mcu_output (
 	if (!JD_USE_SCALE || jd->scale != 3) {	/* Not for 1/8 scaling */
 
 		/* Build an RGB MCU from discrete comopnents */
-		rgb24 = (BYTE*)jd->workbuf;
+		rgb24 = (uint8_t*)jd->workbuf;
 		for (iy = 0; iy < my; iy++) {
 			pc = jd->mcubuf;
 			py = pc + iy * 8;
@@ -593,25 +593,25 @@ JRESULT mcu_output (
 				yy = *py++;			/* Get Y component */
 
 				/* Convert YCbCr to RGB */
-				*rgb24++ = /* R */ BYTECLIP(yy + ((INT)(1.402 * CVACC) * cr) / CVACC);
-				*rgb24++ = /* G */ BYTECLIP(yy - ((INT)(0.344 * CVACC) * cb + (INT)(0.714 * CVACC) * cr) / CVACC);
-				*rgb24++ = /* B */ BYTECLIP(yy + ((INT)(1.772 * CVACC) * cb) / CVACC);
+				*rgb24++ = /* R */ uint8_tCLIP(yy + ((int16_t)(1.402 * CVACC) * cr) / CVACC);
+				*rgb24++ = /* G */ uint8_tCLIP(yy - ((int16_t)(0.344 * CVACC) * cb + (int16_t)(0.714 * CVACC) * cr) / CVACC);
+				*rgb24++ = /* B */ uint8_tCLIP(yy + ((int16_t)(1.772 * CVACC) * cb) / CVACC);
 			}
 		}
 
 		/* Descale the MCU rectangular if needed */
 		if (JD_USE_SCALE && jd->scale) {
-			UINT x, y, r, g, b, s, w, a;
-			BYTE *op;
+			uint16_t x, y, r, g, b, s, w, a;
+			uint8_t *op;
 
 			/* Get averaged RGB value of each square correcponds to a pixel */
 			s = jd->scale * 2;	/* Bumber of shifts for averaging */
 			w = 1 << jd->scale;	/* Width of square */
 			a = (mx - w) * 3;	/* Bytes to skip for next line in the square */
-			op = (BYTE*)jd->workbuf;
+			op = (uint8_t*)jd->workbuf;
 			for (iy = 0; iy < my; iy += w) {
 				for (ix = 0; ix < mx; ix += w) {
-					rgb24 = (BYTE*)jd->workbuf + (iy * mx + ix) * 3;
+					rgb24 = (uint8_t*)jd->workbuf + (iy * mx + ix) * 3;
 					r = g = b = 0;
 					for (y = 0; y < w; y++) {	/* Accumulate RGB value in the square */
 						for (x = 0; x < w; x++) {
@@ -621,9 +621,9 @@ JRESULT mcu_output (
 						}
 						rgb24 += a;
 					}							/* Put the averaged RGB value as a pixel */
-					*op++ = (BYTE)(r >> s);
-					*op++ = (BYTE)(g >> s);
-					*op++ = (BYTE)(b >> s);
+					*op++ = (uint8_t)(r >> s);
+					*op++ = (uint8_t)(g >> s);
+					*op++ = (uint8_t)(b >> s);
 				}
 			}
 		}
@@ -631,7 +631,7 @@ JRESULT mcu_output (
 	} else {	/* For only 1/8 scaling (left-top pixel in each block are the DC value of the block) */
 
 		/* Build a 1/8 descaled RGB MCU from discrete comopnents */
-		rgb24 = (BYTE*)jd->workbuf;
+		rgb24 = (uint8_t*)jd->workbuf;
 		pc = jd->mcubuf + mx * my;
 		cb = pc[0] - 128;		/* Get Cb/Cr component and restore right level */
 		cr = pc[64] - 128;
@@ -643,9 +643,9 @@ JRESULT mcu_output (
 				py += 64;
 
 				/* Convert YCbCr to RGB */
-				*rgb24++ = /* R */ BYTECLIP(yy + ((INT)(1.402 * CVACC) * cr / CVACC));
-				*rgb24++ = /* G */ BYTECLIP(yy - ((INT)(0.344 * CVACC) * cb + (INT)(0.714 * CVACC) * cr) / CVACC);
-				*rgb24++ = /* B */ BYTECLIP(yy + ((INT)(1.772 * CVACC) * cb / CVACC));
+				*rgb24++ = /* R */ uint8_tCLIP(yy + ((int16_t)(1.402 * CVACC) * cr / CVACC));
+				*rgb24++ = /* G */ uint8_tCLIP(yy - ((int16_t)(0.344 * CVACC) * cb + (int16_t)(0.714 * CVACC) * cr) / CVACC);
+				*rgb24++ = /* B */ uint8_tCLIP(yy + ((int16_t)(1.772 * CVACC) * cb / CVACC));
 			}
 		}
 	}
@@ -653,10 +653,10 @@ JRESULT mcu_output (
 	/* Squeeze up pixel table if a part of MCU is to be truncated */
 	mx >>= jd->scale;
 	if (rx < mx) {
-		BYTE *s, *d;
-		UINT x, y;
+		uint8_t *s, *d;
+		uint16_t x, y;
 
-		s = d = (BYTE*)jd->workbuf;
+		s = d = (uint8_t*)jd->workbuf;
 		for (y = 0; y < ry; y++) {
 			for (x = 0; x < rx; x++) {	/* Copy effective pixels */
 				*d++ = *s++;
@@ -669,9 +669,9 @@ JRESULT mcu_output (
 
 	/* Convert RGB888 to RGB565 if needed */
 	if (JD_FORMAT == 1) {
-		BYTE *s = (BYTE*)jd->workbuf;
-		WORD w, *d = (WORD*)s;
-		UINT n = rx * ry;
+		uint8_t *s = (uint8_t*)jd->workbuf;
+		uint16_t w, *d = (uint16_t*)s;
+		uint16_t n = rx * ry;
 
 		do {
 			w = (*s++ & 0xF8) << 8;		/* RRRRR----------- */
@@ -695,12 +695,12 @@ JRESULT mcu_output (
 static
 JRESULT restart (
 	JDEC* jd,	/* Pointer to the decompressor object */
-	WORD rstn	/* Expected restert sequense number */
+	uint16_t rstn	/* Expected restert sequense number */
 )
 {
-	UINT i, dc;
-	WORD d;
-	BYTE *dp;
+	uint16_t i, dc;
+	uint16_t d;
+	uint8_t *dp;
 
 
 	/* Discard padding bits and get two bytes from the input stream */
@@ -736,21 +736,21 @@ JRESULT restart (
 /* Analyze the JPEG image and Initialize decompressor object             */
 /*-----------------------------------------------------------------------*/
 
-#define	LDB_WORD(ptr)		(WORD)(((WORD)*((BYTE*)(ptr))<<8)|(WORD)*(BYTE*)((ptr)+1))
+#define	LDB_uint16_t(ptr)		(uint16_t)(((uint16_t)*((uint8_t*)(ptr))<<8)|(uint16_t)*(uint8_t*)((ptr)+1))
 
 
 JRESULT jd_prepare (
 	JDEC* jd,			/* Blank decompressor object */
-	UINT (*infunc)(JDEC*, BYTE*, UINT),	/* JPEG strem input function */
+	uint16_t (*infunc)(JDEC*, uint8_t*, uint16_t),	/* JPEG strem input function */
 	void* pool,			/* Working buffer for the decompression session */
-	UINT sz_pool,		/* Size of working buffer */
+	uint16_t sz_pool,		/* Size of working buffer */
 	void* dev			/* I/O device identifier for the session */
 )
 {
-	BYTE *seg, b;
-	WORD marker;
-	DWORD ofs;
-	UINT n, i, j, len;
+	uint8_t *seg, b;
+	uint16_t marker;
+	uint32_t ofs;
+	uint16_t n, i, j, len;
 	JRESULT rc;
 
 
@@ -775,14 +775,14 @@ JRESULT jd_prepare (
 	if (!seg) return JDR_MEM1;
 
 	if (jd->infunc(jd, seg, 2) != 2) return JDR_INP;/* Check SOI marker */
-	if (LDB_WORD(seg) != 0xFFD8) return JDR_FMT1;	/* Err: SOI is not detected */
+	if (LDB_uint16_t(seg) != 0xFFD8) return JDR_FMT1;	/* Err: SOI is not detected */
 	ofs = 2;
 
 	for (;;) {
 		/* Get a JPEG marker */
 		if (jd->infunc(jd, seg, 4) != 4) return JDR_INP;
-		marker = LDB_WORD(seg);		/* Marker */
-		len = LDB_WORD(seg + 2);	/* Length field */
+		marker = LDB_uint16_t(seg);		/* Marker */
+		len = LDB_uint16_t(seg + 2);	/* Length field */
 		if (len <= 2 || (marker >> 8) != 0xFF) return JDR_FMT1;
 		len -= 2;		/* Content size excluding length field */
 		ofs += 4 + len;	/* Number of bytes loaded */
@@ -793,8 +793,8 @@ JRESULT jd_prepare (
 			if (len > JD_SZBUF) return JDR_MEM2;
 			if (jd->infunc(jd, seg, len) != len) return JDR_INP;
 
-			jd->width = LDB_WORD(seg+3);		/* Image width in unit of pixel */
-			jd->height = LDB_WORD(seg+1);		/* Image height in unit of pixel */
+			jd->width = LDB_uint16_t(seg+3);		/* Image width in unit of pixel */
+			jd->height = LDB_uint16_t(seg+1);		/* Image height in unit of pixel */
 			if (seg[5] != 3) return JDR_FMT3;	/* Err: Supports only Y/Cb/Cr format */
 
 			/* Check three image components */
@@ -819,7 +819,7 @@ JRESULT jd_prepare (
 			if (jd->infunc(jd, seg, len) != len) return JDR_INP;
 
 			/* Get restart interval (MCUs) */
-			jd->nrst = LDB_WORD(seg);
+			jd->nrst = LDB_uint16_t(seg);
 			break;
 
 		case 0xC4:	/* DHT */
@@ -874,7 +874,7 @@ JRESULT jd_prepare (
 			/* Pre-load the JPEG data to extract it from the bit stream */
 			jd->dptr = seg; jd->dctr = 0; jd->dmsk = 0;	/* Prepare to read bit stream */
 			if (ofs %= JD_SZBUF) {						/* Align read offset to JD_SZBUF */
-				jd->dctr = jd->infunc(jd, seg + ofs, JD_SZBUF - (UINT)ofs);
+				jd->dctr = jd->infunc(jd, seg + ofs, JD_SZBUF - (uint16_t)ofs);
 				jd->dptr = seg + ofs - 1;
 			}
 
@@ -912,12 +912,12 @@ JRESULT jd_prepare (
 
 JRESULT jd_decomp (
 	JDEC* jd,								/* Initialized decompression object */
-	UINT (*outfunc)(JDEC*, void*, JRECT*),	/* RGB output function */
-	BYTE scale								/* Output de-scaling factor (0 to 3) */
+	uint16_t (*outfunc)(JDEC*, void*, JRECT*),	/* RGB output function */
+	uint8_t scale								/* Output de-scaling factor (0 to 3) */
 )
 {
-	UINT x, y, mx, my;
-	WORD rst, rsc;
+	uint16_t x, y, mx, my;
+	uint16_t rst, rsc;
 	JRESULT rc;
 
 

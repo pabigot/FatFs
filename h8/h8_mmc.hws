@@ -3,12 +3,12 @@
 [DATABASE_VERSION]
 "11.0" 
 [WORKSPACE_DETAILS]
-"h8_mmc" "C:\user\Prj_Renesas\h8_mmc" "C:\user\Prj_Renesas\h8_mmc\h8_mmc.hws" "H8S,H8/300" "Hitachi H8S,H8/300 Standard" 
+"h8_mmc" "C:\user\elm-chan\fsw\ff\ffsample\h8" "C:\user\elm-chan\fsw\ff\ffsample\h8\h8_mmc.hws" "H8S,H8/300" "Hitachi H8S,H8/300 Standard" 
 [SHARED_WORKSPACE_CONTROL_STATUS]
 "" "" "" 
 "" "" "" 
 [PROJECTS]
-"h8_mmc" "C:\user\Prj_Renesas\h8_mmc\h8_mmc" "C:\user\Prj_Renesas\h8_mmc\h8_mmc\h8_mmc.hwp" 0 
+"h8_mmc" "C:\user\elm-chan\fsw\ff\ffsample\h8\h8_mmc" "C:\user\elm-chan\fsw\ff\ffsample\h8\h8_mmc\h8_mmc.hwp" 0 
 [INFORMATION]
 "No workspace information available" 
 [SCRAP]

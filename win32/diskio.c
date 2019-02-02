@@ -2,8 +2,7 @@
 /* Low level disk control module for Win32              (C)ChaN, 2013    */
 /*-----------------------------------------------------------------------*/
 
-#include "diskio.h"
-#include "ff.h"
+#include "diskio.h"		/* Declarations of disk functions */
 #include <windows.h>
 #include <winioctl.h>
 #include <stdio.h>
@@ -151,10 +150,11 @@ int assign_drives (void)
 			swprintf(str, 50, L"RAM Disk");
 		}
 		wprintf(L"PD#%u <== %s", pdrv, str);
-		if (get_status(pdrv))
+		if (get_status(pdrv)) {
 			wprintf(L" (%uMB, %u bytes * %u sectors)\n", (UINT)((LONGLONG)Stat[pdrv].sz_sector * Stat[pdrv].n_sectors / 1024 / 1024), Stat[pdrv].sz_sector, Stat[pdrv].n_sectors);
-		else
+		} else {
 			wprintf(L" (Not Ready)\n");
+		}
 	}
 
 	hTmrThread = CreateThread(0, 0, tmr_thread, 0, 0, &TmrThreadID);

@@ -346,7 +346,7 @@ int dlg_input (
 FRESULT cp_file (
 	FIL *fil,
 	FILER *fw,
-	INT item,
+	int item,
 	UINT sz_work
 )
 {

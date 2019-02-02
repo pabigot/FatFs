@@ -16,7 +16,7 @@
 /* Tx/Rx buffer  */
 static volatile struct {
 	int		ri, wi, ct;
-	BYTE	buff[BUFFER_SIZE];
+	unsigned char	buff[BUFFER_SIZE];
 } TxFifo, RxFifo;
 
 
@@ -25,7 +25,7 @@ static volatile struct {
 /* Initialize SCIF ch2                   */
 /*---------------------------------------*/
 
-void scif2_init (DWORD bps)
+void scif2_init (unsigned long bps)
 {
 	SCIF2.SCSCR.WORD = 0x0000;	/* Stop SCIF */
 
@@ -65,9 +65,9 @@ int scif2_test (void)
 /* Get a byte from Rx buffer             */
 /*---------------------------------------*/
 
-BYTE scif2_getc (void)
+unsigned char scif2_getc (void)
 {
-	BYTE d;
+	unsigned char d;
 	int i;
 
 	/* Wait while Rx buffer is empty */
@@ -91,7 +91,7 @@ BYTE scif2_getc (void)
 /* Put a byte into Tx buffer             */
 /*---------------------------------------*/
 
-void scif2_putc (BYTE d)
+void scif2_putc (unsigned char d)
 {
 	int i;
 
@@ -117,7 +117,7 @@ void scif2_putc (BYTE d)
 void INT_SCIF_SCIF2_RXI2 (void)	/* ISR: requires vect.h */
 {
 	int i, cnt;
-	BYTE d;
+	unsigned char d;
 
 
 	i = RxFifo.wi;

@@ -11,7 +11,7 @@
 static volatile int TxRun;
 static volatile struct {
 	int		ri, wi, ct;
-	BYTE	buff[BUFFER_SIZE];
+	unsigned char	buff[BUFFER_SIZE];
 } TxFifo, RxFifo;
 
 
@@ -20,7 +20,7 @@ static volatile struct {
 #pragma interrupt INTUA0R ISR_uart0_rcvr
 void ISR_uart0_rcvr (void)
 {
-	BYTE d;
+	unsigned char d;
 	int i;
 
 
@@ -65,9 +65,9 @@ int uart0_test (void)
 
 
 
-BYTE uart0_get (void)
+unsigned char uart0_get (void)
 {
-	BYTE d;
+	unsigned char d;
 	int i;
 
 
@@ -86,7 +86,7 @@ BYTE uart0_get (void)
 
 
 
-void uart0_put (BYTE d)
+void uart0_put (unsigned char d)
 {
 	int i;
 

@@ -11,11 +11,10 @@
 #include <string.h>
 #include "iodefine.h"
 #include "vect.h"
-#include "integer.h"
 #include "scif.h"
 #include "xprintf.h"
-#include "diskio.h"
 #include "ff.h"
+#include "diskio.h"
 
 #define	F_PCLK	24000000UL
 

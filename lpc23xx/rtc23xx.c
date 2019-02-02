@@ -22,7 +22,7 @@ int rtc_initialize (void)
 
 int rtc_gettime (RTC *rtc)
 {
-	DWORD d, t;
+	uint32_t d, t;
 
 
 	do {

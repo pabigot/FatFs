@@ -2,6 +2,7 @@
 /  Low level disk interface modlue include file   (C)ChaN, 2015
 /-----------------------------------------------------------------------*/
 
+#include "ff.h"
 #ifndef _DISKIO_DEFINED
 #define _DISKIO_DEFINED
 
@@ -9,12 +10,8 @@
 extern "C" {
 #endif
 
-#define _DISKIO_WRITE	1	/* 1: Enable disk_write function */
 #define _DISKIO_IOCTL	1	/* 1: Enable disk_ioctl fucntion */
 #define _DISKIO_ISDIO	0	/* 1: Enable iSDIO control fucntion */
-
-#include "integer.h"
-
 
 /* Status of Disk Functions */
 typedef BYTE	DSTATUS;
@@ -47,12 +44,8 @@ typedef struct {
 DSTATUS disk_initialize (BYTE pdrv);
 DSTATUS disk_status (BYTE pdrv);
 DRESULT disk_read (BYTE pdrv, BYTE* buff, DWORD sector, UINT count);
-#if	_DISKIO_WRITE
 DRESULT disk_write (BYTE pdrv, const BYTE* buff, DWORD sector, UINT count);
-#endif
-#if	_DISKIO_IOCTL
 DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff);
-#endif
 
 
 /* Disk Status Bits (DSTATUS) */

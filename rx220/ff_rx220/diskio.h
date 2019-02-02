@@ -2,6 +2,7 @@
 /  Low level disk interface modlue include file   (C)ChaN, 2014
 /-----------------------------------------------------------------------*/
 
+#include "ff.h"
 #ifndef FF_DISKIO_DEFINED
 #define FF_DISKIO_DEFINED
 
@@ -11,9 +12,6 @@ extern "C" {
 
 #define DISK_USE_WRITE	1	/* 1: Enable disk_write function */
 #define DISK_USE_IOCTL	1	/* 1: Enable disk_ioctl fucntion */
-
-#include "integer.h"
-
 
 /* Status of Disk Functions */
 typedef BYTE	DSTATUS;

@@ -7,6 +7,7 @@
 /* storage control modules to the FatFs module with a defined API.       */
 /*-----------------------------------------------------------------------*/
 
+#include "ff.h"			/* Obtains integer types for FatFs */
 #include "diskio.h"		/* FatFs lower layer API */
 #ifdef DRV_CFC
 #include "cfc_avr.h"	/* Header file of existing CF control module */

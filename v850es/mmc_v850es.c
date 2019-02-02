@@ -277,7 +277,7 @@ int rcvr_datablock (	/* 1:OK, 0:Error */
 /* Send a data packet to MMC                                             */
 /*-----------------------------------------------------------------------*/
 
-#if _USE_WRITE
+#if FF_FS_READONLY == 0
 static
 int xmit_datablock (
 	const BYTE *buff,	/* 512 byte data block to be transmitted */
@@ -303,7 +303,7 @@ int xmit_datablock (
 
 	return 1;
 }
-#endif	/* _READONLY */
+#endif
 
 
 
@@ -468,7 +468,7 @@ DRESULT disk_read (
 /* Write Sector(s)                                                       */
 /*-----------------------------------------------------------------------*/
 
-#if _USE_WRITE
+#if FF_FS_READONLY == 0
 DRESULT disk_write (
 	BYTE pdrv,			/* Physical drive nmuber (0) */
 	const BYTE *buff,	/* Pointer to the data to be written */
@@ -502,7 +502,7 @@ DRESULT disk_write (
 
 	return count ? RES_ERROR : RES_OK;
 }
-#endif /* _USE_WRITE */
+#endif
 
 
 
@@ -510,7 +510,6 @@ DRESULT disk_write (
 /* Miscellaneous Functions                                               */
 /*-----------------------------------------------------------------------*/
 
-#if _USE_IOCTL
 DRESULT disk_ioctl (
 	BYTE pdrv,		/* Physical drive nmuber (0) */
 	BYTE cmd,		/* Control code */
@@ -609,7 +608,6 @@ DRESULT disk_ioctl (
 
 	return res;
 }
-#endif /* _USE_IOCTL */
 
 
 

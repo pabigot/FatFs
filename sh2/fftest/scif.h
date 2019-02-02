@@ -1,12 +1,10 @@
 #ifndef _SCIF2
 #define _SCIF2
 
-#include "integer.h"
-
-void scif2_init (DWORD bps);
+void scif2_init (unsigned long bps);
 int scif2_test (void);
-void scif2_putc (BYTE d);
-BYTE scif2_getc (void);
+void scif2_putc (unsigned char d);
+unsigned char scif2_getc (void);
 
 #endif
 

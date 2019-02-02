@@ -190,10 +190,6 @@
 				RelativePath="ffconf.h"
 				>
 			</File>
-			<File
-				RelativePath="integer.h"
-				>
-			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"

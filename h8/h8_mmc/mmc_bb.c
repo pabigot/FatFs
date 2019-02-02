@@ -466,7 +466,7 @@ DRESULT disk_read (
 /* Write Sector(s)                                                       */
 /*-----------------------------------------------------------------------*/
 
-#if _USE_WRITE
+#if FF_FS_READONLY == 0
 DRESULT disk_write (
 	BYTE pdrv,			/* Must be 0 */
 	const BYTE *buff,	/* Pointer to the data to be written */
@@ -507,7 +507,6 @@ DRESULT disk_write (
 /* Miscellaneous Functions                                               */
 /*-----------------------------------------------------------------------*/
 
-#if _USE_IOCTL
 DRESULT disk_ioctl (
 	BYTE pdrv,	/* Must be 0 */
 	BYTE ctrl,	/* Control code */
@@ -554,6 +553,5 @@ DRESULT disk_ioctl (
 
 	return res;
 }
-#endif
 
 

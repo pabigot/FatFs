@@ -13,6 +13,7 @@
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include "ff.h"
 #include "diskio.h"
 #include "cfc_avr.h"
 

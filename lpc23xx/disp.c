@@ -565,17 +565,17 @@ BYTE SndBuff[2048];
 
 static
 int xfer_picture (
-	FIL* fp,		/* Pointer to the open file to load */
-	void* work,		/* Pointer to the working buffer */
-	UINT sz_work,	/* Size of the working buffer [byte] */
-	WORD bpp,		/* Color depth [bit] */
-	DWORD szpic		/* Picture size [byte] */
+	FIL* fp,			/* Pointer to the open file to load */
+	void* work,			/* Pointer to the working buffer */
+	uint16_t sz_work,	/* Size of the working buffer [byte] */
+	uint16_t bpp,		/* Color depth [bit] */
+	uint32_t szpic		/* Picture size [byte] */
 )
 {
-	DWORD n;
+	uint32_t n;
 	UINT br;
-	WORD *dp, w;
-	BYTE *bp, b, t;
+	uint16_t *dp, w;
+	uint8_t *bp, b, t;
 
 
 	do {
@@ -710,7 +710,7 @@ void load_img (
 		for (;;) {
 			if (run && TmrFrm >= tp) {
 				if (cfrm >= nfrm) break;	/* End of stream */
-				if (!xfer_picture(fp, work, sz_work, bpp, sz_pic)) break;	/* Display picture */
+				if (!xfer_picture(fp, work, (uint16_t)sz_work, bpp, sz_pic)) break;	/* Display picture */
 				tp += fd;
 				cfrm++;
 			}
@@ -873,10 +873,10 @@ void load_bmp (
 
 
 static
-UINT tjd_input (
+uint16_t tjd_input (
 	JDEC* jd,		/* Decompression object */
-	BYTE* buff,		/* Pointer to the read buffer (NULL:skip) */
-	UINT nd			/* Number of bytes to read/skip from input stream */
+	uint8_t* buff,		/* Pointer to the read buffer (NULL:skip) */
+	uint16_t nd			/* Number of bytes to read/skip from input stream */
 )
 {
 	UINT rb;
@@ -895,7 +895,7 @@ UINT tjd_input (
 
 
 static
-UINT tjd_output (
+uint16_t tjd_output (
 	JDEC* jd,		/* Decompression object */
 	void* bitmap,	/* Bitmap data to be output */
 	JRECT* rect		/* Rectangular region to output */
@@ -914,20 +914,20 @@ UINT tjd_output (
 
 
 void load_jpg (
-	FIL *fp,		/* Pointer to the open file object to load */
-	void *work,		/* Pointer to the working buffer (must be 4-byte aligned) */
+	FIL *fp,			/* Pointer to the open file object to load */
+	void *work,			/* Pointer to the working buffer (must be 4-byte aligned) */
 	UINT sz_work	/* Size of the working buffer (must be power of 2) */
 )
 {
 	JDEC jd;
 	JRESULT rc;
-	BYTE scale;
+	uint8_t scale;
 
 
 	disp_rectfill(0, DISP_XS, 0, DISP_YS, RGB16(0,0,0));	/* Clear screen */
 	disp_font_color(C_WHITE);
 
-	rc = jd_prepare(&jd, tjd_input, work, sz_work, fp);		/* Prepare to decompress the file */
+	rc = jd_prepare(&jd, tjd_input, work, (uint16_t)sz_work, fp);		/* Prepare to decompress the file */
 	if (rc == JDR_OK) {
 		for (scale = 0; scale < 3; scale++) {
 			if ((jd.width >> scale) <= DISP_XS && (jd.height >> scale) <= DISP_YS) break;

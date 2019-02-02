@@ -12,6 +12,7 @@
 /-------------------------------------------------------------------------*/
 
 #include <avr/io.h>
+#include "ff.h"
 #include "diskio.h"
 #include "mmc_avr.h"
 

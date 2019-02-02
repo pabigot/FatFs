@@ -29,7 +29,7 @@ int rtc_initialize (void)
 
 int rtc_gettime (RTC *rtc)	/* 1:RTC valid, 0:RTC volatiled */
 {
-	DWORD d, t;
+	uint32_t d, t;
 
 
 	do {

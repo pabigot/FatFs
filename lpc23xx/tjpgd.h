@@ -16,7 +16,7 @@
 extern "C" {
 #endif
 
-#include "integer.h"
+#include <inttypes.h>
 
 
 /* Error code */
@@ -36,7 +36,7 @@ typedef enum {
 
 /* Rectangular structure */
 typedef struct {
-	WORD left, right, top, bottom;
+	uint16_t left, right, top, bottom;
 } JRECT;
 
 
@@ -44,34 +44,34 @@ typedef struct {
 /* Decompressor object structure */
 typedef struct JDEC JDEC;
 struct JDEC {
-	UINT dctr;				/* Number of bytes available in the input buffer */
-	BYTE* dptr;				/* Current data read ptr */
-	BYTE* inbuf;			/* Bit stream input buffer */
-	BYTE dmsk;				/* Current bit in the current read byte */
-	BYTE scale;				/* Output scaling ratio */
-	BYTE msx, msy;			/* MCU size in unit of block (width, height) */
-	BYTE qtid[3];			/* Quantization table ID of each component */
-	SHORT dcv[3];			/* Previous DC element of each component */
-	WORD nrst;				/* Restart inverval */
-	UINT width, height;		/* Size of the input image (pixel) */
-	BYTE* huffbits[2][2];	/* Huffman bit distribution tables [id][dcac] */
-	WORD* huffcode[2][2];	/* Huffman code word tables [id][dcac] */
-	BYTE* huffdata[2][2];	/* Huffman decoded data tables [id][dcac] */
-	LONG* qttbl[4];			/* Dequaitizer tables [id] */
-	void* workbuf;			/* Working buffer for IDCT and RGB output */
-	BYTE* mcubuf;			/* Working buffer for the MCU */
-	void* pool;				/* Pointer to available memory pool */
-	UINT sz_pool;			/* Size of momory pool (bytes available) */
-	UINT (*infunc)(JDEC*, BYTE*, UINT);/* Pointer to jpeg stream input function */
-	UINT (*outfunc)(JDEC*, void*, JRECT*);	/* Pointer to RGB output function */
-	void* device;			/* Pointer to I/O device identifiler for the session */
+	uint16_t dctr;				/* Number of bytes available in the input buffer */
+	uint8_t* dptr;				/* Current data read ptr */
+	uint8_t* inbuf;				/* Bit stream input buffer */
+	uint8_t dmsk;				/* Current bit in the current read byte */
+	uint8_t scale;				/* Output scaling ratio */
+	uint8_t msx, msy;			/* MCU size in unit of block (width, height) */
+	uint8_t qtid[3];			/* Quantization table ID of each component */
+	int16_t dcv[3];				/* Previous DC element of each component */
+	uint16_t nrst;				/* Restart inverval */
+	uint16_t width, height;		/* Size of the input image (pixel) */
+	uint8_t* huffbits[2][2];	/* Huffman bit distribution tables [id][dcac] */
+	uint16_t* huffcode[2][2];	/* Huffman code word tables [id][dcac] */
+	uint8_t* huffdata[2][2];	/* Huffman decoded data tables [id][dcac] */
+	int32_t* qttbl[4];			/* Dequaitizer tables [id] */
+	void* workbuf;				/* Working buffer for IDCT and RGB output */
+	uint8_t* mcubuf;			/* Working buffer for the MCU */
+	void* pool;					/* Pointer to available memory pool */
+	uint16_t sz_pool;			/* Size of momory pool (bytes available) */
+	uint16_t (*infunc)(JDEC*, uint8_t*, uint16_t);/* Pointer to jpeg stream input function */
+	uint16_t (*outfunc)(JDEC*, void*, JRECT*);	/* Pointer to RGB output function */
+	void* device;				/* Pointer to I/O device identifiler for the session */
 };
 
 
 
 /* TJpgDec API functions */
-JRESULT jd_prepare (JDEC*, UINT(*)(JDEC*,BYTE*,UINT), void*, UINT, void*);
-JRESULT jd_decomp (JDEC*, UINT(*)(JDEC*,void*,JRECT*), BYTE);
+JRESULT jd_prepare (JDEC*, uint16_t(*)(JDEC*,uint8_t*,uint16_t), void*, uint16_t, void*);
+JRESULT jd_decomp (JDEC*, uint16_t(*)(JDEC*,void*,JRECT*), uint8_t);
 
 
 #ifdef __cplusplus

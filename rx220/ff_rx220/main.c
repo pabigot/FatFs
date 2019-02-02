@@ -7,11 +7,10 @@
 #include <string.h>
 #include "iodefine.h"
 #include "vect.h"
-#include "integer.h"
 #include "uart_sci.h"
 #include "xprintf.h"
-#include "diskio.h"
 #include "ff.h"
+#include "diskio.h"
 #include "sound.h"
 
 #define	F_PCLK	32000000UL

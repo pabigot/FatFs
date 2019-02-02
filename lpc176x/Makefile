@@ -2,7 +2,7 @@
 PROJECT	= test1768
 
 ### Source files and search directories
-CSRC	= main.c startup176x.c uart176x.c rtc176x.c sound.c xprintf.c mmc_ssp.c ff.c ffunicode.c
+CSRC	= main.c startup176x.c uart176x.c rtc176x.c sound.c xprintf.c mmc_176x_ssp.c ff.c ffunicode.c
 ASRC	=
 CSRCARM	=
 ASRCARM	=

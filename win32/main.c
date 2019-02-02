@@ -401,6 +401,7 @@ UINT forward (
 
 
 
+
 FRESULT scan_files (
 	WCHAR* path		/* Pointer to the path name working buffer */
 )
@@ -516,6 +517,51 @@ int set_console_size (
 
 
 
+FRESULT delete_directory (
+    TCHAR* path,    /* Working buffer with the directory to delete */
+    int sz_buff,    /* Buffer size (items) */
+    FILINFO* fno    /* Name read buffer */
+)
+{
+    int i, j;
+    FRESULT fr;
+    DIR dir;
+
+
+    fr = f_opendir(&dir, path); /* Open the directory */
+    if (fr != FR_OK) return fr;
+
+    for (i = 0; path[i]; i++) ; /* Get current path length */
+    path[i++] = _T('/');
+
+    for (;;) {
+        fr = f_readdir(&dir, fno);  /* Get a directory item */
+        if (fr != FR_OK || !fno->fname[0]) break;   /* End of directory? */
+        j = 0;
+        do {    /* Make a path name */
+            if (i + j >= sz_buff) { /* Buffer over flow? */
+                fr = 100; break;
+            }
+            path[i + j] = fno->fname[j];
+        } while (fno->fname[j++]);
+        if (fno->fattrib & AM_DIR) {    /* Is it a directory? */
+            fr = delete_directory(path, sz_buff, fno);  /* Delete the directory */
+        } else {
+			zprintf(L"%s\n", path);
+            fr = f_unlink(ts2ws(path));    /* Delete the file */
+        }
+        if (fr != FR_OK) break;
+    }
+
+    path[--i] = 0;	/* Restore the path name */
+    f_closedir(&dir);
+
+	if (fr == FR_OK) {
+		zprintf(L"%s\n", ts2ws(path));
+        fr = f_unlink(path);  /* Delete the directory */
+	}
+	return fr;
+}
 /*-----------------------------------------------------------------------*/
 /* Main                                                                  */
 /*-----------------------------------------------------------------------*/
@@ -594,6 +640,9 @@ int main (void)
 		case L'T' :
 
 			/* Quick test space */
+			while (*ptr == ' ') ptr++;
+			fr = delete_directory(ptr, 256, &Finfo);
+			put_rc(fr);
 
 			break;
 

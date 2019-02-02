@@ -7,8 +7,8 @@
 #include "rtc176x.h"
 #include "uart176x.h"
 #include "xprintf.h"
-#include "diskio.h"
 #include "ff.h"
+#include "diskio.h"
 #include "sound.h"
 
 extern void disk_timerproc (void);

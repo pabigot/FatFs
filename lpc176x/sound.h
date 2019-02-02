@@ -21,7 +21,7 @@ int sound_start (WAVFIFO* fcb, uint32_t fs);
 void sound_stop (void);
 #if USE_WAVPLAYER
 #include "ff.h"
-int load_wav (FIL* fp, const char* title, void *work, uint32_t sz_work);
+int load_wav (FIL* fp, const char* title, void *work, DWORD sz_work);
 #endif
 
 #endif /* SOUND_DEFINED */

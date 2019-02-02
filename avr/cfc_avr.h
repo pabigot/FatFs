@@ -5,6 +5,7 @@
 #ifndef _CFC_DEFINED
 #define _CFC_DEFINED
 
+#include "ff.h"
 #include "diskio.h"
 
 #ifdef __cplusplus

@@ -5,6 +5,7 @@
 #ifndef _MMC_DEFINED
 #define _MMC_DEFINED
 
+#include "ff.h"
 #include "diskio.h"
 
 #ifdef __cplusplus

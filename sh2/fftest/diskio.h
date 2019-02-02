@@ -2,6 +2,7 @@
 /  Low level disk interface modlue include file   (C)ChaN, 2014
 /-----------------------------------------------------------------------*/
 
+#include "ff.h"			/* Obtains integer types for FatFs */
 #ifndef _DISKIO_DEFINED
 #define _DISKIO_DEFINED
 
@@ -9,13 +10,8 @@
 extern "C" {
 #endif
 
-#define _USE_WRITE	1	/* Enable disk_write function */
-#define _USE_IOCTL	1	/* Enable disk_ioctl fucntion */
 #define	_USE_CD		1	/* Use card detect switch */
 #define _USE_WP		0	/* Use write protect switch */
-
-
-#include "integer.h"
 
 
 /* Status of Disk Functions */
@@ -38,12 +34,8 @@ typedef enum {
 DSTATUS disk_initialize (BYTE);
 DSTATUS disk_status (BYTE);
 DRESULT disk_read (BYTE pdrv, BYTE* buff, DWORD sector, UINT count);
-#if	_USE_WRITE
 DRESULT disk_write (BYTE pdrv, const BYTE* buff, DWORD sector, UINT count);
-#endif
-#if	_USE_IOCTL
 DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff);
-#endif
 
 
 /* Disk Status Bits (DSTATUS) */

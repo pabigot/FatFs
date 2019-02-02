@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------*/
-/* Unicode handling functions for FatFs R0.13b                            */
+/* Unicode handling functions for FatFs R0.13c                            */
 /*------------------------------------------------------------------------*/
 /* This module will occupy a huge memory in the .const section when the    /
 /  FatFs is configured for LFN with DBCS. If the system has any Unicode    /
@@ -25,9 +25,9 @@
 
 #include "ff.h"
 
-#if FF_USE_LFN	/* This module is blanked when non-LFN configuration */
+#if FF_USE_LFN	/* This module will be blanked at non-LFN configuration */
 
-#if FF_DEFINED != 63463	/* Revision ID */
+#if FF_DEFINED != 86604	/* Revision ID */
 #error Wrong include file (ff.h).
 #endif
 
@@ -15283,7 +15283,7 @@ WCHAR ff_uni2oem (	/* Returns OEM code character, zero on error */
 {
 	const WCHAR *p;
 	WCHAR c = 0, uc;
-	UINT i, n, li, hi;
+	UINT i = 0, n, li, hi;
 
 
 	if (uni < 0x80) {	/* ASCII? */
@@ -15319,7 +15319,7 @@ WCHAR ff_oem2uni (	/* Returns Unicode character, zero on error */
 {
 	const WCHAR *p;
 	WCHAR c = 0;
-	UINT i, n, li, hi;
+	UINT i = 0, n, li, hi;
 
 
 	if (oem < 0x80) {	/* ASCII? */

@@ -6,8 +6,8 @@
 #include <string.h>
 #include "uart_v850es.h"
 #include "xprintf.h"
-#include "diskio.h"
 #include "ff.h"
+#include "diskio.h"
 
 
 int _rcopy(unsigned long*, long);

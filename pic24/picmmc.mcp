@@ -35,7 +35,6 @@ file_007=.
 file_008=.
 file_009=.
 file_010=.
-file_011=.
 [GENERATED_FILES]
 file_000=no
 file_001=no
@@ -48,7 +47,6 @@ file_007=no
 file_008=no
 file_009=no
 file_010=no
-file_011=no
 [OTHER_FILES]
 file_000=no
 file_001=no
@@ -61,7 +59,6 @@ file_007=no
 file_008=no
 file_009=no
 file_010=no
-file_011=no
 [FILE_INFO]
 file_000=ff.c
 file_001=main.c
@@ -71,10 +68,9 @@ file_004=xprintf.c
 file_005=ffunicode.c
 file_006=diskio.h
 file_007=ff.h
-file_008=integer.h
-file_009=pic24f.h
-file_010=ffconf.h
-file_011=uart_pic24f.h
+file_008=pic24f.h
+file_009=ffconf.h
+file_010=uart_pic24f.h
 [SUITE_INFO]
 suite_guid={479DDE59-4D56-455E-855E-FFF59A3DB57E}
 suite_state=

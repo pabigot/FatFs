@@ -22,9 +22,9 @@
 #define F_PCLK_T3	25000000	/* PCLK frequency to be supplied to TIMER1 module */
 
 #define NBSIZE 64
-#define FCC(c1,c2,c3,c4)	(((DWORD)c4<<24)+((DWORD)c3<<16)+(c2<<8)+c1)	/* FourCC */
-#define	LD_WORD(ptr)		(WORD)(*(WORD*)(BYTE*)(ptr))
-#define	LD_DWORD(ptr)		(DWORD)(*(DWORD*)(BYTE*)(ptr))
+#define FCC(c1,c2,c3,c4)	(((uint32_t)c4<<24)+((uint32_t)c3<<16)+(c2<<8)+c1)	/* FourCC */
+#define	LD_WORD(ptr)	(uint16_t)(*(uint16_t*)(BYTE*)(ptr))
+#define	LD_DWORD(ptr)	(uint32_t)(*(uint32_t*)(BYTE*)(ptr))
 
 
 #if F_PCLK_PWM1 * 1 == F_CCLK
@@ -185,7 +185,7 @@ int load_wav (
 	FIL *fp,			/* Pointer to the open file object to play */
 	const char *title,	/* Title (file name, etc...) */
 	void *work,			/* Pointer to working buffer (must be-4 byte aligned) */
-	uint32_t sz_work	/* Size of working buffer (must be power of 2) */
+	DWORD sz_work		/* Size of working buffer (must be power of 2) */
 )
 {
 	UINT md, wi, br, tc, t, btr;
@@ -265,7 +265,7 @@ int load_wav (
 	}
 	if (!szwav || !fsmp) return -1;		/* Check if valid WAV file */
 	if (f_lseek(fp, offw)) return -1;	/* Seek to top of wav data */
-	tc = (UINT)(szwav / fsmp / wsmp);	/* Length (sec) */
+	tc = (uint32_t)(szwav / fsmp / wsmp);	/* Length (sec) */
 
 	xprintf("IART=%s\nINAM=%s\n", art, nam);
 	xprintf("Sample=%u.%ukHz/%ubit/%s\nLength=%u:%02u\n", fsmp / 1000, (fsmp / 100) % 10, (md & 2) ? 16 : 8, (md & 1) ? "Stereo" : "Mono", tc / 60, tc % 60);
