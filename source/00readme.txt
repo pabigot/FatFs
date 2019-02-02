@@ -1,4 +1,4 @@
-Petit FatFs Module Source Files R0.03                (C)ChaN, 2014
+Petit FatFs Module Source Files R0.03a               (C)ChaN, 2019
 
 
 FILES
@@ -7,7 +7,6 @@ FILES
   pff.c      Petit FatFs module.
   diskio.h   Common include file for Petit FatFs and disk I/O module.
   diskio.c   Skeleton of low level disk I/O module.
-  integer.h  Alternative type definitions for integer variables.
 
   Low level disk I/O module is not included in this archive because the Petit
   FatFs module is only a generic file system layer and not depend on any
@@ -22,7 +21,7 @@ AGREEMENTS
  small embedded systems. This is a free software and is opened for education,
  research and commercial developments under license policy of following trems.
 
-  Copyright (C) 2014, ChaN, all right reserved.
+  Copyright (C) 2019, ChaN, all right reserved.
 
  * The Petit FatFs module is a free software and there is NO WARRANTY.
  * No restriction on use. You can use, modify and redistribute it for
@@ -38,9 +37,17 @@ REVISION HISTORY
   Dec 14, 2009  R0.02   Added multiple code page support.
                         Added write funciton.
                         Changed stream read mode interface.
+
   Dec 07,'2010  R0.02a  Added some configuration options.
                         Fixed fails to open objects with DBCS character.
 
   Jun 10, 2014  R0.03   Separated out configuration options to pffconf.h.
                         Added _USE_LCC option.
                         Added _FS_FAT16 option.
+
+  Jan 30, 2019  R0.03a  Supported stdint.h for C99 and later.
+                        Removed _WORD_ACCESS option.
+                        Changed prefix of configuration options, _ to PF_.
+                        Added some code pages.
+                        Removed some code pages actually not valid.
+

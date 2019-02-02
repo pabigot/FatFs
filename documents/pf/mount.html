@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <html lang="en">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
 <link rel="up" title="Petit FatFs" href="../00index_p.html">
 <link rel="stylesheet" href="../css_e.css" type="text/css" media="screen" title="ELM Default">
@@ -35,18 +35,18 @@ FRESULT pf_mount (
 <dt>FR_OK (0)</dt>
 <dd>The function succeeded.</dd>
 <dt>FR_NOT_READY</dt>
-<dd>The drive could not be initialized due to a disk error or no medium.</dd>
+<dd>The storage device could not be initialized due to a hard error or no medium.</dd>
 <dt>FR_DISK_ERR</dt>
-<dd>An error occured in the disk function.</dd>
+<dd>An error occured in the disk read function.</dd>
 <dt>FR_NO_FILESYSTEM</dt>
-<dd>There is no valid FAT partition on the disk.</dd>
+<dd>There is no valid FAT partition on the drive.</dd>
 </dl>
 </div>
 
 
 <div class="para">
 <h4>Description</h4>
-<p>The <tt>pf_mount()</tt> function registers a work area to the Petit FatFs module. The volume is mounted on registration. The volume must be mounted with this function prior to any other file function and after every media changes.</p>
+<p>The <tt>pf_mount()</tt> function registers a work area to the Petit FatFs module. The volume is mounted on registration. The volume must be mounted with this function prior to use any file function and after every media changes.</p>
 </div>
 
 
