@@ -1,11 +1,11 @@
 /*---------------------------------------------------------------------------/
-/  Petit FatFs - FAT file system module include file  R0.03   (C)ChaN, 2014
+/  Petit FatFs - FAT file system module include file  R0.03a
 /----------------------------------------------------------------------------/
 / Petit FatFs module is an open source software to implement FAT file system to
 / small embedded systems. This is a free software and is opened for education,
 / research and commercial developments under license policy of following trems.
 /
-/  Copyright (C) 2014, ChaN, all right reserved.
+/  Copyright (C) 2019, ChaN, all right reserved.
 /
 / * The Petit FatFs module is a free software and there is NO WARRANTY.
 / * No restriction on use. You can use, modify and redistribute it for
@@ -14,21 +14,42 @@
 /
 /----------------------------------------------------------------------------*/
 
-#ifndef _PFATFS
-#define _PFATFS	4004	/* Revision ID */
+#ifndef PF_DEFINED
+#define PF_DEFINED	8088	/* Revision ID */
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "integer.h"
 #include "pffconf.h"
 
-#if _PFATFS != _PFFCONF
+#if PF_DEFINED != PFCONF_DEF
 #error Wrong configuration file (pffconf.h).
 #endif
 
-#if _FS_FAT32
+
+/* Integer types used for FatFs API */
+
+#if defined(_WIN32)	/* Main development platform */
+#include <windows.h>
+#elif (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L) || defined(__cplusplus)	/* C99 or later */
+#include <stdint.h>
+typedef unsigned int	UINT;	/* int must be 16-bit or 32-bit */
+typedef unsigned char	BYTE;	/* char must be 8-bit */
+typedef uint16_t		WORD;	/* 16-bit unsigned integer */
+typedef uint16_t		WCHAR;	/* 16-bit unsigned integer */
+typedef uint32_t		DWORD;	/* 32-bit unsigned integer */
+#else  	/* Earlier than C99 */
+typedef unsigned int	UINT;	/* int must be 16-bit or 32-bit */
+typedef unsigned char	BYTE;	/* char must be 8-bit */
+typedef unsigned short	WORD;	/* 16-bit unsigned integer */
+typedef unsigned short	WCHAR;	/* 16-bit unsigned integer */
+typedef unsigned long	DWORD;	/* 32-bit unsigned integer */
+#endif
+#define PF_INTDEF 1
+
+
+#if PF_FS_FAT32
 #define	CLUST	DWORD
 #else
 #define	CLUST	WORD
@@ -110,15 +131,14 @@ FRESULT pf_readdir (DIR* dj, FILINFO* fno);					/* Read a directory item from th
 /*--------------------------------------------------------------*/
 /* Flags and offset address                                     */
 
-/* File status flag (FATFS.flag) */
 
+/* File status flag (FATFS.flag) */
 #define	FA_OPENED	0x01
 #define	FA_WPRT		0x02
 #define	FA__WIP		0x40
 
 
 /* FAT sub type (FATFS.fs_type) */
-
 #define FS_FAT12	1
 #define FS_FAT16	2
 #define FS_FAT32	3
@@ -134,22 +154,6 @@ FRESULT pf_readdir (DIR* dj, FILINFO* fno);					/* Read a directory item from th
 #define AM_DIR	0x10	/* Directory */
 #define AM_ARC	0x20	/* Archive */
 #define AM_MASK	0x3F	/* Mask of defined bits */
-
-
-/*--------------------------------*/
-/* Multi-byte word access macros  */
-
-#if _WORD_ACCESS == 1	/* Enable word access to the FAT structure */
-#define	LD_WORD(ptr)		(WORD)(*(WORD*)(BYTE*)(ptr))
-#define	LD_DWORD(ptr)		(DWORD)(*(DWORD*)(BYTE*)(ptr))
-#define	ST_WORD(ptr,val)	*(WORD*)(BYTE*)(ptr)=(WORD)(val)
-#define	ST_DWORD(ptr,val)	*(DWORD*)(BYTE*)(ptr)=(DWORD)(val)
-#else					/* Use byte-by-byte access to the FAT structure */
-#define	LD_WORD(ptr)		(WORD)(((WORD)*((BYTE*)(ptr)+1)<<8)|(WORD)*(BYTE*)(ptr))
-#define	LD_DWORD(ptr)		(DWORD)(((DWORD)*((BYTE*)(ptr)+3)<<24)|((DWORD)*((BYTE*)(ptr)+2)<<16)|((WORD)*((BYTE*)(ptr)+1)<<8)|*(BYTE*)(ptr))
-#define	ST_WORD(ptr,val)	*(BYTE*)(ptr)=(BYTE)(val); *((BYTE*)(ptr)+1)=(BYTE)((WORD)(val)>>8)
-#define	ST_DWORD(ptr,val)	*(BYTE*)(ptr)=(BYTE)(val); *((BYTE*)(ptr)+1)=(BYTE)((WORD)(val)>>8); *((BYTE*)(ptr)+2)=(BYTE)((DWORD)(val)>>16); *((BYTE*)(ptr)+3)=(BYTE)((DWORD)(val)>>24)
-#endif
 
 
 #ifdef __cplusplus

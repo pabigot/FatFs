@@ -2,7 +2,7 @@
 PROJECT = pfftest
 
 ### Source files and search directory
-CSRC    = main.c pff.c mmc.c
+CSRC    = main.c pff.c avr_mmcp.c
 ASRC    = suart.S xitoa.S usi.S
 VPATH   =
 
@@ -19,7 +19,7 @@ CSTD = gnu89
 LIBS	=
 LIBDIRS	=
 INCDIRS	=
-DEFS	= F_CPU=16000000
+DEFS	= F_CPU=8000000
 ADEFS	= $(DEFS)
 
 ### Warning contorls

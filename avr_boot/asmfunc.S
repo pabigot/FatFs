@@ -24,26 +24,9 @@
 
 
 ;---------------------------------------------------------------------------;
-; Initialize MMC port
-;
-; void init_spi (void);
-
-.global init_spi
-.func init_spi
-init_spi:
-	sbi	DDR_CS		; CS: output
-	sbi	DDR_DI		; DI: output
-	sbi	DDR_CK		; SCLK: output
-	sbi	PORT_DO		; DO: pull-up
-	ret
-.endfunc
-
-
-
-;---------------------------------------------------------------------------;
 ; Delay 100 microseconds
 ;
-; void dly_us (UINT n);
+; void dly_100us (void);
 
 .global dly_100us
 .func dly_100us
@@ -55,6 +38,23 @@ dly_100us:
 	nop
 	dec	r24
 	brne	1b
+	ret
+.endfunc
+
+
+
+;---------------------------------------------------------------------------;
+; Initialize MMC port
+;
+; void init_spi (void);
+
+.global init_spi
+.func init_spi
+init_spi:
+	sbi	DDR_CS		; CS: output
+	sbi	DDR_DI		; DI: output
+	sbi	DDR_CK		; SCLK: output
+	sbi	PORT_DO		; DO: pull-up
 	ret
 .endfunc
 

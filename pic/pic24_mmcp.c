@@ -2,9 +2,7 @@
 /* PFF - Low level disk control module for PIC            (C)ChaN, 2014    */
 /*-------------------------------------------------------------------------*/
 
-#include "pff.h"
 #include "diskio.h"
-#include "uart.h"
 
 /*-------------------------------------------------------------------------*/
 /* Platform dependent macros and functions needed to be modified           */
@@ -14,41 +12,38 @@
 #include "pic24f.h"
 #include "uart.h"
 
-#define SELECT()	_LATB15 = 0		/* CS = L */
-#define	DESELECT()	_LATB15 = 1		/* CS = H */
-#define	MMC_SEL		!_LATB15		/* CS status (true:CS == L) */
-#define	FORWARD(d)	uart_put(d)		/* Data forwarding function (Console out in this example) */
+#define CS_LOW()	_LATB15 = 0		/* Set CS low */
+#define	CS_HIGH()	_LATB15 = 1		/* Set CS high */
+#define	IS_CS_LOW	!_LATB15		/* Test if CS is low */
+#define	FORWARD(d)	uart_put(d)		/* Data forwarding function (console-out in this example) */
 
-static
-void init_spi (void)		/* Initialize SPI port */
+static void init_spi (void)		/* Initialize SPI port */
 {
 	SPI1CON1 = 0x013B;
 	SPI1CON2 = 0x0000;
 	_SPIEN = 1;
 }
 
-void dly_100us (void)		/* Delay 100 microseconds */
+static void dly_100us (void)	/* Delay 100 microseconds */
 {
 	UINT n = FCY / 100000;
 	do {
-		LATA; LATA; LATA; LATA; LATA; LATA;
+		LATA; LATA; LATA; LATA; LATA; LATA;	/* Read some port 6 times */
 	} while (--n);
 }
 
-static
-void xmit_spi (BYTE d)		/* Send a byte to the SDC/MMC */
+static void xmit_spi (BYTE d)	/* Send a byte to the SDC/MMC */
 {
-	SPI1BUF = d;
-	while (!_SPIRBF) ;
-	SPI1BUF;
+	SPI1BUF = d;			/* Start an SPI transaction */
+	while (!_SPIRBF) ;		/* Wait for end of the transaction */
+	SPI1BUF;				/* Discard received byte */
 }
 
-static
-BYTE rcv_spi (void)			/* Send a 0xFF to the SDC/MMC and get the received byte */
+static BYTE rcv_spi (void)		/* Send a 0xFF to the SDC/MMC and get the received byte */
 {
-	SPI1BUF = 0xFF;
-	while (!_SPIRBF) ;
-	return (BYTE)SPI1BUF;
+	SPI1BUF = 0xFF;			/* Start an SPI transaction */
+	while (!_SPIRBF) ;		/* Wait for end of the transaction */
+	return (BYTE)SPI1BUF;	/* Get received byte */
 }
 
 
@@ -77,16 +72,14 @@ BYTE rcv_spi (void)			/* Send a 0xFF to the SDC/MMC and get the received byte */
 #define CT_BLOCK			0x08	/* Block addressing */
 
 
-static
-BYTE CardType;
+static BYTE CardType;	/* Detected card type */
 
 
 /*-----------------------------------------------------------------------*/
 /* Send a command packet to the SDC/MMC                                  */
 /*-----------------------------------------------------------------------*/
 
-static
-BYTE send_cmd (
+static BYTE send_cmd (
 	BYTE cmd,		/* 1st byte (Start + Index) */
 	DWORD arg		/* Argument (32 bits) */
 )
@@ -101,9 +94,9 @@ BYTE send_cmd (
 	}
 
 	/* Select the card */
-	DESELECT();
+	CS_HIGH();
 	rcv_spi();
-	SELECT();
+	CS_LOW();
 	rcv_spi();
 
 	/* Send a command packet */
@@ -145,10 +138,10 @@ DSTATUS disk_initialize (void)
 	UINT tmr;
 
 #if _USE_WRITE
-	if (CardType && MMC_SEL) disk_writep(0, 0);	/* Finalize write process if it is in progress */
+	if (CardType && IS_CS_LOW) disk_writep(0, 0);	/* Finalize write process if it is in progress */
 #endif
 	init_spi();		/* Initialize ports to control SDC/MMC */
-	DESELECT();
+	CS_HIGH();
 	for (n = 10; n; n--) rcv_spi();	/* 80 Dummy clocks with CS=H */
 
 	ty = 0;
@@ -169,12 +162,13 @@ DSTATUS disk_initialize (void)
 				ty = CT_MMC; cmd = CMD1;	/* MMCv3 */
 			}
 			for (tmr = 10000; tmr && send_cmd(cmd, 0); tmr--) dly_100us();	/* Wait for leaving idle state */
-			if (!tmr || send_cmd(CMD16, 512) != 0)			/* Set R/W block length to 512 */
+			if (!tmr || send_cmd(CMD16, 512) != 0) {		/* Set R/W block length to 512 */
 				ty = 0;
+			}
 		}
 	}
 	CardType = ty;
-	DESELECT();
+	CS_HIGH();
 	rcv_spi();
 
 	return ty ? 0 : STA_NOINIT;
@@ -228,13 +222,13 @@ DRESULT disk_readp (
 			}
 
 			/* Skip remaining bytes and CRC */
-			do rcv_spi(); while (--bc);
+			do { rcv_spi(); } while (--bc);
 
 			res = RES_OK;
 		}
 	}
 
-	DESELECT();
+	CS_HIGH();
 	rcv_spi();
 
 	return res;
@@ -246,7 +240,7 @@ DRESULT disk_readp (
 /* Write partial sector                                                  */
 /*-----------------------------------------------------------------------*/
 
-#if _USE_WRITE
+#if PF_USE_WRITE
 DRESULT disk_writep (
 	const BYTE *buff,	/* Pointer to the bytes to be written (NULL:Initiate/Finalize sector write) */
 	DWORD sc			/* Number of bytes to send, Sector number (LBA) or zero */
@@ -280,7 +274,7 @@ DRESULT disk_writep (
 				for (bc = 5000; rcv_spi() != 0xFF && bc; bc--) dly_100us();	/* Wait ready */
 				if (bc) res = RES_OK;
 			}
-			DESELECT();
+			CS_HIGH();
 			rcv_spi();
 		}
 	}

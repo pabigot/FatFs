@@ -2,7 +2,6 @@
 /* PFF - Low level disk control module for AVR            (C)ChaN, 2014    */
 /*-------------------------------------------------------------------------*/
 
-#include "pff.h"
 #include "diskio.h"
 
 /*-------------------------------------------------------------------------*/
@@ -11,10 +10,10 @@
 
 #include <avr/io.h>			/* Device specific include files */
 
-#define SELECT()	PORTB &= ~_BV(3)	/* CS = L */
-#define	DESELECT()	PORTB |=  _BV(3)	/* CS = H */
-#define	SELECTING	!(PORTB &  _BV(3))	/* CS status (true:CS low) */
-#define	FORWARD(d)	xmit(d)				/* Data forwarding function (console out) */
+#define CS_LOW()	PORTB &= ~_BV(3)	/* Set CS low */
+#define	CS_HIGH()	PORTB |=  _BV(3)	/* Set CS high */
+#define	IS_CS_LOW	!(PINB & _BV(3))	/* Test if CS is low */
+#define	FORWARD(d)	xmit(d)				/* Data streaming function (console out) */
 
 void xmit (char);			/* suart.S: Send a byte via software UART */
 void dly_100us (void);		/* usi.S: Delay 100 microseconds */
@@ -42,22 +41,20 @@ BYTE rcv_spi (void);		/* usi.S: Send a 0xFF to the MMC and get the received byte
 
 
 /* Card type flags (CardType) */
-#define CT_MMC				0x01	/* MMC ver 3 */
-#define CT_SD1				0x02	/* SD ver 1 */
-#define CT_SD2				0x04	/* SD ver 2 */
+#define CT_MMC				0x01	/* MMC version 3 */
+#define CT_SD1				0x02	/* SD version 1 */
+#define CT_SD2				0x04	/* SD version 2+ */
 #define CT_BLOCK			0x08	/* Block addressing */
 
 
-static
-BYTE CardType;
+static BYTE CardType;
 
 
 /*-----------------------------------------------------------------------*/
 /* Send a command packet to MMC                                          */
 /*-----------------------------------------------------------------------*/
 
-static
-BYTE send_cmd (
+static BYTE send_cmd (
 	BYTE cmd,		/* 1st byte (Start + Index) */
 	DWORD arg		/* Argument (32 bits) */
 )
@@ -72,9 +69,9 @@ BYTE send_cmd (
 	}
 
 	/* Select the card */
-	DESELECT();
+	CS_HIGH();
 	rcv_spi();
-	SELECT();
+	CS_LOW();
 	rcv_spi();
 
 	/* Send a command packet */
@@ -115,11 +112,11 @@ DSTATUS disk_initialize (void)
 	BYTE n, cmd, ty, ocr[4];
 	UINT tmr;
 
-#if _USE_WRITE
-	if (CardType && SELECTING) disk_writep(0, 0);	/* Finalize write process if it is in progress */
+#if PF_USE_WRITE
+	if (CardType != 0 && IS_CS_LOW) disk_writep(0, 0);	/* Finalize write process if it is in progress */
 #endif
 	init_spi();		/* Initialize ports to control MMC */
-	DESELECT();
+	CS_HIGH();
 	for (n = 10; n; n--) rcv_spi();	/* 80 dummy clocks with CS=H */
 
 	ty = 0;
@@ -140,12 +137,13 @@ DSTATUS disk_initialize (void)
 				ty = CT_MMC; cmd = CMD1;	/* MMCv3 */
 			}
 			for (tmr = 10000; tmr && send_cmd(cmd, 0); tmr--) dly_100us();	/* Wait for leaving idle state */
-			if (!tmr || send_cmd(CMD16, 512) != 0)			/* Set R/W block length to 512 */
+			if (!tmr || send_cmd(CMD16, 512) != 0) {	/* Set R/W block length to 512 */
 				ty = 0;
+			}
 		}
 	}
 	CardType = ty;
-	DESELECT();
+	CS_HIGH();
 	rcv_spi();
 
 	return ty ? 0 : STA_NOINIT;
@@ -175,15 +173,15 @@ DRESULT disk_readp (
 	if (send_cmd(CMD17, sector) == 0) {	/* READ_SINGLE_BLOCK */
 
 		bc = 40000;	/* Time counter */
-		do {				/* Wait for data packet */
+		do {				/* Wait for data block */
 			rc = rcv_spi();
 		} while (rc == 0xFF && --bc);
 
-		if (rc == 0xFE) {	/* A data packet arrived */
+		if (rc == 0xFE) {	/* A data block arrived */
 
 			bc = 512 + 2 - offset - count;	/* Number of trailing bytes to skip */
 
-			/* Skip leading bytes */
+			/* Skip leading bytes in the sector */
 			while (offset--) rcv_spi();
 
 			/* Receive a part of the sector */
@@ -197,14 +195,14 @@ DRESULT disk_readp (
 				} while (--count);
 			}
 
-			/* Skip trailing bytes and CRC */
+			/* Skip trailing bytes in the sector and block CRC */
 			do rcv_spi(); while (--bc);
 
 			res = RES_OK;
 		}
 	}
 
-	DESELECT();
+	CS_HIGH();
 	rcv_spi();
 
 	return res;
@@ -216,7 +214,7 @@ DRESULT disk_readp (
 /* Write partial sector                                                  */
 /*-----------------------------------------------------------------------*/
 
-#if _USE_WRITE
+#if PF_USE_WRITE
 DRESULT disk_writep (
 	const BYTE *buff,	/* Pointer to the bytes to be written (NULL:Initiate/Finalize sector write) */
 	DWORD sc			/* Number of bytes to send, Sector number (LBA) or zero */
@@ -247,11 +245,12 @@ DRESULT disk_writep (
 			bc = wc + 2;
 			while (bc--) xmit_spi(0);	/* Fill left bytes and CRC with zeros */
 			if ((rcv_spi() & 0x1F) == 0x05) {	/* Receive data resp and wait for end of write process in timeout of 500ms */
-				for (bc = 5000; rcv_spi() != 0xFF && bc; bc--)	/* Wait for ready */
+				for (bc = 5000; rcv_spi() != 0xFF && bc; bc--) {	/* Wait for ready */
 					dly_100us();
+				}
 				if (bc) res = RES_OK;
 			}
-			DESELECT();
+			CS_HIGH();
 			rcv_spi();
 		}
 	}

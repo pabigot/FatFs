@@ -1,5 +1,5 @@
 /*---------------------------------------------------------------*/
-/* Petit FAT file system module test program R0.03 (C)ChaN, 2014 */
+/* Petit-FatFs module test program R0.03a (C)ChaN, 2019          */
 /*---------------------------------------------------------------*/
 
 #include <string.h>
@@ -24,8 +24,7 @@ char Line[128];		/* Console input buffer */
 
 
 
-static
-void put_rc (FRESULT rc)
+static void put_rc (FRESULT rc)
 {
 	const char *p;
 	FRESULT i;
@@ -40,16 +39,14 @@ void put_rc (FRESULT rc)
 
 
 
-static
-void put_drc (BYTE res)
+static void put_drc (BYTE res)
 {
 	xprintf("rc=%d\n", res);
 }
 
 
 
-static
-void IoInit (void)
+static void IoInit (void)
 {
 	/* Initialize GPIO ports */
 	AD1PCFG = 0x1FFF;
@@ -79,8 +76,6 @@ void IoInit (void)
 
 /*-----------------------------------------------------------------------*/
 /* Main                                                                  */
-
-void dly_100us (void);
 
 int main (void)
 {
@@ -138,7 +133,7 @@ int main (void)
 				while (*ptr == ' ') ptr++;
 				put_rc(pf_open(ptr));
 				break;
-#if _USE_READ
+#if PF_USE_READ
 			case 'd' :	/* fd - Read the file 128 bytes and dump it */
 				ofs = fs.fptr;
 				res = pf_read(Line, sizeof Line, &s1);
@@ -159,7 +154,7 @@ int main (void)
 				} while (s1 == 32768);
 				break;
 #endif
-#if _USE_WRITE
+#if PF_USE_WRITE
 			case 'w' :	/* fw <len> <val> - Write data to the file */
 				if (!xatoi(&ptr, &p1) || !xatoi(&ptr, &p2)) break;
 				for (s1 = 0; s1 < sizeof Line; Line[s1++] = (BYTE)p2) ;
@@ -194,7 +189,7 @@ int main (void)
 				put_rc(res);
 				break;
 #endif
-#if _USE_LSEEK
+#if PF_USE_LSEEK
 			case 'e' :	/* fe - Move file pointer of the file */
 				if (!xatoi(&ptr, &p1)) break;
 				res = pf_lseek(p1);
@@ -203,7 +198,7 @@ int main (void)
 					xprintf("fptr = %lu(0x%lX)\n", fs.fptr, fs.fptr);
 				break;
 #endif
-#if _USE_DIR
+#if PF_USE_DIR
 			case 'l' :	/* fl [<path>] - Directory listing */
 				while (*ptr == ' ') ptr++;
 				res = pf_opendir(&dir, ptr);

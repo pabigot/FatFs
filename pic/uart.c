@@ -22,7 +22,7 @@
 static volatile int TxRun;		/* Tx running flag */
 static volatile struct {
 	int		ri, wi, ct;			/* Read index, Write index, Data counter */
-	BYTE	buff[BUFFER_SIZE];	/* FIFO buffer */
+	unsigned char	buff[BUFFER_SIZE];	/* FIFO buffer */
 } TxFifo, RxFifo;
 
 
@@ -32,11 +32,11 @@ static volatile struct {
 
 void __attribute__((interrupt, auto_psv)) _U1RXInterrupt (void)
 {
-	BYTE d;
+	unsigned char d;
 	int i;
 
 
-	d = (BYTE)U1RXREG;			/* Get received data */
+	d = U1RXREG;				/* Get received data */
 	_U1RXIF = 0;				/* Clear Rx interrupt flag */
 	i = RxFifo.ct;				/* Number of bytes in the FIFO */
 	if (i < BUFFER_SIZE) {		/* Skip if FIFO is full */
@@ -82,9 +82,9 @@ int uart_test (void)
 
 /* Get a byte from Rx FIFO */
 
-BYTE uart_get (void)
+unsigned char uart_get (void)
 {
-	BYTE d;
+	unsigned char d;
 	int i;
 
 
@@ -104,7 +104,7 @@ BYTE uart_get (void)
 
 /* Put a byte into Tx FIFO */
 
-void uart_put (BYTE d)
+void uart_put (unsigned char d)
 {
 	int i;
 

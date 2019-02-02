@@ -45,7 +45,7 @@ int main (void)
 	}
 	if (rc) die(rc);
 
-#if _USE_WRITE
+#if PF_USE_WRITE
 	printf("\nOpen a file to write (write.txt).\n");
 	rc = pf_open("WRITE.TXT");
 	if (rc) die(rc);
@@ -62,7 +62,7 @@ int main (void)
 	if (rc) die(rc);
 #endif
 
-#if _USE_DIR
+#if PF_USE_DIR
 	printf("\nOpen root directory.\n");
 	rc = pf_opendir(&dir, "");
 	if (rc) die(rc);

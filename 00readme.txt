@@ -25,9 +25,10 @@ AGREEMENTS
 REVISION HISTORY
 
   Jun 15, 2009  First release.
-  Dec 14, 2009  Modified for R0.02
+  Dec 14, 2009  Modified for R0.02.
   Oct 23, 2010  Added a sample of generic uC
   Dec 3,  2010  Added a sample for PIC devices.
   Dec 7,  2010  Added a generic MMC boot loader for AVR devices.
-  Jun 10, 2014  Modified for R0.03
+  Jun 10, 2014  Modified for R0.03.
+  Jan 30, 2019  Modified for R0.03a.
 

@@ -1,16 +1,14 @@
 /*-----------------------------------------------------------------------
-/  PFF - Low level disk interface modlue include file    (C)ChaN, 2014
+/  PFF - Low level disk interface modlue include file    (C)ChaN, 2019
 /-----------------------------------------------------------------------*/
 
-#ifndef _DISKIO_DEFINED
-#define _DISKIO_DEFINED
+#include "pff.h"
+#ifndef PFF_DISKIO_DEFINED
+#define PFF_DISKIO_DEFINED
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "integer.h"
-
 
 /* Status of Disk Functions */
 typedef BYTE	DSTATUS;
@@ -42,4 +40,4 @@ DRESULT disk_writep (const BYTE* buff, DWORD sc);
 }
 #endif
 
-#endif	/* _DISKIO_DEFINED */
+#endif	/* PFF_DISKIO_DEFINED */
